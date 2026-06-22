@@ -18,7 +18,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from timm.data import resolve_data_config
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, precision_recall_fscore_support
 
 # ===== CẤU HÌNH - CHỈNH SỬA TẠI ĐÂY =====
 ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
@@ -177,6 +177,9 @@ def run_one_method(
 		"final_train_acc": history["train_acc"][-1] if history["train_acc"] else 0.0,
 		"final_val_acc": history["val_acc"][-1] if history["val_acc"] else 0.0,
 		"test_acc": test_report["overall_acc"],
+		"test_precision": test_report["precision_macro"],
+		"test_recall": test_report["recall_macro"],
+		"test_f1": test_report["f1_macro"],
 		"per_class_test_acc_min": test_report["min_acc"],
 		"per_class_test_acc_max": test_report["max_acc"],
 		"per_class_test_acc_mean": test_report["mean_acc"],
@@ -205,7 +208,7 @@ def _get_per_class_acc(
 	device: torch.device,
 	class_names: list[str],
 ) -> dict:
-	"""Tính accuracy tổng thể và per-class accuracy trên test set."""
+	"""Tính accuracy tổng thể, metrics trung bình (precision, recall, f1) và per-class accuracy trên test set."""
 	model.eval()
 	y_true, y_pred = [], []
 	for images, targets in loader:
@@ -218,6 +221,11 @@ def _get_per_class_acc(
 	# Overall accuracy
 	correct = sum(1 for t, p in zip(y_true, y_pred) if t == p)
 	overall_acc = correct / len(y_true) if y_true else 0.0
+
+	# Macro metrics
+	precision_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(
+		y_true, y_pred, average="macro", zero_division=0
+	)
 
 	# Per-class accuracy
 	class_correct = {}
@@ -236,6 +244,9 @@ def _get_per_class_acc(
 
 	return {
 		"overall_acc": overall_acc,
+		"precision_macro": float(precision_macro),
+		"recall_macro": float(recall_macro),
+		"f1_macro": float(f1_macro),
 		"min_acc": min(per_class_acc) if per_class_acc else 0.0,
 		"max_acc": max(per_class_acc) if per_class_acc else 0.0,
 		"mean_acc": float(np.mean(per_class_acc)) if per_class_acc else 0.0,
@@ -250,8 +261,9 @@ def _get_per_class_acc(
 def print_comparison_table(results: list[dict]) -> str:
 	"""In bảng so sánh đẹp và trả về string."""
 	header = (
-		f"{'Phương pháp':<35} {'Train ACC':>10} {'Val ACC':>10} "
-		f"{'Test ACC':>10} {'Min':>8} {'Max':>8} {'Mean':>8} "
+		f"{'Phương pháp':<30} {'Train ACC':>10} {'Val ACC':>10} "
+		f"{'Test ACC':>10} {'Test P':>8} {'Test R':>8} {'Test F1':>8} "
+		f"{'Min':>7} {'Max':>7} {'Mean':>7} "
 		f"{'Train':>6} {'Val':>5} {'Test':>5} {'Ep':>4}"
 	)
 	separator = "=" * len(header)
@@ -260,13 +272,16 @@ def print_comparison_table(results: list[dict]) -> str:
 
 	for r in results:
 		line = (
-			f"{r['method']:<35} "
+			f"{r['method']:<30} "
 			f"{r['final_train_acc']*100:>9.2f}% "
 			f"{r['final_val_acc']*100:>9.2f}% "
 			f"{r['test_acc']*100:>9.2f}% "
-			f"{r['per_class_test_acc_min']*100:>7.1f}% "
-			f"{r['per_class_test_acc_max']*100:>7.1f}% "
-			f"{r['per_class_test_acc_mean']*100:>7.1f}% "
+			f"{r['test_precision']*100:>7.2f}% "
+			f"{r['test_recall']*100:>7.2f}% "
+			f"{r['test_f1']*100:>7.2f}% "
+			f"{r['per_class_test_acc_min']*100:>6.1f}% "
+			f"{r['per_class_test_acc_max']*100:>6.1f}% "
+			f"{r['per_class_test_acc_mean']*100:>6.1f}% "
 			f"{r['train_size']:>6} "
 			f"{r['val_size']:>5} "
 			f"{r['test_size']:>5} "
@@ -377,9 +392,69 @@ def main() -> None:
 		with open(output_base / "all_results.json", "w", encoding="utf-8") as f:
 			json.dump(all_results, f, indent=2, ensure_ascii=False)
 
+		# Vẽ biểu đồ so sánh các phương pháp
+		try:
+			plot_comparison_chart(all_results, output_base / "comparison_chart.png")
+		except Exception as e:
+			print(f"ERROR khi vẽ biểu đồ so sánh: {e}")
+
 		print(f"\nKết quả đã lưu tại: {output_base}")
 	else:
 		print("\nKhông có kết quả nào!")
+
+
+def plot_comparison_chart(results: list[dict], save_path: Path) -> None:
+	"""Vẽ biểu đồ cột so sánh Accuracy, Precision, Recall và F1-Score của các phương pháp."""
+	import matplotlib.pyplot as plt
+
+	methods = [r["method"] for r in results]
+	test_acc = [r["test_acc"] * 100 for r in results]
+	test_precision = [r["test_precision"] * 100 for r in results]
+	test_recall = [r["test_recall"] * 100 for r in results]
+	test_f1 = [r["test_f1"] * 100 for r in results]
+
+	x = np.arange(len(methods))
+	width = 0.2
+
+	fig, ax = plt.subplots(figsize=(15, 8))
+
+	rects1 = ax.bar(x - 1.5 * width, test_acc, width, label="Test Accuracy", color="#3b82f6")
+	rects2 = ax.bar(x - 0.5 * width, test_precision, width, label="Test Precision (Macro)", color="#10b981")
+	rects3 = ax.bar(x + 0.5 * width, test_recall, width, label="Test Recall (Macro)", color="#f59e0b")
+	rects4 = ax.bar(x + 1.5 * width, test_f1, width, label="Test F1-Score (Macro)", color="#ec4899")
+
+	ax.set_ylabel("Phần trăm (%)")
+	ax.set_title("So sánh các phương pháp chia dữ liệu trên tập Test", fontsize=14, fontweight="bold", pad=15)
+	ax.set_xticks(x)
+	ax.set_xticklabels(methods, rotation=30, ha="right")
+	ax.set_ylim(0, 110)
+	ax.legend(loc="upper right", frameon=True, shadow=True)
+	ax.grid(axis="y", linestyle="--", alpha=0.5)
+
+	# Thêm nhãn giá trị trên đầu cột
+	def autolabel(rects):
+		for rect in rects:
+			height = rect.get_height()
+			ax.annotate(
+				f"{height:.1f}%",
+				xy=(rect.get_x() + rect.get_width() / 2, height),
+				xytext=(0, 3),  # 3 points vertical offset
+				textcoords="offset points",
+				ha="center",
+				va="bottom",
+				fontsize=8,
+				rotation=90,
+			)
+
+	autolabel(rects1)
+	autolabel(rects2)
+	autolabel(rects3)
+	autolabel(rects4)
+
+	fig.tight_layout()
+	plt.savefig(save_path, dpi=300)
+	plt.close()
+	print(f"Đã lưu biểu đồ so sánh tại: {save_path}")
 
 
 if __name__ == "__main__":
