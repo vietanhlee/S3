@@ -693,8 +693,8 @@ SPLIT_METHODS = {
 	"PP2_Mahalanobis_Iterative": mahalanobis_iterative_split,
 	"PP3_Group_Based": group_based_split,
 	"PP4_Hierarchical_Clustering": hierarchical_clustering_split,
-	"PP5_Cosine_Graph": cosine_graph_split,
-	"PP6_Stratified_Random": stratified_random_split,
-	"PP7_Adversarial_Validation": adversarial_validation_split,
-	"PP8_StratifiedGroupKFold": stratified_group_kfold_split,
+	# "PP5_Cosine_Graph": cosine_graph_split,
+	# "PP6_Stratified_Random": stratified_random_split,
+	# "PP7_Adversarial_Validation": adversarial_validation_split,
+	# "PP8_StratifiedGroupKFold": stratified_group_kfold_split,
 }
