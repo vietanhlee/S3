@@ -1,7 +1,7 @@
 """
 train_split_comparison.py
 =========================
-Pipeline chạy 7 phương pháp chia dữ liệu, training CNN (tf_efficientnet_b4) cho mỗi PP,
+Pipeline chạy 8 phương pháp chia dữ liệu, training CNN (tf_efficientnet_b4) cho mỗi PP,
 so sánh kết quả cuối cùng.
 
 Reuse hàm từ train.py, splitting logic từ split_methods.py.

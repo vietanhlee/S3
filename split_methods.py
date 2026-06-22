@@ -1,7 +1,7 @@
 """
 split_methods.py
 ================
-7 phương pháp chia dữ liệu để tránh data leakage cho bài toán phân loại ảnh mặt cắt gỗ.
+8 phương pháp chia dữ liệu để tránh data leakage cho bài toán phân loại ảnh mặt cắt gỗ.
 
 Mỗi hàm nhận:
 	- df: pd.DataFrame (cột: path, label, genus, species, subfolder)
@@ -612,6 +612,79 @@ def adversarial_validation_split(
 
 
 # ============================================================
+# PP8: StratifiedGroupKFold Split
+# ============================================================
+
+def stratified_group_kfold_split(
+	df: pd.DataFrame,
+	embeddings: np.ndarray,  # Không dùng, giữ signature nhất quán
+	train_ratio: float = 0.60,
+	val_ratio: float = 0.20,
+	seed: int = 42,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+	"""
+	PP8: StratifiedGroupKFold — "tiêu chuẩn vàng" cho dữ liệu vi phẫu gỗ.
+
+	Kết hợp 2 yếu tố:
+	  - Group isolation: subfolder = group, KHÔNG bao giờ cắt subfolder
+	  - Stratification: giữ tỉ lệ class đồng nhất giữa các fold
+
+	Sử dụng sklearn.model_selection.StratifiedGroupKFold.
+	Chọn n_splits sao cho test fold ≈ test_ratio, rồi tách val từ train fold.
+
+	Tham khảo: Báo cáo 2.md — StratifiedGroupKFold là phương pháp tối ưu nhất
+	khi dữ liệu vừa có cấu trúc nhóm (cùng mẫu gỗ) vừa mất cân bằng lớp.
+	"""
+	from sklearn.model_selection import StratifiedGroupKFold as SKF_Splitter
+
+	test_ratio = 1.0 - train_ratio - val_ratio
+
+	# Tính n_splits sao cho mỗi fold ≈ test_ratio (VD: 0.20 → 5 folds)
+	n_splits_test = max(3, int(round(1.0 / test_ratio)))
+
+	# Tạo group array từ subfolder
+	# Mỗi (label, subfolder) là 1 group unique
+	groups = (df["label"] + "___" + df["subfolder"]).values
+	labels = df["label"].values
+
+	# Bước 1: Tách test fold bằng StratifiedGroupKFold
+	sgkf_test = SKF_Splitter(n_splits=n_splits_test, shuffle=False, random_state=None)
+
+	# Lấy fold đầu tiên làm test
+	trainval_indices = None
+	test_indices = None
+	for tv_idx, te_idx in sgkf_test.split(df.index, labels, groups):
+		trainval_indices = tv_idx
+		test_indices = te_idx
+		break
+
+	df_trainval = df.iloc[trainval_indices].reset_index(drop=True)
+	df_test_raw = df.iloc[test_indices]
+
+	# Bước 2: Tách val từ trainval bằng StratifiedGroupKFold
+	val_fraction = val_ratio / (train_ratio + val_ratio)
+	n_splits_val = max(3, int(round(1.0 / val_fraction)))
+
+	groups_tv = (df_trainval["label"] + "___" + df_trainval["subfolder"]).values
+	labels_tv = df_trainval["label"].values
+
+	sgkf_val = SKF_Splitter(n_splits=n_splits_val, shuffle=False, random_state=None)
+
+	train_indices_final = None
+	val_indices_final = None
+	for tr_idx, va_idx in sgkf_val.split(df_trainval.index, labels_tv, groups_tv):
+		train_indices_final = tr_idx
+		val_indices_final = va_idx
+		break
+
+	df_train = df_trainval.iloc[train_indices_final].reset_index(drop=True)
+	df_val = df_trainval.iloc[val_indices_final].reset_index(drop=True)
+	df_test = df_test_raw.reset_index(drop=True)
+
+	return df_train, df_val, df_test
+
+
+# ============================================================
 # Registry: danh sách tất cả phương pháp
 # ============================================================
 
@@ -623,4 +696,5 @@ SPLIT_METHODS = {
 	"PP5_Cosine_Graph": cosine_graph_split,
 	"PP6_Stratified_Random": stratified_random_split,
 	"PP7_Adversarial_Validation": adversarial_validation_split,
+	"PP8_StratifiedGroupKFold": stratified_group_kfold_split,
 }
