@@ -768,9 +768,25 @@ def evaluate_and_report(
 		genus_true = [y_true[i] for i in indices]
 		genus_pred = [y_pred[i] for i in indices]
 		species_classes = sorted({class_names[idx] for idx in genus_true})
-		pred_labels = [class_names[idx] for idx in genus_pred]
-		if any(label not in species_classes for label in pred_labels):
-			species_classes = sorted(set(species_classes) | set(pred_labels))
+		pred_labels = []
+		has_other_genus = False
+		for idx in genus_pred:
+			pred_label = class_names[idx]
+			pred_genus = split_genus_species(pred_label)[0]
+			if pred_genus == genus:
+				pred_labels.append(pred_label)
+			else:
+				pred_labels.append("Other Genus")
+				has_other_genus = True
+
+		for label in pred_labels:
+			if label != "Other Genus" and label not in species_classes:
+				species_classes.append(label)
+
+		species_classes = sorted(species_classes)
+		if has_other_genus:
+			species_classes.append("Other Genus")
+
 		species_to_idx = {name: i for i, name in enumerate(species_classes)}
 		mapped_true = [species_to_idx[class_names[idx]] for idx in genus_true]
 		mapped_pred = [species_to_idx[label] for label in pred_labels]
