@@ -153,10 +153,14 @@ def run_one_method(
 		weight_decay=WEIGHT_DECAY,
 	)
 
+	# Learning Rate Scheduler (Cosine Annealing)
+	scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
+
 	# Training
 	history = train_model(
 		model, train_loader, val_loader, optimizer, criterion,
 		device, epochs=EPOCHS, patience=PATIENCE, output_dir=output_dir,
+		scheduler=scheduler,
 	)
 	plot_training_curves(history, output_dir)
 

@@ -1085,7 +1085,7 @@ def main() -> None:
 	val_ds = ImageListDataset(df_val, class_to_idx, transform=eval_tf)
 	test_ds = ImageListDataset(df_test, class_to_idx, transform=eval_tf)
 
-	num_workers = min(4, os.cpu_count() or 1)
+	num_workers = min(5, os.cpu_count() or 1)
 	train_loader = DataLoader(
 		train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=num_workers, pin_memory=True
 	)
@@ -1099,6 +1099,9 @@ def main() -> None:
 	criterion = FocalLoss(gamma=FOCAL_GAMMA, alpha=FOCAL_ALPHA)
 	optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 
+	# Learning Rate Scheduler (Cosine Annealing)
+	scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
+
 	history = train_model(
 		model,
 		train_loader,
@@ -1109,6 +1112,7 @@ def main() -> None:
 		epochs=EPOCHS,
 		patience=PATIENCE,
 		output_dir=output_dir,
+		scheduler=scheduler,
 	)
 	plot_training_curves(history, output_dir)
 
