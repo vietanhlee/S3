@@ -737,6 +737,7 @@ def train_model(
 	epochs: int,
 	patience: int,
 	output_dir: Path,
+	scheduler=None,
 ) -> dict:
 	history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 	best_val_acc = 0.0
@@ -757,11 +758,16 @@ def train_model(
 		history["val_loss"].append(val_loss)
 		history["val_acc"].append(val_acc)
 
+		current_lr = optimizer.param_groups[0]["lr"]
 		print(
 			f"Epoch {epoch}/{epochs} - "
 			f"train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, "
-			f"val_loss={val_loss:.4f}, val_acc={val_acc:.4f}"
+			f"val_loss={val_loss:.4f}, val_acc={val_acc:.4f}, "
+			f"lr={current_lr:.6f}"
 		)
+
+		if scheduler is not None:
+			scheduler.step()
 
 		last_path = output_dir / f"last_epoch.pth"
 		save_checkpoint(last_path, model, optimizer, epoch, best_val_acc, history)
