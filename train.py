@@ -391,6 +391,9 @@ def compute_embeddings(
 	device: torch.device,
 ) -> np.ndarray:
 	model = build_efficientnetb4_embedding_model().to(device)
+	if device.type == "cuda" and torch.cuda.device_count() > 1:
+		print(f"Phát hiện {torch.cuda.device_count()} GPUs. Sử dụng nn.DataParallel cho Embedding Extraction.")
+		model = nn.DataParallel(model)
 	model.eval()
 	transform = build_embedding_transform(model)
 
@@ -712,13 +715,14 @@ def save_checkpoint(
 	best_val_acc: float,
 	history: dict,
 ) -> None:
+	raw_model = model.module if isinstance(model, nn.DataParallel) else model
 	payload = {
 		"epoch": epoch,
-		"model_state": model.state_dict(),
+		"model_state": raw_model.state_dict(),
 		"optimizer_state": optimizer.state_dict(),
 		"best_val_acc": best_val_acc,
 		"history": history,
-		"model_name": getattr(model, "model_name", "model"),
+		"model_name": getattr(raw_model, "model_name", "model"),
 	}
 	torch.save(payload, path)
 
@@ -737,7 +741,8 @@ def train_model(
 	history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 	best_val_acc = 0.0
 	epochs_no_improve = 0
-	model_name = getattr(model, "model_name", "model")
+	raw_model = model.module if isinstance(model, nn.DataParallel) else model
+	model_name = getattr(raw_model, "model_name", "model")
 
 	for epoch in range(1, epochs + 1):
 		train_loss, train_acc = train_one_epoch(
@@ -764,7 +769,7 @@ def train_model(
 		if val_acc > best_val_acc:
 			best_val_acc = val_acc
 			best_path = output_dir / f"best_model_{model_name}.pth"
-			torch.save(model.state_dict(), best_path)
+			torch.save(raw_model.state_dict(), best_path)
 			epochs_no_improve = 0
 		else:
 			epochs_no_improve += 1
@@ -1066,6 +1071,9 @@ def main() -> None:
 	)
 	
 	model = model.to(device)
+	if device.type == "cuda" and torch.cuda.device_count() > 1:
+		print(f"Phát hiện {torch.cuda.device_count()} GPUs. Sử dụng nn.DataParallel.")
+		model = nn.DataParallel(model)
  
 	cfg = resolve_data_config({}, model=model)
 	img_size = cfg.get("input_size", (3, 224, 224))[-1]
@@ -1104,9 +1112,10 @@ def main() -> None:
 	)
 	plot_training_curves(history, output_dir)
 
-	best_path = output_dir / f"best_model_{model.model_name}.pth"
+	raw_model = model.module if isinstance(model, nn.DataParallel) else model
+	best_path = output_dir / f"best_model_{raw_model.model_name}.pth"
 	if best_path.exists():
-		model.load_state_dict(torch.load(best_path, map_location=device))
+		raw_model.load_state_dict(torch.load(best_path, map_location=device))
 
 	evaluate_and_report(model, val_loader, device, class_names, output_dir, prefix="val")
 	evaluate_and_report(model, test_loader, device, class_names, output_dir, prefix="test")

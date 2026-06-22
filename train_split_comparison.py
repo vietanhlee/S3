@@ -124,6 +124,9 @@ def run_one_method(
 		f"frozen={model_info['frozen_params']:,}"
 	)
 	model = model.to(device)
+	if device.type == "cuda" and torch.cuda.device_count() > 1:
+		print(f"[{method_name}] Phát hiện {torch.cuda.device_count()} GPUs. Sử dụng nn.DataParallel.")
+		model = torch.nn.DataParallel(model)
 
 	# Transforms
 	cfg = resolve_data_config({}, model=model)
@@ -160,7 +163,8 @@ def run_one_method(
 	# Load best model
 	best_path = output_dir / f"best_model_{MODEL_NAME}.pth"
 	if best_path.exists():
-		model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
+		raw_model = model.module if isinstance(model, torch.nn.DataParallel) else model
+		raw_model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
 		print(f"[{method_name}] Loaded best model from {best_path}")
 
 	# Evaluate
