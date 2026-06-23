@@ -267,6 +267,7 @@ def group_based_split(
 	"""
 	PP3: Chia theo đơn vị subfolder, KHÔNG bao giờ cắt subfolder.
 	Mỗi subfolder đại diện cho 1 nhóm ảnh cùng mẫu gỗ/nguồn thu thập.
+	Nếu class có quá ít subfolders (< 3), kích hoạt fallback chia ngẫu nhiên mức ảnh để tránh support=0.
 	"""
 	rng = random.Random(seed)
 	train_idx, val_idx, test_idx = [], [], []
@@ -277,23 +278,45 @@ def group_based_split(
 		rng.shuffle(subfolder_names)
 
 		n_total = len(group)
-		target_train = int(n_total * train_ratio)
-		target_val = int(n_total * val_ratio)
+		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
 
-		current_train, current_val = 0, 0
+		# Fallback nếu số lượng subfolders quá ít không đủ chia cho 3 tập (train, val, test)
+		if len(subfolder_names) < 3 or n_total < 3:
+			indices = sorted(group.index.tolist())
+			rng.shuffle(indices)
+			train_idx.extend(indices[:train_count])
+			val_idx.extend(indices[train_count:train_count + val_count])
+			test_idx.extend(indices[train_count + val_count:])
+			continue
 
-		for sf_name in subfolder_names:
+		# Đảm bảo gán ít nhất 1 subfolder cho test, 1 cho val
+		test_sf = subfolder_names[0]
+		val_sf = subfolder_names[1]
+		
+		test_indices_init = subfolder_groups.get_group(test_sf).index.tolist()
+		val_indices_init = subfolder_groups.get_group(val_sf).index.tolist()
+		
+		test_idx.extend(test_indices_init)
+		val_idx.extend(val_indices_init)
+		
+		current_train = 0
+		current_val = len(val_indices_init)
+		current_test = len(test_indices_init)
+
+		# Phân bổ các subfolder còn lại
+		for sf_name in subfolder_names[2:]:
 			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
 			sf_count = len(sf_indices)
 
-			if current_train < target_train:
+			if current_train < train_count:
 				train_idx.extend(sf_indices)
 				current_train += sf_count
-			elif current_val < target_val:
+			elif current_val < val_count:
 				val_idx.extend(sf_indices)
 				current_val += sf_count
 			else:
 				test_idx.extend(sf_indices)
+				current_test += sf_count
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
@@ -483,32 +506,140 @@ def stratified_random_split(
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP6: Baseline — chia ngẫu nhiên giữ tỉ lệ class bằng sklearn stratified split.
-	Không chống leakage, dùng để so sánh.
+	PP6: Baseline — chia ngẫu nhiên giữ tỉ lệ class.
+	Được viết lại thủ công để tránh crash sklearn.model_selection.train_test_split
+	khi có class có quá ít mẫu vật (ví dụ 1 hoặc 2 mẫu).
 	"""
-	test_ratio = 1.0 - train_ratio - val_ratio
+	rng = random.Random(seed)
+	train_idx, val_idx, test_idx = [], [], []
 
-	# Bước 1: tách test
-	df_trainval, df_test = train_test_split(
-		df,
-		test_size=test_ratio,
-		stratify=df["label"],
-		random_state=seed,
-	)
+	for _, group in df.groupby("label"):
+		indices = sorted(group.index.tolist())
+		rng.shuffle(indices)
+		
+		n_total = len(indices)
+		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+		
+		train_idx.extend(indices[:train_count])
+		val_idx.extend(indices[train_count:train_count + val_count])
+		test_idx.extend(indices[train_count + val_count:])
 
-	# Bước 2: tách val từ trainval
-	val_fraction = val_ratio / (train_ratio + val_ratio)
-	df_train, df_val = train_test_split(
-		df_trainval,
-		test_size=val_fraction,
-		stratify=df_trainval["label"],
-		random_state=seed,
-	)
-
-	df_train = df_train.reset_index(drop=True)
-	df_val = df_val.reset_index(drop=True)
-	df_test = df_test.reset_index(drop=True)
+	df_train = _shuffle_df(df.loc[train_idx], seed)
+	df_val = _shuffle_df(df.loc[val_idx], seed)
+	df_test = _shuffle_df(df.loc[test_idx], seed)
 	return df_train, df_val, df_test
+
+
+def agglom_stratified_split(
+	df: pd.DataFrame,
+	embeddings: np.ndarray,
+	train_ratio: float = 0.60,
+	val_ratio: float = 0.20,
+	seed: int = 42,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+	"""
+	PP9: Agglom Stratified — Gom ảnh bằng AgglomerativeClustering cho mỗi class.
+	Chia các cụm thành 3 dải khoảng cách đến centroid của class (Gần, Vừa, Xa).
+	Phân bổ các cụm từ mỗi dải khoảng cách vào train/val/test theo tỷ lệ.
+	"""
+	if len(df) != embeddings.shape[0]:
+		raise ValueError("Embeddings length does not match dataframe length")
+
+	rng = random.Random(seed)
+	train_idx, val_idx, test_idx = [], [], []
+
+	for label, group in tqdm(df.groupby("label"), desc="PP9-AgglomStratified"):
+		indices = sorted(group.index.tolist())
+		n_total = len(indices)
+		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+
+		if n_total <= 5:
+			# Quá ít mẫu, chia ngẫu nhiên
+			rng_local = random.Random(seed + hash(label))
+			shuffled = indices.copy()
+			rng_local.shuffle(shuffled)
+			train_idx.extend(shuffled[:train_count])
+			val_idx.extend(shuffled[train_count:train_count + val_count])
+			test_idx.extend(shuffled[train_count + val_count:])
+			continue
+
+		subset_emb = embeddings[np.array(indices)]
+		class_centroid = subset_emb.mean(axis=0)
+
+		# Phân cụm Agglomerative
+		n_clusters = max(3, min(12, n_total // 3))
+		Z = linkage(subset_emb, method="ward")
+		cluster_labels = fcluster(Z, t=n_clusters, criterion="maxclust")
+
+		cluster_ids = sorted(set(cluster_labels))
+		clusters_info = []
+		for cid in cluster_ids:
+			mask = cluster_labels == cid
+			comp_emb = subset_emb[mask]
+			comp_centroid = comp_emb.mean(axis=0)
+			dist = float(np.linalg.norm(comp_centroid - class_centroid))
+			comp_indices = [indices[j] for j in range(n_total) if cluster_labels[j] == cid]
+			clusters_info.append((dist, comp_indices))
+
+		# Sắp xếp các cụm theo khoảng cách từ gần đến xa tâm class
+		clusters_info.sort(key=lambda x: x[0])
+		K = len(clusters_info)
+
+		# Chia thành 3 dải khoảng cách: Gần, Vừa, Xa
+		near_num = max(1, K // 3)
+		mid_num = max(1, (K - near_num) // 2)
+		
+		near_clusters = clusters_info[:near_num]
+		mid_clusters = clusters_info[near_num:near_num + mid_num]
+		far_clusters = clusters_info[near_num + mid_num:]
+
+		# Biến theo dõi số lượng ảnh đã phân bổ cho mỗi split của class này
+		curr_train, curr_val, curr_test = 0, 0, 0
+
+		# Hàm phụ phân bổ các cụm trong một dải khoảng cách
+		def allocate_band_clusters(band_clusters, target_tr, target_va, target_te):
+			nonlocal curr_train, curr_val, curr_test
+			# Sắp xếp các cụm trong dải khoảng cách ngẫu nhiên để tránh bias
+			rng_local = random.Random(seed + hash(label))
+			shuffled_band = band_clusters.copy()
+			rng_local.shuffle(shuffled_band)
+
+			for _, c_indices in shuffled_band:
+				c_count = len(c_indices)
+				# Quyết định đưa vào split nào đang thiếu nhiều nhất so với tỷ lệ mục tiêu
+				diff_tr = max(0, target_tr - curr_train)
+				diff_va = max(0, target_va - curr_val)
+				diff_te = max(0, target_te - curr_test)
+
+				total_diff = diff_tr + diff_va + diff_te
+				if total_diff == 0:
+					min_split = min(curr_train, curr_val, curr_test)
+					if min_split == curr_train:
+						train_idx.extend(c_indices)
+						curr_train += c_count
+					elif min_split == curr_val:
+						val_idx.extend(c_indices)
+						curr_val += c_count
+					else:
+						test_idx.extend(c_indices)
+						curr_test += c_count
+					continue
+
+				max_diff = max(diff_tr, diff_va, diff_te)
+				if max_diff == diff_tr:
+					train_idx.extend(c_indices)
+					curr_train += c_count
+				elif max_diff == diff_va:
+					val_idx.extend(c_indices)
+					curr_val += c_count
+				else:
+					test_idx.extend(c_indices)
+					curr_test += c_count
+
+		# Phân bổ cho từng dải
+		allocate_band_clusters(near_clusters, train_count, val_count, test_count)
+		allocate_band_clusters(mid_clusters, train_count, val_count, test_count)
+		allocate_band_clusters(far_clusters, train_count, val_count, test_count)
 
 
 # ============================================================
@@ -689,7 +820,6 @@ def stratified_group_kfold_split(
 # ============================================================
 
 SPLIT_METHODS = {
-	"PP1_Mahalanobis_Fixed": mahalanobis_fixed_split,
 	"PP2_Mahalanobis_Iterative": mahalanobis_iterative_split,
 	"PP3_Group_Based": group_based_split,
 	"PP4_Hierarchical_Clustering": hierarchical_clustering_split,
@@ -697,4 +827,5 @@ SPLIT_METHODS = {
 	"PP6_Stratified_Random": stratified_random_split,
 	"PP7_Adversarial_Validation": adversarial_validation_split,
 	"PP8_StratifiedGroupKFold": stratified_group_kfold_split,
+	"PP9_Agglom_Stratified": agglom_stratified_split,
 }
