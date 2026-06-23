@@ -209,8 +209,8 @@ def mahalanobis_iterative_split(
 	eps: float = 1e-6,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP2: Tính khoảng cách Mahalanobis, nhưng TÁI TÍNH centroid sau mỗi lần rút ảnh.
-	Được tối ưu hóa bằng PCA giảm chiều trước khi tính khoảng cách để tăng tốc độ.
+	PP2: Tính khoảng cách Mahalanobis, TÁI TÍNH centroid sau mỗi lần rút subfolder.
+	Đảm bảo KHÔNG rò rỉ dữ liệu mức subfolder bằng cách chia ở cấp độ subfolder.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
@@ -218,44 +218,79 @@ def mahalanobis_iterative_split(
 	train_idx, val_idx, test_idx = [], [], []
 
 	for _, group in tqdm(df.groupby("label"), desc="PP2-MahalIter"):
-		indices = sorted(group.index.tolist())
-		n_total = len(indices)
-		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+		subfolder_groups = group.groupby("subfolder")
+		subfolder_names = list(subfolder_groups.groups.keys())
+		n_subfolders = len(subfolder_names)
 
-		if n_total == 0:
+		if n_subfolders == 0:
 			continue
 
-		subset_emb = embeddings[np.array(indices)]
-		# Áp dụng PCA giảm chiều để tăng tốc tính toán ma trận hiệp phương sai
-		if n_total >= 5:
-			d_prime = min(n_total - 2, 32)
+		# Gom đặc trưng cho từng subfolder
+		subfolder_embs = []
+		for sf_name in subfolder_names:
+			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
+			sf_emb_mean = embeddings[sf_indices].mean(axis=0)
+			subfolder_embs.append(sf_emb_mean)
+		
+		subfolder_embs = np.array(subfolder_embs)
+
+		# Trường hợp đặc biệt
+		if n_subfolders == 1:
+			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+			continue
+
+		if n_subfolders == 2:
+			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
+			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+			if len(g0) >= len(g1):
+				train_idx.extend(g0)
+				test_idx.extend(g1)
+			else:
+				train_idx.extend(g1)
+				test_idx.extend(g0)
+			continue
+
+		# Giảm chiều bằng PCA nếu số lượng subfolders lớn
+		if n_subfolders >= 5:
+			d_prime = min(n_subfolders - 2, 32)
 			if d_prime >= 2:
 				pca = PCA(n_components=d_prime, random_state=seed)
-				subset_emb = pca.fit_transform(subset_emb)
+				subfolder_embs = pca.fit_transform(subfolder_embs)
 
-		remaining_pos = list(range(n_total))
+		train_sf_count, val_sf_count, test_sf_count = compute_split_counts(n_subfolders, train_ratio, val_ratio)
+
+		remaining_pos = list(range(n_subfolders))
 		picked_test_pos = []
 		picked_val_pos = []
 
-		# Rút test: lặp, mỗi lần tính lại centroid và rút ảnh xa nhất
-		for _ in range(min(test_count, len(remaining_pos))):
-			cur_embs = subset_emb[remaining_pos]
+		# Rút test
+		for _ in range(min(test_sf_count, len(remaining_pos))):
+			cur_embs = subfolder_embs[remaining_pos]
 			dists = _mahalanobis_distances(cur_embs, eps=eps)
 			max_pos = int(np.argmax(dists))
 			picked_test_pos.append(remaining_pos[max_pos])
 			remaining_pos.pop(max_pos)
 
-		# Rút val: tương tự
-		for _ in range(min(val_count, len(remaining_pos))):
-			cur_embs = subset_emb[remaining_pos]
+		# Rút val
+		for _ in range(min(val_sf_count, len(remaining_pos))):
+			cur_embs = subfolder_embs[remaining_pos]
 			dists = _mahalanobis_distances(cur_embs, eps=eps)
 			max_pos = int(np.argmax(dists))
 			picked_val_pos.append(remaining_pos[max_pos])
 			remaining_pos.pop(max_pos)
 
-		test_idx.extend([indices[pos] for pos in picked_test_pos])
-		val_idx.extend([indices[pos] for pos in picked_val_pos])
-		train_idx.extend([indices[pos] for pos in remaining_pos])
+		# Phân bổ ngược lại ảnh
+		for pos in picked_test_pos:
+			sf_name = subfolder_names[pos]
+			test_idx.extend(subfolder_groups.get_group(sf_name).index.tolist())
+		
+		for pos in picked_val_pos:
+			sf_name = subfolder_names[pos]
+			val_idx.extend(subfolder_groups.get_group(sf_name).index.tolist())
+
+		for pos in remaining_pos:
+			sf_name = subfolder_names[pos]
+			train_idx.extend(subfolder_groups.get_group(sf_name).index.tolist())
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
@@ -277,7 +312,6 @@ def group_based_split(
 	"""
 	PP3: Chia theo đơn vị subfolder, KHÔNG bao giờ cắt subfolder.
 	Mỗi subfolder đại diện cho 1 nhóm ảnh cùng mẫu gỗ/nguồn thu thập.
-	Nếu class có quá ít subfolders (< 3), kích hoạt fallback chia ngẫu nhiên mức ảnh để tránh support=0.
 	"""
 	rng = random.Random(seed)
 	train_idx, val_idx, test_idx = [], [], []
@@ -288,45 +322,48 @@ def group_based_split(
 		rng.shuffle(subfolder_names)
 
 		n_total = len(group)
-		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
 
-		# Fallback nếu số lượng subfolders quá ít không đủ chia cho 3 tập (train, val, test)
-		if len(subfolder_names) < 3 or n_total < 3:
-			indices = sorted(group.index.tolist())
-			rng.shuffle(indices)
-			train_idx.extend(indices[:train_count])
-			val_idx.extend(indices[train_count:train_count + val_count])
-			test_idx.extend(indices[train_count + val_count:])
+		# Phân bổ nguyên vẹn các subfolders
+		if len(subfolder_names) == 1:
+			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
 			continue
 
-		# Đảm bảo gán ít nhất 1 subfolder cho test, 1 cho val
-		test_sf = subfolder_names[0]
-		val_sf = subfolder_names[1]
-		
-		test_indices_init = subfolder_groups.get_group(test_sf).index.tolist()
-		val_indices_init = subfolder_groups.get_group(val_sf).index.tolist()
-		
-		test_idx.extend(test_indices_init)
-		val_idx.extend(val_indices_init)
-		
-		current_train = 0
-		current_val = len(val_indices_init)
-		current_test = len(test_indices_init)
+		if len(subfolder_names) == 2:
+			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
+			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+			if len(g0) >= len(g1):
+				train_idx.extend(g0)
+				test_idx.extend(g1)
+			else:
+				train_idx.extend(g1)
+				test_idx.extend(g0)
+			continue
 
-		# Phân bổ các subfolder còn lại
+		# >= 3 subfolders
+		target_train = int(n_total * train_ratio)
+		target_val = int(n_total * val_ratio)
+
+		# Đảm bảo mỗi tập nhận ít nhất 1 subfolder trước
+		test_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+		val_idx.extend(subfolder_groups.get_group(subfolder_names[1]).index.tolist())
+
+		curr_train = 0
+		curr_val = len(subfolder_groups.get_group(subfolder_names[1]).index.tolist())
+		curr_test = len(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+
 		for sf_name in subfolder_names[2:]:
 			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
 			sf_count = len(sf_indices)
 
-			if current_train < train_count:
+			if curr_train < target_train:
 				train_idx.extend(sf_indices)
-				current_train += sf_count
-			elif current_val < val_count:
+				curr_train += sf_count
+			elif curr_val < target_val:
 				val_idx.extend(sf_indices)
-				current_val += sf_count
+				curr_val += sf_count
 			else:
 				test_idx.extend(sf_indices)
-				current_test += sf_count
+				curr_test += sf_count
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
@@ -346,63 +383,98 @@ def hierarchical_clustering_split(
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP4: Agglomerative Clustering (Ward) trên embedding.
-	Gán nguyên cụm vào test/val/train, ưu tiên cụm xa centroid chung nhất cho test.
+	PP4: Agglomerative Clustering (Ward) trên centroid embeddings của subfolders.
+	Gán nguyên cụm subfolder vào test/val/train, KHÔNG bao giờ chia cắt subfolder.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
 
 	train_idx, val_idx, test_idx = [], [], []
 
-	for label, group in tqdm(df.groupby("label"), desc="PP4-HierClust"):
-		indices = sorted(group.index.tolist())
-		n_total = len(indices)
-		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+	for _, group in tqdm(df.groupby("label"), desc="PP4-HierClust"):
+		subfolder_groups = group.groupby("subfolder")
+		subfolder_names = list(subfolder_groups.groups.keys())
+		n_subfolders = len(subfolder_names)
 
-		if n_total <= 3:
-			# Quá ít mẫu, chia đơn giản
-			train_idx.extend(indices[:train_count])
-			val_idx.extend(indices[train_count:train_count + val_count])
-			test_idx.extend(indices[train_count + val_count:])
+		if n_subfolders == 0:
 			continue
 
-		subset_emb = embeddings[np.array(indices)]
+		if n_subfolders == 1:
+			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+			continue
 
-		# Số clusters = max(3, số subfolder)
-		n_subfolders = group["subfolder"].nunique()
-		n_clusters = max(3, n_subfolders)
-		n_clusters = min(n_clusters, n_total)
+		if n_subfolders == 2:
+			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
+			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+			if len(g0) >= len(g1):
+				train_idx.extend(g0)
+				test_idx.extend(g1)
+			else:
+				train_idx.extend(g1)
+				test_idx.extend(g0)
+			continue
 
-		# Agglomerative clustering
-		Z = linkage(subset_emb, method="ward")
+		# Tính subfolder embeddings
+		subfolder_embs = []
+		for sf_name in subfolder_names:
+			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
+			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
+		subfolder_embs = np.array(subfolder_embs)
+
+		# Số cụm subfolders
+		n_clusters = max(3, n_subfolders // 3)
+		n_clusters = min(n_clusters, n_subfolders)
+
+		# Agglomerative clustering ở cấp độ subfolder
+		Z = linkage(subfolder_embs, method="ward")
 		cluster_labels = fcluster(Z, t=n_clusters, criterion="maxclust")
 
-		# Tính centroid chung + khoảng cách mỗi cluster đến centroid
-		global_centroid = subset_emb.mean(axis=0)
+		# Tính centroid chung và khoảng cách mỗi cluster đến centroid chung
+		global_centroid = subfolder_embs.mean(axis=0)
 		cluster_ids = sorted(set(cluster_labels))
 		cluster_info = []
+
 		for cid in cluster_ids:
 			mask = cluster_labels == cid
-			cluster_centroid = subset_emb[mask].mean(axis=0)
+			cluster_centroid = subfolder_embs[mask].mean(axis=0)
 			dist_to_global = float(np.linalg.norm(cluster_centroid - global_centroid))
-			cluster_indices = [indices[j] for j in range(n_total) if cluster_labels[j] == cid]
-			cluster_info.append((cid, dist_to_global, cluster_indices))
+			
+			# Gom tất cả các index ảnh của các subfolders thuộc cluster này
+			cluster_img_indices = []
+			for idx_sf, sf_lbl in enumerate(cluster_labels):
+				if sf_lbl == cid:
+					sf_name = subfolder_names[idx_sf]
+					cluster_img_indices.extend(subfolder_groups.get_group(sf_name).index.tolist())
+			
+			cluster_info.append((cid, dist_to_global, cluster_img_indices))
 
 		# Sort: cụm xa nhất trước
 		cluster_info.sort(key=lambda x: -x[1])
 
-		# Gán: cụm xa nhất → test, tiếp → val, còn lại → train
-		current_test, current_val = 0, 0
-		for _, _, c_indices in cluster_info:
+		# Phân bổ nguyên vẹn các cụm
+		n_total = len(group)
+		target_train = int(n_total * train_ratio)
+		target_val = int(n_total * val_ratio)
+
+		# Đảm bảo mỗi tập nhận ít nhất 1 cụm subfolder
+		test_idx.extend(cluster_info[0][2])
+		val_idx.extend(cluster_info[1][2])
+
+		curr_train = 0
+		curr_val = len(cluster_info[1][2])
+		curr_test = len(cluster_info[0][2])
+
+		for _, _, c_indices in cluster_info[2:]:
 			c_count = len(c_indices)
-			if current_test < test_count:
-				test_idx.extend(c_indices)
-				current_test += c_count
-			elif current_val < val_count:
-				val_idx.extend(c_indices)
-				current_val += c_count
-			else:
+			if curr_train < target_train:
 				train_idx.extend(c_indices)
+				curr_train += c_count
+			elif curr_val < target_val:
+				val_idx.extend(c_indices)
+				curr_val += c_count
+			else:
+				test_idx.extend(c_indices)
+				curr_test += c_count
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
@@ -423,80 +495,101 @@ def cosine_graph_split(
 	cosine_threshold: float = 0.92,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP5: Xây đồ thị cosine similarity, tìm connected components, chia theo component.
-	Mỗi component = 1 đơn vị không chia cắt.
+	PP5: Xây đồ thị cosine similarity ở cấp độ subfolder, tìm connected components, chia theo component.
+	Tuyệt đối KHÔNG chia cắt subfolder để tránh rò rỉ dữ liệu.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
 
-	rng = random.Random(seed)
 	train_idx, val_idx, test_idx = [], [], []
 
-	for label, group in tqdm(df.groupby("label"), desc="PP5-CosGraph"):
-		indices = sorted(group.index.tolist())
-		n_total = len(indices)
-		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+	for _, group in tqdm(df.groupby("label"), desc="PP5-CosGraph"):
+		subfolder_groups = group.groupby("subfolder")
+		subfolder_names = list(subfolder_groups.groups.keys())
+		n_subfolders = len(subfolder_names)
 
-		if n_total <= 3:
-			train_idx.extend(indices[:train_count])
-			val_idx.extend(indices[train_count:train_count + val_count])
-			test_idx.extend(indices[train_count + val_count:])
+		if n_subfolders == 0:
 			continue
 
-		subset_emb = embeddings[np.array(indices)]
+		if n_subfolders == 1:
+			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+			continue
 
-		# Tính cosine similarity matrix
-		sim_matrix = cosine_similarity(subset_emb)
+		if n_subfolders == 2:
+			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
+			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+			if len(g0) >= len(g1):
+				train_idx.extend(g0)
+				test_idx.extend(g1)
+			else:
+				train_idx.extend(g1)
+				test_idx.extend(g0)
+			continue
+
+		# Tính subfolder embeddings
+		subfolder_embs = []
+		for sf_name in subfolder_names:
+			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
+			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
+		subfolder_embs = np.array(subfolder_embs)
+
+		# Tính cosine similarity giữa các subfolder embeddings
+		sim_matrix = cosine_similarity(subfolder_embs)
 		np.fill_diagonal(sim_matrix, 0.0)
 
 		# Xây adjacency matrix (sparse)
 		adj = (sim_matrix >= cosine_threshold).astype(np.float32)
 		sparse_adj = csr_matrix(adj)
 
-		# Tìm connected components
+		# Tìm connected components của subfolders
 		n_components, component_labels = connected_components(sparse_adj, directed=False)
 
-		# Gom thành danh sách component
+		# Gom thành danh sách component subfolders
 		components = []
+		global_centroid = subfolder_embs.mean(axis=0)
+
 		for cid in range(n_components):
 			mask = component_labels == cid
-			comp_indices = [indices[j] for j in range(n_total) if component_labels[j] == cid]
-			# Tính khoảng cách centroid component đến centroid chung
-			comp_emb = subset_emb[mask]
+			comp_emb = subfolder_embs[mask]
 			comp_centroid = comp_emb.mean(axis=0)
-			global_centroid = subset_emb.mean(axis=0)
 			dist = float(np.linalg.norm(comp_centroid - global_centroid))
-			components.append((cid, dist, comp_indices))
+			
+			# Gom tất cả các index ảnh của các subfolders thuộc component này
+			comp_img_indices = []
+			for idx_sf, comp_lbl in enumerate(component_labels):
+				if comp_lbl == cid:
+					sf_name = subfolder_names[idx_sf]
+					comp_img_indices.extend(subfolder_groups.get_group(sf_name).index.tolist())
+			
+			components.append((cid, dist, comp_img_indices))
 
 		# Sort: component xa nhất trước
 		components.sort(key=lambda x: -x[1])
 
-		# Gán
-		current_test, current_val = 0, 0
-		for _, _, c_indices in components:
+		# Phân bổ nguyên vẹn các components
+		n_total = len(group)
+		target_train = int(n_total * train_ratio)
+		target_val = int(n_total * val_ratio)
+
+		# Đảm bảo mỗi tập nhận ít nhất 1 component
+		test_idx.extend(components[0][2])
+		val_idx.extend(components[1][2])
+
+		curr_train = 0
+		curr_val = len(components[1][2])
+		curr_test = len(components[0][2])
+
+		for _, _, c_indices in components[2:]:
 			c_count = len(c_indices)
-
-			# Nếu component quá lớn (> 50% class), cho phép chia cắt
-			if c_count > n_total * 0.5:
-				rng_local = random.Random(seed)
-				rng_local.shuffle(c_indices)
-				needed_test = max(0, test_count - current_test)
-				needed_val = max(0, val_count - current_val)
-				test_idx.extend(c_indices[:needed_test])
-				val_idx.extend(c_indices[needed_test:needed_test + needed_val])
-				train_idx.extend(c_indices[needed_test + needed_val:])
-				current_test += needed_test
-				current_val += needed_val
-				continue
-
-			if current_test < test_count:
-				test_idx.extend(c_indices)
-				current_test += c_count
-			elif current_val < val_count:
-				val_idx.extend(c_indices)
-				current_val += c_count
-			else:
+			if curr_train < target_train:
 				train_idx.extend(c_indices)
+				curr_train += c_count
+			elif curr_val < target_val:
+				val_idx.extend(c_indices)
+				curr_val += c_count
+			else:
+				test_idx.extend(c_indices)
+				curr_test += c_count
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
@@ -548,50 +641,65 @@ def agglom_stratified_split(
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP9: Agglom Stratified — Gom ảnh bằng AgglomerativeClustering cho mỗi class.
-	Chia các cụm thành 3 dải khoảng cách đến centroid của class (Gần, Vừa, Xa).
-	Phân bổ các cụm từ mỗi dải khoảng cách vào train/val/test theo tỷ lệ.
+	PP9: Agglom Stratified — Gom các subfolders bằng AgglomerativeClustering cho mỗi class.
+	Chia các cụm subfolders thành 3 dải khoảng cách đến centroid chung (Gần, Vừa, Xa).
+	Phân bổ các cụm từ mỗi dải vào train/val/test, KHÔNG bao giờ chia cắt subfolder.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
 
-	rng = random.Random(seed)
 	train_idx, val_idx, test_idx = [], [], []
 
 	for label, group in tqdm(df.groupby("label"), desc="PP9-AgglomStratified"):
-		indices = sorted(group.index.tolist())
-		n_total = len(indices)
-		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+		subfolder_groups = group.groupby("subfolder")
+		subfolder_names = list(subfolder_groups.groups.keys())
+		n_subfolders = len(subfolder_names)
 
-		if n_total <= 5:
-			# Quá ít mẫu, chia ngẫu nhiên
-			rng_local = random.Random(seed + hash(label))
-			shuffled = indices.copy()
-			rng_local.shuffle(shuffled)
-			train_idx.extend(shuffled[:train_count])
-			val_idx.extend(shuffled[train_count:train_count + val_count])
-			test_idx.extend(shuffled[train_count + val_count:])
+		if n_subfolders == 0:
 			continue
 
-		subset_emb = embeddings[np.array(indices)]
-		class_centroid = subset_emb.mean(axis=0)
+		if n_subfolders == 1:
+			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+			continue
 
-		# Phân cụm Agglomerative
-		n_clusters = max(3, min(12, n_total // 3))
-		Z = linkage(subset_emb, method="ward")
+		if n_subfolders == 2:
+			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
+			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+			if len(g0) >= len(g1):
+				train_idx.extend(g0)
+				test_idx.extend(g1)
+			else:
+				train_idx.extend(g1)
+				test_idx.extend(g0)
+			continue
+
+		# Tính subfolder embeddings
+		subfolder_embs = []
+		for sf_name in subfolder_names:
+			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
+			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
+		subfolder_embs = np.array(subfolder_embs)
+		class_centroid = subfolder_embs.mean(axis=0)
+
+		# Phân cụm Agglomerative các subfolders
+		n_clusters = max(3, min(12, n_subfolders // 3))
+		n_clusters = min(n_clusters, n_subfolders)
+		Z = linkage(subfolder_embs, method="ward")
 		cluster_labels = fcluster(Z, t=n_clusters, criterion="maxclust")
 
 		cluster_ids = sorted(set(cluster_labels))
 		clusters_info = []
 		for cid in cluster_ids:
 			mask = cluster_labels == cid
-			comp_emb = subset_emb[mask]
+			comp_emb = subfolder_embs[mask]
 			comp_centroid = comp_emb.mean(axis=0)
 			dist = float(np.linalg.norm(comp_centroid - class_centroid))
-			comp_indices = [indices[j] for j in range(n_total) if cluster_labels[j] == cid]
-			clusters_info.append((dist, comp_indices))
+			
+			# Gom các subfolder names thuộc cụm này
+			comp_sf_names = [subfolder_names[j] for j in range(n_subfolders) if cluster_labels[j] == cid]
+			clusters_info.append((dist, comp_sf_names))
 
-		# Sắp xếp các cụm theo khoảng cách từ gần đến xa tâm class
+		# Sắp xếp các cụm theo khoảng cách từ gần đến xa
 		clusters_info.sort(key=lambda x: x[0])
 		K = len(clusters_info)
 
@@ -603,23 +711,30 @@ def agglom_stratified_split(
 		mid_clusters = clusters_info[near_num:near_num + mid_num]
 		far_clusters = clusters_info[near_num + mid_num:]
 
-		# Biến theo dõi số lượng ảnh đã phân bổ cho mỗi split của class này
+		# Biến theo dõi số lượng ảnh đã phân bổ
 		curr_train, curr_val, curr_test = 0, 0, 0
+		n_total = len(group)
+		target_train = int(n_total * train_ratio)
+		target_val = int(n_total * val_ratio)
 
-		# Hàm phụ phân bổ các cụm trong một dải khoảng cách
-		def allocate_band_clusters(band_clusters, target_tr, target_va, target_te):
+		# Hàm phụ phân bổ các cụm subfolders trong một dải khoảng cách
+		def allocate_band_clusters(band_clusters):
 			nonlocal curr_train, curr_val, curr_test
-			# Sắp xếp các cụm trong dải khoảng cách ngẫu nhiên để tránh bias
 			rng_local = random.Random(seed + hash(label))
 			shuffled_band = band_clusters.copy()
 			rng_local.shuffle(shuffled_band)
 
-			for _, c_indices in shuffled_band:
+			for _, sf_list in shuffled_band:
+				# Tính tổng số ảnh trong cụm subfolders này
+				c_indices = []
+				for sf_name in sf_list:
+					c_indices.extend(subfolder_groups.get_group(sf_name).index.tolist())
 				c_count = len(c_indices)
-				# Quyết định đưa vào split nào đang thiếu nhiều nhất so với tỷ lệ mục tiêu
-				diff_tr = max(0, target_tr - curr_train)
-				diff_va = max(0, target_va - curr_val)
-				diff_te = max(0, target_te - curr_test)
+
+				# Quyết định đưa vào split nào đang thiếu nhiều nhất
+				diff_tr = max(0, target_train - curr_train)
+				diff_va = max(0, target_val - curr_val)
+				diff_te = max(0, (n_total - target_train - target_val) - curr_test)
 
 				total_diff = diff_tr + diff_va + diff_te
 				if total_diff == 0:
@@ -647,9 +762,9 @@ def agglom_stratified_split(
 					curr_test += c_count
 
 		# Phân bổ cho từng dải
-		allocate_band_clusters(near_clusters, train_count, val_count, test_count)
-		allocate_band_clusters(mid_clusters, train_count, val_count, test_count)
-		allocate_band_clusters(far_clusters, train_count, val_count, test_count)
+		allocate_band_clusters(near_clusters)
+		allocate_band_clusters(mid_clusters)
+		allocate_band_clusters(far_clusters)
 
 
 # ============================================================
@@ -664,9 +779,9 @@ def adversarial_validation_split(
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP7: Adversarial Validation — train discriminator trên embedding để phân biệt 2 pool.
-	Ảnh mà discriminator tự tin nhất là "khác biệt" → đưa vào test.
-	Tạo test set khó nhất có thể.
+	PP7: Adversarial Validation — train discriminator trên subfolder embeddings để phân biệt 2 pool subfolders.
+	Những subfolders mà discriminator tự tin nhất là "khác biệt" → đưa vào test.
+	Đảm bảo KHÔNG rò rỉ dữ liệu mức subfolder.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
@@ -677,31 +792,46 @@ def adversarial_validation_split(
 	train_idx, val_idx, test_idx = [], [], []
 
 	for label, group in tqdm(df.groupby("label"), desc="PP7-Adversarial"):
-		indices = sorted(group.index.tolist())
-		n_total = len(indices)
-		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+		subfolder_groups = group.groupby("subfolder")
+		subfolder_names = list(subfolder_groups.groups.keys())
+		n_subfolders = len(subfolder_names)
 
-		if n_total <= 5:
-			# Quá ít mẫu, chia đơn giản
-			train_idx.extend(indices[:train_count])
-			val_idx.extend(indices[train_count:train_count + val_count])
-			test_idx.extend(indices[train_count + val_count:])
+		if n_subfolders == 0:
 			continue
 
-		subset_emb = embeddings[np.array(indices)]
-		n_samples = len(indices)
+		if n_subfolders == 1:
+			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+			continue
 
-		# Chia tạm 50/50 thành pool_A (label=0) và pool_B (label=1)
-		perm = rng.permutation(n_samples)
-		half = n_samples // 2
+		if n_subfolders == 2:
+			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
+			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+			if len(g0) >= len(g1):
+				train_idx.extend(g0)
+				test_idx.extend(g1)
+			else:
+				train_idx.extend(g1)
+				test_idx.extend(g0)
+			continue
+
+		# Tính subfolder embeddings
+		subfolder_embs = []
+		for sf_name in subfolder_names:
+			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
+			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
+		subfolder_embs = np.array(subfolder_embs)
+
+		# Chia tạm 50/50 các subfolders thành pool_A (label=0) và pool_B (label=1)
+		perm = rng.permutation(n_subfolders)
+		half = n_subfolders // 2
 		pool_a_pos = perm[:half]
 		pool_b_pos = perm[half:]
 
-		X = subset_emb.copy()
-		y = np.zeros(n_samples, dtype=np.float32)
+		X = subfolder_embs.copy()
+		y = np.zeros(n_subfolders, dtype=np.float32)
 		y[pool_b_pos] = 1.0
 
-		# Train MLP nhỏ để phân biệt pool_A vs pool_B
+		# Train MLP nhỏ để phân biệt pool_A vs pool_B ở mức subfolder
 		emb_dim = X.shape[1]
 		discriminator = nn.Sequential(
 			nn.Linear(emb_dim, 128),
@@ -732,19 +862,22 @@ def adversarial_validation_split(
 			scores = discriminator(X_tensor).squeeze().cpu().numpy()
 
 		# Score = |pred - 0.5|: càng cao = discriminator càng tự tin phân biệt
-		# Ảnh "khác biệt nhất" = dễ phân biệt nhất → đưa vào test
+		# Subfolder "khác biệt nhất" → đưa vào test
 		difficulty_scores = np.abs(scores - 0.5)
 		sorted_positions = np.argsort(-difficulty_scores)
 
-		# Xa nhất → test, tiếp → val, còn lại → train
+		train_sf_count, val_sf_count, test_sf_count = compute_split_counts(n_subfolders, train_ratio, val_ratio)
+
+		# Phân bổ subfolders theo độ khó
 		for i, pos in enumerate(sorted_positions):
-			orig_idx = indices[pos]
-			if i < test_count:
-				test_idx.append(orig_idx)
-			elif i < test_count + val_count:
-				val_idx.append(orig_idx)
+			sf_name = subfolder_names[pos]
+			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
+			if i < test_sf_count:
+				test_idx.extend(sf_indices)
+			elif i < test_sf_count + val_sf_count:
+				val_idx.extend(sf_indices)
 			else:
-				train_idx.append(orig_idx)
+				train_idx.extend(sf_indices)
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
