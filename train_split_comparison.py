@@ -60,8 +60,8 @@ from train import (
 	validate_split_minimums,
 )
 
-# Import từ split_methods.py
-from split_methods import (
+# Import từ split_methods_v2.py
+from split_methods_v2 import (
 	SPLIT_METHODS,
 	validate_split,
 	cosine_graph_split,

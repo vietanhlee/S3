@@ -1,13 +1,8 @@
 """
-split_methods.py
-================
-8 phương pháp chia dữ liệu để tránh data leakage cho bài toán phân loại ảnh mặt cắt gỗ.
-
-Mỗi hàm nhận:
-	- df: pd.DataFrame (cột: path, label, genus, species, subfolder)
-	- embeddings: np.ndarray (N x D) — embedding từ tf_efficientnet_b4
-	- train_ratio, val_ratio, seed
-Và trả về: (df_train, df_val, df_test)
+split_methods_v2.py
+===================
+8 phương pháp chia dữ liệu ở cấp độ ảnh đơn lẻ (image-level) chống rò rỉ (hoặc baseline),
+được nâng cấp sử dụng Elbow Method (1-30 cụm) và khoảng cách Mahalanobis (PCA 128 chiều).
 """
 
 import random
@@ -19,13 +14,11 @@ from tqdm import tqdm
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.sparse.csgraph import connected_components
 from scipy.sparse import csr_matrix
 from sklearn.cluster import KMeans
-from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import PCA
 
@@ -128,11 +121,11 @@ def _shuffle_df(df: pd.DataFrame, seed: int) -> pd.DataFrame:
 
 
 # ============================================================
-# PP1: Mahalanobis Fixed Centroid
+# Helper: khoảng cách Mahalanobis
 # ============================================================
 
 def _mahalanobis_distances(embeddings: np.ndarray, eps: float = 1e-6) -> np.ndarray:
-	"""Tính khoảng cách Mahalanobis từ mỗi điểm đến centroid cố định."""
+	"""Tính khoảng cách Mahalanobis từ mỗi điểm đến centroid cố định của tập."""
 	n_samples = embeddings.shape[0]
 	if n_samples <= 1:
 		return np.zeros(n_samples, dtype=np.float32)
@@ -159,6 +152,10 @@ def _mahalanobis_dist_to_centroid(points: np.ndarray, mean: np.ndarray, cov_inv:
 	return np.sqrt(d2).astype(np.float32)
 
 
+# ============================================================
+# Helper: Elbow Method tìm n_clusters tối ưu (1 đến 30)
+# ============================================================
+
 def find_optimal_clusters_elbow(embeddings: np.ndarray, max_k: int = 30, seed: int = 42) -> int:
 	"""Tự động xác định số lượng cụm tối ưu từ 3 đến max_k dựa trên Elbow Method."""
 	n_samples = embeddings.shape[0]
@@ -179,7 +176,7 @@ def find_optimal_clusters_elbow(embeddings: np.ndarray, max_k: int = 30, seed: i
 	if len(wcss) <= 2:
 		return 3
 		
-	# Tìm điểm khuỷu tay
+	# Tìm điểm khuỷu tay (elbow point) bằng khoảng cách xa nhất đến đường thẳng nối điểm đầu và điểm cuối
 	x1, y1 = k_values[0], wcss[0]
 	x2, y2 = k_values[-1], wcss[-1]
 	
@@ -194,56 +191,8 @@ def find_optimal_clusters_elbow(embeddings: np.ndarray, max_k: int = 30, seed: i
 	return max(3, optimal_k)
 
 
-def mahalanobis_fixed_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	train_ratio: float = 0.60,
-	val_ratio: float = 0.20,
-	seed: int = 42,
-	eps: float = 1e-6,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""
-	PP1: Tính khoảng cách Mahalanobis đến centroid CỐ ĐỊNH.
-	Ảnh xa nhất → test, tiếp theo → val, còn lại → train.
-	"""
-	if len(df) != embeddings.shape[0]:
-		raise ValueError("Embeddings length does not match dataframe length")
-
-	train_idx, val_idx, test_idx = [], [], []
-
-	for _, group in tqdm(df.groupby("label"), desc="PP1-MahalFixed"):
-		indices = sorted(group.index.tolist())
-		n_total = len(indices)
-		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
-
-		if n_total == 0:
-			continue
-
-		# Tính khoảng cách Mahalanobis với centroid cố định
-		subset_emb = embeddings[np.array(indices)]
-		dists = _mahalanobis_distances(subset_emb, eps=eps)
-
-		# Sort theo khoảng cách giảm dần
-		sorted_positions = np.argsort(-dists)
-
-		# Xa nhất → test, tiếp → val, còn lại → train
-		for i, pos in enumerate(sorted_positions):
-			orig_idx = indices[pos]
-			if i < test_count:
-				test_idx.append(orig_idx)
-			elif i < test_count + val_count:
-				val_idx.append(orig_idx)
-			else:
-				train_idx.append(orig_idx)
-
-	df_train = _shuffle_df(df.loc[train_idx], seed)
-	df_val = _shuffle_df(df.loc[val_idx], seed)
-	df_test = _shuffle_df(df.loc[test_idx], seed)
-	return df_train, df_val, df_test
-
-
 # ============================================================
-# PP2: Mahalanobis Iterative Centroid
+# PP2: Mahalanobis Iterative Centroid (Image-level, PCA 128 chiều)
 # ============================================================
 
 def mahalanobis_iterative_split(
@@ -255,9 +204,8 @@ def mahalanobis_iterative_split(
 	eps: float = 1e-6,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP2: Tính khoảng cách Mahalanobis, TÁI TÍNH centroid sau mỗi lần rút subfolder.
-	Đảm bảo KHÔNG rò rỉ dữ liệu mức subfolder bằng cách chia ở cấp độ subfolder.
-	Sử dụng PCA 128 chiều.
+	PP2: Tính khoảng cách Mahalanobis và TÁI TÍNH centroid sau mỗi lần rút ảnh đơn lẻ.
+	Được tối ưu hóa bằng PCA giảm chiều xuống tối đa 128 chiều.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
@@ -265,79 +213,44 @@ def mahalanobis_iterative_split(
 	train_idx, val_idx, test_idx = [], [], []
 
 	for _, group in tqdm(df.groupby("label"), desc="PP2-MahalIter"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_subfolders = len(subfolder_names)
+		indices = sorted(group.index.tolist())
+		n_total = len(indices)
+		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
 
-		if n_subfolders == 0:
+		if n_total == 0:
 			continue
 
-		# Gom đặc trưng cho từng subfolder
-		subfolder_embs = []
-		for sf_name in subfolder_names:
-			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
-			sf_emb_mean = embeddings[sf_indices].mean(axis=0)
-			subfolder_embs.append(sf_emb_mean)
-		
-		subfolder_embs = np.array(subfolder_embs)
-
-		# Trường hợp đặc biệt
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
-			continue
-
-		# Giảm chiều bằng PCA nếu số lượng subfolders lớn (128 chiều)
-		if n_subfolders >= 5:
-			d_prime = min(n_subfolders - 2, 128)
+		subset_emb = embeddings[np.array(indices)]
+		# Áp dụng PCA giảm chiều xuống tối đa 128 chiều
+		if n_total >= 5:
+			d_prime = min(n_total - 2, 128)
 			if d_prime >= 2:
 				pca = PCA(n_components=d_prime, random_state=seed)
-				subfolder_embs = pca.fit_transform(subfolder_embs)
+				subset_emb = pca.fit_transform(subset_emb)
 
-		train_sf_count, val_sf_count, test_sf_count = compute_split_counts(n_subfolders, train_ratio, val_ratio)
-
-		remaining_pos = list(range(n_subfolders))
+		remaining_pos = list(range(n_total))
 		picked_test_pos = []
 		picked_val_pos = []
 
 		# Rút test
-		for _ in range(min(test_sf_count, len(remaining_pos))):
-			cur_embs = subfolder_embs[remaining_pos]
+		for _ in range(min(test_count, len(remaining_pos))):
+			cur_embs = subset_emb[remaining_pos]
 			dists = _mahalanobis_distances(cur_embs, eps=eps)
 			max_pos = int(np.argmax(dists))
 			picked_test_pos.append(remaining_pos[max_pos])
 			remaining_pos.pop(max_pos)
 
 		# Rút val
-		for _ in range(min(val_sf_count, len(remaining_pos))):
-			cur_embs = subfolder_embs[remaining_pos]
+		for _ in range(min(val_count, len(remaining_pos))):
+			cur_embs = subset_emb[remaining_pos]
 			dists = _mahalanobis_distances(cur_embs, eps=eps)
 			max_pos = int(np.argmax(dists))
 			picked_val_pos.append(remaining_pos[max_pos])
 			remaining_pos.pop(max_pos)
 
-		# Phân bổ ngược lại ảnh
-		for pos in picked_test_pos:
-			sf_name = subfolder_names[pos]
-			test_idx.extend(subfolder_groups.get_group(sf_name).index.tolist())
-		
-		for pos in picked_val_pos:
-			sf_name = subfolder_names[pos]
-			val_idx.extend(subfolder_groups.get_group(sf_name).index.tolist())
-
-		for pos in remaining_pos:
-			sf_name = subfolder_names[pos]
-			train_idx.extend(subfolder_groups.get_group(sf_name).index.tolist())
+		test_idx.extend([indices[pos] for pos in picked_test_pos])
+		val_idx.extend([indices[pos] for pos in picked_val_pos])
+		train_idx.extend([indices[pos] for pos in remaining_pos])
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
@@ -358,7 +271,7 @@ def group_based_split(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
 	PP3: Chia theo đơn vị subfolder, KHÔNG bao giờ cắt subfolder.
-	Mỗi subfolder đại diện cho 1 nhóm ảnh cùng mẫu gỗ/nguồn thu thập.
+	Triết lý cách ly nguồn mẫu vật lý.
 	"""
 	rng = random.Random(seed)
 	train_idx, val_idx, test_idx = [], [], []
@@ -419,7 +332,7 @@ def group_based_split(
 
 
 # ============================================================
-# PP4: Hierarchical Clustering Split
+# PP4: Hierarchical Clustering (Ward, Image-level, Elbow, Mahalanobis)
 # ============================================================
 
 def hierarchical_clustering_split(
@@ -431,10 +344,10 @@ def hierarchical_clustering_split(
 	eps: float = 1e-6,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP4: Agglomerative Clustering (Ward) trên centroid embeddings của subfolders.
-	Xác định số cụm tối ưu qua Elbow Method (3-30).
+	PP4: Agglomerative Clustering (Ward) trên từng ảnh đơn lẻ.
+	Xác định số cụm tối ưu qua Elbow Method (1-30).
 	Tính khoảng cách centroid cụm đến centroid chung qua khoảng cách Mahalanobis (PCA 128 chiều).
-	Gán nguyên cụm subfolder vào test/val/train, KHÔNG bao giờ chia cắt subfolder.
+	Gán nguyên cụm ảnh vào test/val/train (xấp xỉ tỷ lệ).
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
@@ -442,20 +355,63 @@ def hierarchical_clustering_split(
 	train_idx, val_idx, test_idx = [], [], []
 
 	for _, group in tqdm(df.groupby("label"), desc="PP4-HierClust"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_subfolders = len(subfolder_names)
+		indices = sorted(group.index.tolist())
+		n_total = len(indices)
 
-		if n_subfolders == 0:
+		if n_total == 0:
 			continue
 
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+		if n_total <= 3:
+			# Nếu quá ít ảnh, gán toàn bộ vào Train
+			train_idx.extend(indices)
 			continue
 
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+		subset_emb = embeddings[np.array(indices)]
+		
+		# PCA 128 chiều trên class embeddings để tính covariance nghịch đảo ổn định
+		pca_emb = subset_emb
+		if n_total >= 5:
+			d_prime = min(n_total - 2, 128)
+			if d_prime >= 2:
+				pca = PCA(n_components=d_prime, random_state=seed)
+				pca_emb = pca.fit_transform(subset_emb)
+
+		# Tính ma trận hiệp phương sai nghịch đảo của lớp
+		cov = np.cov(pca_emb, rowvar=False)
+		cov = np.atleast_2d(cov)
+		cov += np.eye(cov.shape[0]) * eps
+		cov_inv = np.linalg.pinv(cov)
+		global_centroid = pca_emb.mean(axis=0)
+
+		# Xác định số cụm bằng Elbow Method
+		n_clusters = find_optimal_clusters_elbow(pca_emb, max_k=30, seed=seed)
+		n_clusters = min(n_clusters, n_total)
+
+		# Phân cụm Agglomerative
+		Z = linkage(pca_emb, method="ward")
+		cluster_labels = fcluster(Z, t=n_clusters, criterion="maxclust")
+
+		cluster_ids = sorted(set(cluster_labels))
+		cluster_info = []
+		for cid in cluster_ids:
+			mask = cluster_labels == cid
+			cluster_centroid = pca_emb[mask].mean(axis=0)
+			# Tính khoảng cách Mahalanobis từ centroid cụm đến global centroid
+			dist = _mahalanobis_dist_to_centroid(cluster_centroid, global_centroid, cov_inv)[0]
+			cluster_indices = [indices[j] for j in range(n_total) if cluster_labels[j] == cid]
+			cluster_info.append((cid, dist, cluster_indices))
+
+		# Sắp xếp cụm theo khoảng cách Mahalanobis giảm dần (ngoại lai lên trước)
+		cluster_info.sort(key=lambda x: -x[1])
+
+		# Phân bổ nguyên cụm (không chia cắt)
+		if len(cluster_info) == 1:
+			train_idx.extend(cluster_info[0][2])
+			continue
+
+		if len(cluster_info) == 2:
+			g0 = cluster_info[0][2]
+			g1 = cluster_info[1][2]
 			if len(g0) >= len(g1):
 				train_idx.extend(g0)
 				test_idx.extend(g1)
@@ -464,62 +420,9 @@ def hierarchical_clustering_split(
 				test_idx.extend(g0)
 			continue
 
-		# Tính subfolder embeddings
-		subfolder_embs = []
-		for sf_name in subfolder_names:
-			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
-			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
-		subfolder_embs = np.array(subfolder_embs)
-
-		# PCA 128 chiều trên subfolder embeddings để tính covariance nghịch đảo
-		pca_emb = subfolder_embs
-		if n_subfolders >= 5:
-			d_prime = min(n_subfolders - 2, 128)
-			if d_prime >= 2:
-				pca = PCA(n_components=d_prime, random_state=seed)
-				pca_emb = pca.fit_transform(subfolder_embs)
-
-		cov = np.cov(pca_emb, rowvar=False)
-		cov = np.atleast_2d(cov)
-		cov += np.eye(cov.shape[0]) * eps
-		cov_inv = np.linalg.pinv(cov)
-		global_centroid = pca_emb.mean(axis=0)
-
-		# Số cụm subfolders bằng Elbow Method
-		n_clusters = find_optimal_clusters_elbow(pca_emb, max_k=30, seed=seed)
-		n_clusters = min(n_clusters, n_subfolders)
-
-		# Agglomerative clustering ở cấp độ subfolder
-		Z = linkage(pca_emb, method="ward")
-		cluster_labels = fcluster(Z, t=n_clusters, criterion="maxclust")
-
-		cluster_ids = sorted(set(cluster_labels))
-		cluster_info = []
-
-		for cid in cluster_ids:
-			mask = cluster_labels == cid
-			cluster_centroid = pca_emb[mask].mean(axis=0)
-			# Tính khoảng cách Mahalanobis
-			dist_to_global = _mahalanobis_dist_to_centroid(cluster_centroid, global_centroid, cov_inv)[0]
-			
-			# Gom tất cả các index ảnh của các subfolders thuộc cluster này
-			cluster_img_indices = []
-			for idx_sf, sf_lbl in enumerate(cluster_labels):
-				if sf_lbl == cid:
-					sf_name = subfolder_names[idx_sf]
-					cluster_img_indices.extend(subfolder_groups.get_group(sf_name).index.tolist())
-			
-			cluster_info.append((cid, dist_to_global, cluster_img_indices))
-
-		# Sort: cụm xa nhất trước
-		cluster_info.sort(key=lambda x: -x[1])
-
-		# Phân bổ nguyên vẹn các cụm
-		n_total = len(group)
 		target_train = int(n_total * train_ratio)
 		target_val = int(n_total * val_ratio)
 
-		# Đảm bảo mỗi tập nhận ít nhất 1 cụm subfolder
 		test_idx.extend(cluster_info[0][2])
 		val_idx.extend(cluster_info[1][2])
 
@@ -546,7 +449,7 @@ def hierarchical_clustering_split(
 
 
 # ============================================================
-# PP5: Cosine Similarity Graph + Connected Components
+# PP5: Cosine Graph (Connected Components, Image-level, Mahalanobis)
 # ============================================================
 
 def cosine_graph_split(
@@ -559,9 +462,9 @@ def cosine_graph_split(
 	eps: float = 1e-6,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP5: Xây đồ thị cosine similarity ở cấp độ subfolder, tìm connected components, chia theo component.
-	Sắp xếp các components bằng khoảng cách Mahalanobis (PCA 128 chiều).
-	Tuyệt đối KHÔNG chia cắt subfolder để tránh rò rỉ dữ liệu.
+	PP5: Connected Components trên đồ thị tương đồng cosine của ảnh đơn lẻ.
+	Sắp xếp components bằng khoảng cách Mahalanobis đến centroid chung (PCA 128 chiều).
+	Gán nguyên vẹn components (không chia cắt) để tránh rò rỉ ảnh gần như giống hệt.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
@@ -569,20 +472,64 @@ def cosine_graph_split(
 	train_idx, val_idx, test_idx = [], [], []
 
 	for _, group in tqdm(df.groupby("label"), desc="PP5-CosGraph"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_subfolders = len(subfolder_names)
+		indices = sorted(group.index.tolist())
+		n_total = len(indices)
 
-		if n_subfolders == 0:
+		if n_total == 0:
 			continue
 
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+		if n_total <= 3:
+			train_idx.extend(indices)
 			continue
 
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
+		subset_emb = embeddings[np.array(indices)]
+
+		# PCA 128 chiều trên class embeddings để tính covariance nghịch đảo ổn định
+		pca_emb = subset_emb
+		if n_total >= 5:
+			d_prime = min(n_total - 2, 128)
+			if d_prime >= 2:
+				pca = PCA(n_components=d_prime, random_state=seed)
+				pca_emb = pca.fit_transform(subset_emb)
+
+		cov = np.cov(pca_emb, rowvar=False)
+		cov = np.atleast_2d(cov)
+		cov += np.eye(cov.shape[0]) * eps
+		cov_inv = np.linalg.pinv(cov)
+		global_centroid = pca_emb.mean(axis=0)
+
+		# Tính cosine similarity trên raw embeddings
+		sim_matrix = cosine_similarity(subset_emb)
+		np.fill_diagonal(sim_matrix, 0.0)
+
+		# Xây adjacency matrix
+		adj = (sim_matrix >= cosine_threshold).astype(np.float32)
+		sparse_adj = csr_matrix(adj)
+
+		# Tìm connected components
+		n_components, component_labels = connected_components(sparse_adj, directed=False)
+
+		components = []
+		for cid in range(n_components):
+			mask = component_labels == cid
+			comp_emb = pca_emb[mask]
+			comp_centroid = comp_emb.mean(axis=0)
+			# Tính khoảng cách Mahalanobis từ centroid component đến global centroid
+			dist = _mahalanobis_dist_to_centroid(comp_centroid, global_centroid, cov_inv)[0]
+			comp_indices = [indices[j] for j in range(n_total) if component_labels[j] == cid]
+			components.append((cid, dist, comp_indices))
+
+		# Sắp xếp components theo khoảng cách Mahalanobis giảm dần
+		components.sort(key=lambda x: -x[1])
+
+		# Phân bổ nguyên vẹn các components (không chia cắt)
+		if len(components) == 1:
+			train_idx.extend(components[0][2])
+			continue
+
+		if len(components) == 2:
+			g0 = components[0][2]
+			g1 = components[1][2]
 			if len(g0) >= len(g1):
 				train_idx.extend(g0)
 				test_idx.extend(g1)
@@ -591,66 +538,9 @@ def cosine_graph_split(
 				test_idx.extend(g0)
 			continue
 
-		# Tính subfolder embeddings
-		subfolder_embs = []
-		for sf_name in subfolder_names:
-			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
-			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
-		subfolder_embs = np.array(subfolder_embs)
-
-		# PCA 128 chiều trên subfolder embeddings để tính covariance nghịch đảo
-		pca_emb = subfolder_embs
-		if n_subfolders >= 5:
-			d_prime = min(n_subfolders - 2, 128)
-			if d_prime >= 2:
-				pca = PCA(n_components=d_prime, random_state=seed)
-				pca_emb = pca.fit_transform(subfolder_embs)
-
-		cov = np.cov(pca_emb, rowvar=False)
-		cov = np.atleast_2d(cov)
-		cov += np.eye(cov.shape[0]) * eps
-		cov_inv = np.linalg.pinv(cov)
-		global_centroid = pca_emb.mean(axis=0)
-
-		# Tính cosine similarity giữa các subfolder embeddings
-		sim_matrix = cosine_similarity(subfolder_embs)
-		np.fill_diagonal(sim_matrix, 0.0)
-
-		# Xây adjacency matrix (sparse)
-		adj = (sim_matrix >= cosine_threshold).astype(np.float32)
-		sparse_adj = csr_matrix(adj)
-
-		# Tìm connected components của subfolders
-		n_components, component_labels = connected_components(sparse_adj, directed=False)
-
-		# Gom thành danh sách component subfolders
-		components = []
-
-		for cid in range(n_components):
-			mask = component_labels == cid
-			comp_emb_pca = pca_emb[mask]
-			comp_centroid = comp_emb_pca.mean(axis=0)
-			# Tính khoảng cách Mahalanobis
-			dist = _mahalanobis_dist_to_centroid(comp_centroid, global_centroid, cov_inv)[0]
-			
-			# Gom tất cả các index ảnh của các subfolders thuộc component này
-			comp_img_indices = []
-			for idx_sf, comp_lbl in enumerate(component_labels):
-				if comp_lbl == cid:
-					sf_name = subfolder_names[idx_sf]
-					comp_img_indices.extend(subfolder_groups.get_group(sf_name).index.tolist())
-			
-			components.append((cid, dist, comp_img_indices))
-
-		# Sort: component xa nhất trước
-		components.sort(key=lambda x: -x[1])
-
-		# Phân bổ nguyên vẹn các components
-		n_total = len(group)
 		target_train = int(n_total * train_ratio)
 		target_val = int(n_total * val_ratio)
 
-		# Đảm bảo mỗi tập nhận ít nhất 1 component
 		test_idx.extend(components[0][2])
 		val_idx.extend(components[1][2])
 
@@ -677,7 +567,7 @@ def cosine_graph_split(
 
 
 # ============================================================
-# PP6: Stratified Random Split (Baseline)
+# PP6: Stratified Random Split (Baseline, Image-level)
 # ============================================================
 
 def stratified_random_split(
@@ -688,9 +578,8 @@ def stratified_random_split(
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP6: Baseline — chia ngẫu nhiên giữ tỉ lệ class.
-	Được viết lại thủ công để tránh crash sklearn.model_selection.train_test_split
-	khi có class có quá ít mẫu vật (ví dụ 1 hoặc 2 mẫu).
+	PP6: Baseline — chia ngẫu nhiên giữ tỉ lệ class ở mức ảnh đơn lẻ.
+	Được viết thủ công để loại bỏ hoàn toàn lỗi crash khi class có ít mẫu.
 	"""
 	rng = random.Random(seed)
 	train_idx, val_idx, test_idx = [], [], []
@@ -712,6 +601,161 @@ def stratified_random_split(
 	return df_train, df_val, df_test
 
 
+# ============================================================
+# PP7: Adversarial Validation (Image-level)
+# ============================================================
+
+def adversarial_validation_split(
+	df: pd.DataFrame,
+	embeddings: np.ndarray,
+	train_ratio: float = 0.60,
+	val_ratio: float = 0.20,
+	seed: int = 42,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+	"""
+	PP7: Adversarial Validation ở mức ảnh đơn lẻ.
+	Chạy discriminator phân biệt 2 pool ảnh để tìm ảnh lệch phân phối đưa vào test.
+	"""
+	if len(df) != embeddings.shape[0]:
+		raise ValueError("Embeddings length does not match dataframe length")
+
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	rng = np.random.RandomState(seed)
+
+	train_idx, val_idx, test_idx = [], [], []
+
+	for label, group in tqdm(df.groupby("label"), desc="PP7-Adversarial"):
+		indices = sorted(group.index.tolist())
+		n_total = len(indices)
+		train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+
+		if n_total <= 5:
+			# Quá ít mẫu, chia ngẫu nhiên
+			train_idx.extend(indices[:train_count])
+			val_idx.extend(indices[train_count:train_count + val_count])
+			test_idx.extend(indices[train_count + val_count:])
+			continue
+
+		subset_emb = embeddings[np.array(indices)]
+		n_samples = len(indices)
+
+		# Chia tạm 50/50 thành pool_A (label=0) và pool_B (label=1)
+		perm = rng.permutation(n_samples)
+		half = n_samples // 2
+		pool_a_pos = perm[:half]
+		pool_b_pos = perm[half:]
+
+		X = subset_emb.copy()
+		y = np.zeros(n_samples, dtype=np.float32)
+		y[pool_b_pos] = 1.0
+
+		# Train MLP nhỏ để phân biệt pool_A vs pool_B
+		emb_dim = X.shape[1]
+		discriminator = nn.Sequential(
+			nn.Linear(emb_dim, 128),
+			nn.ReLU(),
+			nn.Dropout(0.3),
+			nn.Linear(128, 1),
+			nn.Sigmoid(),
+		).to(device)
+
+		X_tensor = torch.from_numpy(X).float().to(device)
+		y_tensor = torch.from_numpy(y).float().to(device)
+
+		optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-3)
+		criterion = nn.BCELoss()
+
+		discriminator.train()
+		for _ in range(30):
+			optimizer.zero_grad()
+			pred = discriminator(X_tensor).squeeze()
+			loss = criterion(pred, y_tensor)
+			loss.backward()
+			optimizer.step()
+
+		discriminator.eval()
+		with torch.no_grad():
+			scores = discriminator(X_tensor).squeeze().cpu().numpy()
+
+		# Ảnh "khác biệt nhất" = dễ phân biệt nhất → đưa vào test
+		difficulty_scores = np.abs(scores - 0.5)
+		sorted_positions = np.argsort(-difficulty_scores)
+
+		for i, pos in enumerate(sorted_positions):
+			orig_idx = indices[pos]
+			if i < test_count:
+				test_idx.append(orig_idx)
+			elif i < test_count + val_count:
+				val_idx.append(orig_idx)
+			else:
+				train_idx.append(orig_idx)
+
+	df_train = _shuffle_df(df.loc[train_idx], seed)
+	df_val = _shuffle_df(df.loc[val_idx], seed)
+	df_test = _shuffle_df(df.loc[test_idx], seed)
+	return df_train, df_val, df_test
+
+
+# ============================================================
+# PP8: StratifiedGroupKFold Split (Subfolder)
+# ============================================================
+
+def stratified_group_kfold_split(
+	df: pd.DataFrame,
+	embeddings: np.ndarray,  # Không dùng, giữ signature nhất quán
+	train_ratio: float = 0.60,
+	val_ratio: float = 0.20,
+	seed: int = 42,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+	"""
+	PP8: StratifiedGroupKFold — Cân bằng cách ly nhóm subfolder và phân tầng class.
+	"""
+	from sklearn.model_selection import StratifiedGroupKFold as SKF_Splitter
+
+	test_ratio = 1.0 - train_ratio - val_ratio
+	n_splits_test = max(3, int(round(1.0 / test_ratio)))
+
+	groups = (df["label"] + "___" + df["subfolder"]).values
+	labels = df["label"].values
+
+	sgkf_test = SKF_Splitter(n_splits=n_splits_test, shuffle=False, random_state=None)
+
+	trainval_indices = None
+	test_indices = None
+	for tv_idx, te_idx in sgkf_test.split(df.index, labels, groups):
+		trainval_indices = tv_idx
+		test_indices = te_idx
+		break
+
+	df_trainval = df.iloc[trainval_indices].reset_index(drop=True)
+	df_test_raw = df.iloc[test_indices]
+
+	val_fraction = val_ratio / (train_ratio + val_ratio)
+	n_splits_val = max(3, int(round(1.0 / val_fraction)))
+
+	groups_tv = (df_trainval["label"] + "___" + df_trainval["subfolder"]).values
+	labels_tv = df_trainval["label"].values
+
+	sgkf_val = SKF_Splitter(n_splits=n_splits_val, shuffle=False, random_state=None)
+
+	train_indices_final = None
+	val_indices_final = None
+	for tr_idx, va_idx in sgkf_val.split(df_trainval.index, labels_tv, groups_tv):
+		train_indices_final = tr_idx
+		val_indices_final = va_idx
+		break
+
+	df_train = df_trainval.iloc[train_indices_final].reset_index(drop=True)
+	df_val = df_trainval.iloc[val_indices_final].reset_index(drop=True)
+	df_test = df_test_raw.reset_index(drop=True)
+
+	return df_train, df_val, df_test
+
+
+# ============================================================
+# PP9: Agglom Stratified (Image-level, Elbow, Mahalanobis)
+# ============================================================
+
 def agglom_stratified_split(
 	df: pd.DataFrame,
 	embeddings: np.ndarray,
@@ -721,10 +765,10 @@ def agglom_stratified_split(
 	eps: float = 1e-6,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP9: Agglom Stratified — Gom các subfolders bằng AgglomerativeClustering cho mỗi class.
-	Xác định số cụm tối ưu qua Elbow Method (3-30).
-	Tính khoảng cách cụm subfolders đến centroid chung bằng khoảng cách Mahalanobis (PCA 128 chiều).
-	Chia các cụm subfolders thành 3 dải khoảng cách (Gần, Vừa, Xa), phân bổ nguyên vẹn.
+	PP9: Phân cụm Agglomerative các ảnh đơn lẻ của từng class.
+	Xác định số cụm bằng Elbow Method (1-30).
+	Tính khoảng cách centroid cụm đến centroid chung bằng khoảng cách Mahalanobis (PCA 128 chiều).
+	Chia cụm ảnh thành 3 dải (Gần, Vừa, Xa), phân bổ đều các cụm vào Train/Val/Test.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
@@ -732,42 +776,31 @@ def agglom_stratified_split(
 	train_idx, val_idx, test_idx = [], [], []
 
 	for label, group in tqdm(df.groupby("label"), desc="PP9-AgglomStratified"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_subfolders = len(subfolder_names)
+		indices = sorted(group.index.tolist())
+		n_total = len(indices)
 
-		if n_subfolders == 0:
+		if n_total == 0:
 			continue
 
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
+		if n_total <= 5:
+			train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+			rng_local = random.Random(seed + hash(label))
+			shuffled = indices.copy()
+			rng_local.shuffle(shuffled)
+			train_idx.extend(shuffled[:train_count])
+			val_idx.extend(shuffled[train_count:train_count + val_count])
+			test_idx.extend(shuffled[train_count + val_count:])
 			continue
 
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
-			continue
+		subset_emb = embeddings[np.array(indices)]
 
-		# Tính subfolder embeddings
-		subfolder_embs = []
-		for sf_name in subfolder_names:
-			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
-			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
-		subfolder_embs = np.array(subfolder_embs)
-
-		# PCA 128 chiều
-		pca_emb = subfolder_embs
-		if n_subfolders >= 5:
-			d_prime = min(n_subfolders - 2, 128)
+		# PCA 128 chiều trên class embeddings để tính covariance nghịch đảo ổn định
+		pca_emb = subset_emb
+		if n_total >= 5:
+			d_prime = min(n_total - 2, 128)
 			if d_prime >= 2:
 				pca = PCA(n_components=d_prime, random_state=seed)
-				pca_emb = pca.fit_transform(subfolder_embs)
+				pca_emb = pca.fit_transform(subset_emb)
 
 		cov = np.cov(pca_emb, rowvar=False)
 		cov = np.atleast_2d(cov)
@@ -777,9 +810,9 @@ def agglom_stratified_split(
 
 		# Xác định số cụm bằng Elbow Method
 		n_clusters = find_optimal_clusters_elbow(pca_emb, max_k=30, seed=seed)
-		n_clusters = min(n_clusters, n_subfolders)
+		n_clusters = min(n_clusters, n_total)
 
-		# Phân cụm Agglomerative các subfolders
+		# Phân cụm Agglomerative
 		Z = linkage(pca_emb, method="ward")
 		cluster_labels = fcluster(Z, t=n_clusters, criterion="maxclust")
 
@@ -787,14 +820,12 @@ def agglom_stratified_split(
 		clusters_info = []
 		for cid in cluster_ids:
 			mask = cluster_labels == cid
-			comp_emb_pca = pca_emb[mask]
-			comp_centroid = comp_emb_pca.mean(axis=0)
-			# Tính khoảng cách Mahalanobis
+			comp_emb = pca_emb[mask]
+			comp_centroid = comp_emb.mean(axis=0)
+			# Tính khoảng cách Mahalanobis từ centroid cụm đến global centroid
 			dist = _mahalanobis_dist_to_centroid(comp_centroid, class_centroid, cov_inv)[0]
-			
-			# Gom các subfolder names thuộc cụm này
-			comp_sf_names = [subfolder_names[j] for j in range(n_subfolders) if cluster_labels[j] == cid]
-			clusters_info.append((dist, comp_sf_names))
+			comp_indices = [indices[j] for j in range(n_total) if cluster_labels[j] == cid]
+			clusters_info.append((dist, comp_indices))
 
 		# Sắp xếp các cụm theo khoảng cách Mahalanobis từ gần đến xa
 		clusters_info.sort(key=lambda x: x[0])
@@ -810,24 +841,18 @@ def agglom_stratified_split(
 
 		# Biến theo dõi số lượng ảnh đã phân bổ
 		curr_train, curr_val, curr_test = 0, 0, 0
-		n_total = len(group)
 		target_train = int(n_total * train_ratio)
 		target_val = int(n_total * val_ratio)
 
-		# Hàm phụ phân bổ các cụm subfolders trong một dải khoảng cách
+		# Hàm phụ phân bổ các cụm trong một dải khoảng cách
 		def allocate_band_clusters(band_clusters):
 			nonlocal curr_train, curr_val, curr_test
 			rng_local = random.Random(seed + hash(label))
 			shuffled_band = band_clusters.copy()
 			rng_local.shuffle(shuffled_band)
 
-			for _, sf_list in shuffled_band:
-				# Tính tổng số ảnh trong cụm subfolders này
-				c_indices = []
-				for sf_name in sf_list:
-					c_indices.extend(subfolder_groups.get_group(sf_name).index.tolist())
+			for _, c_indices in shuffled_band:
 				c_count = len(c_indices)
-
 				# Quyết định đưa vào split nào đang thiếu nhiều nhất
 				diff_tr = max(0, target_train - curr_train)
 				diff_va = max(0, target_val - curr_val)
@@ -863,195 +888,9 @@ def agglom_stratified_split(
 		allocate_band_clusters(mid_clusters)
 		allocate_band_clusters(far_clusters)
 
-
-# ============================================================
-# PP7: Adversarial Validation Split
-# ============================================================
-
-def adversarial_validation_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	train_ratio: float = 0.60,
-	val_ratio: float = 0.20,
-	seed: int = 42,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""
-	PP7: Adversarial Validation — train discriminator trên subfolder embeddings để phân biệt 2 pool subfolders.
-	Những subfolders mà discriminator tự tin nhất là "khác biệt" → đưa vào test.
-	Đảm bảo KHÔNG rò rỉ dữ liệu mức subfolder.
-	"""
-	if len(df) != embeddings.shape[0]:
-		raise ValueError("Embeddings length does not match dataframe length")
-
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	rng = np.random.RandomState(seed)
-
-	train_idx, val_idx, test_idx = [], [], []
-
-	for label, group in tqdm(df.groupby("label"), desc="PP7-Adversarial"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_subfolders = len(subfolder_names)
-
-		if n_subfolders == 0:
-			continue
-
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
-			continue
-
-		# Tính subfolder embeddings
-		subfolder_embs = []
-		for sf_name in subfolder_names:
-			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
-			subfolder_embs.append(embeddings[sf_indices].mean(axis=0))
-		subfolder_embs = np.array(subfolder_embs)
-
-		# Chia tạm 50/50 các subfolders thành pool_A (label=0) và pool_B (label=1)
-		perm = rng.permutation(n_subfolders)
-		half = n_subfolders // 2
-		pool_a_pos = perm[:half]
-		pool_b_pos = perm[half:]
-
-		X = subfolder_embs.copy()
-		y = np.zeros(n_subfolders, dtype=np.float32)
-		y[pool_b_pos] = 1.0
-
-		# Train MLP nhỏ để phân biệt pool_A vs pool_B ở mức subfolder
-		emb_dim = X.shape[1]
-		discriminator = nn.Sequential(
-			nn.Linear(emb_dim, 128),
-			nn.ReLU(),
-			nn.Dropout(0.3),
-			nn.Linear(128, 1),
-			nn.Sigmoid(),
-		).to(device)
-
-		X_tensor = torch.from_numpy(X).float().to(device)
-		y_tensor = torch.from_numpy(y).float().to(device)
-
-		optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-3)
-		criterion = nn.BCELoss()
-
-		# Training nhanh (30 epochs)
-		discriminator.train()
-		for _ in range(30):
-			optimizer.zero_grad()
-			pred = discriminator(X_tensor).squeeze()
-			loss = criterion(pred, y_tensor)
-			loss.backward()
-			optimizer.step()
-
-		# Lấy prediction score
-		discriminator.eval()
-		with torch.no_grad():
-			scores = discriminator(X_tensor).squeeze().cpu().numpy()
-
-		# Score = |pred - 0.5|: càng cao = discriminator càng tự tin phân biệt
-		# Subfolder "khác biệt nhất" → đưa vào test
-		difficulty_scores = np.abs(scores - 0.5)
-		sorted_positions = np.argsort(-difficulty_scores)
-
-		train_sf_count, val_sf_count, test_sf_count = compute_split_counts(n_subfolders, train_ratio, val_ratio)
-
-		# Phân bổ subfolders theo độ khó
-		for i, pos in enumerate(sorted_positions):
-			sf_name = subfolder_names[pos]
-			sf_indices = subfolder_groups.get_group(sf_name).index.tolist()
-			if i < test_sf_count:
-				test_idx.extend(sf_indices)
-			elif i < test_sf_count + val_sf_count:
-				val_idx.extend(sf_indices)
-			else:
-				train_idx.extend(sf_indices)
-
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
 	df_test = _shuffle_df(df.loc[test_idx], seed)
-	return df_train, df_val, df_test
-
-
-# ============================================================
-# PP8: StratifiedGroupKFold Split
-# ============================================================
-
-def stratified_group_kfold_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,  # Không dùng, giữ signature nhất quán
-	train_ratio: float = 0.60,
-	val_ratio: float = 0.20,
-	seed: int = 42,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""
-	PP8: StratifiedGroupKFold — "tiêu chuẩn vàng" cho dữ liệu vi phẫu gỗ.
-
-	Kết hợp 2 yếu tố:
-	  - Group isolation: subfolder = group, KHÔNG bao giờ cắt subfolder
-	  - Stratification: giữ tỉ lệ class đồng nhất giữa các fold
-
-	Sử dụng sklearn.model_selection.StratifiedGroupKFold.
-	Chọn n_splits sao cho test fold ≈ test_ratio, rồi tách val từ train fold.
-
-	Tham khảo: Báo cáo 2.md — StratifiedGroupKFold là phương pháp tối ưu nhất
-	khi dữ liệu vừa có cấu trúc nhóm (cùng mẫu gỗ) vừa mất cân bằng lớp.
-	"""
-	from sklearn.model_selection import StratifiedGroupKFold as SKF_Splitter
-
-	test_ratio = 1.0 - train_ratio - val_ratio
-
-	# Tính n_splits sao cho mỗi fold ≈ test_ratio (VD: 0.20 → 5 folds)
-	n_splits_test = max(3, int(round(1.0 / test_ratio)))
-
-	# Tạo group array từ subfolder
-	# Mỗi (label, subfolder) là 1 group unique
-	groups = (df["label"] + "___" + df["subfolder"]).values
-	labels = df["label"].values
-
-	# Bước 1: Tách test fold bằng StratifiedGroupKFold
-	sgkf_test = SKF_Splitter(n_splits=n_splits_test, shuffle=False, random_state=None)
-
-	# Lấy fold đầu tiên làm test
-	trainval_indices = None
-	test_indices = None
-	for tv_idx, te_idx in sgkf_test.split(df.index, labels, groups):
-		trainval_indices = tv_idx
-		test_indices = te_idx
-		break
-
-	df_trainval = df.iloc[trainval_indices].reset_index(drop=True)
-	df_test_raw = df.iloc[test_indices]
-
-	# Bước 2: Tách val từ trainval bằng StratifiedGroupKFold
-	val_fraction = val_ratio / (train_ratio + val_ratio)
-	n_splits_val = max(3, int(round(1.0 / val_fraction)))
-
-	groups_tv = (df_trainval["label"] + "___" + df_trainval["subfolder"]).values
-	labels_tv = df_trainval["label"].values
-
-	sgkf_val = SKF_Splitter(n_splits=n_splits_val, shuffle=False, random_state=None)
-
-	train_indices_final = None
-	val_indices_final = None
-	for tr_idx, va_idx in sgkf_val.split(df_trainval.index, labels_tv, groups_tv):
-		train_indices_final = tr_idx
-		val_indices_final = va_idx
-		break
-
-	df_train = df_trainval.iloc[train_indices_final].reset_index(drop=True)
-	df_val = df_trainval.iloc[val_indices_final].reset_index(drop=True)
-	df_test = df_test_raw.reset_index(drop=True)
-
 	return df_train, df_val, df_test
 
 
