@@ -61,7 +61,7 @@ from train import (
 )
 
 # Import từ split_methods_v2.py
-from split_methods_v2 import (
+from split_methods import (
 	SPLIT_METHODS,
 	validate_split,
 	cosine_graph_split,
