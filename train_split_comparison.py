@@ -21,7 +21,7 @@ from timm.data import resolve_data_config
 from sklearn.metrics import classification_report, precision_recall_fscore_support
 
 # ===== CẤU HÌNH - CHỈNH SỬA TẠI ĐÂY =====
-ROOT_DIR = r"/kaggle/input/datasets/canhdoo/s3-data/S3"
+ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
 OUTPUT_BASE_DIR = "outputs_split_comparison"
 TRAIN_RATIO = 0.6
 VAL_RATIO = 0.2
