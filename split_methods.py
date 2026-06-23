@@ -179,16 +179,23 @@ def find_optimal_clusters_elbow(embeddings: np.ndarray, max_k: int = 30, seed: i
 	if len(wcss) <= 2:
 		return 3
 		
-	# Tìm điểm khuỷu tay
-	x1, y1 = k_values[0], wcss[0]
-	x2, y2 = k_values[-1], wcss[-1]
+	# Chuẩn hóa cả hai trục về [0, 1] để loại bỏ sai lệch tỷ lệ đơn vị (scaling bias) giữa K và WCSS
+	k_min, k_max = k_values[0], k_values[-1]
+	wcss_min, wcss_max = min(wcss), max(wcss)
+	
+	k_denom = (k_max - k_min) if (k_max - k_min) > 0 else 1.0
+	w_denom = (wcss_max - wcss_min) if (wcss_max - wcss_min) > 0 else 1.0
 	
 	distances = []
 	for i in range(len(k_values)):
-		x0, y0 = k_values[i], wcss[i]
-		numerator = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1)
-		denominator = np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
-		distances.append(numerator / denominator if denominator > 0 else 0.0)
+		# Chuẩn hóa điểm hiện tại
+		x0 = (k_values[i] - k_min) / k_denom
+		y0 = (wcss[i] - wcss_min) / w_denom
+		
+		# Khoảng cách từ (x0, y0) đến đường chéo nối (0, 1) và (1, 0)
+		# Phương trình đường chéo: x + y - 1 = 0
+		dist = abs(x0 + y0 - 1.0) / np.sqrt(2.0)
+		distances.append(dist)
 		
 	optimal_k = k_values[np.argmax(distances)]
 	return max(3, optimal_k)
