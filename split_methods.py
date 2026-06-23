@@ -201,6 +201,46 @@ def find_optimal_clusters_elbow(embeddings: np.ndarray, max_k: int = 30, seed: i
 	return max(3, optimal_k)
 
 
+def _split_by_mahalanobis_image_level(
+	indices: list[int],
+	subset_emb: np.ndarray,
+	train_ratio: float,
+	val_ratio: float,
+	seed: int,
+	eps: float = 1e-6,
+) -> tuple[list[int], list[int], list[int]]:
+	"""Phân chia các ảnh đơn lẻ dựa trên khoảng cách Mahalanobis đến centroid chung của subset."""
+	n_total = len(indices)
+	train_count, val_count, test_count = compute_split_counts(n_total, train_ratio, val_ratio)
+	
+	if n_total == 0:
+		return [], [], []
+		
+	# Giảm chiều bằng PCA nếu đủ lớn
+	pca_emb = subset_emb
+	if n_total >= 5:
+		d_prime = min(n_total - 2, 128)
+		if d_prime >= 2:
+			pca = PCA(n_components=d_prime, random_state=seed)
+			pca_emb = pca.fit_transform(subset_emb)
+			
+	dists = _mahalanobis_distances(pca_emb, eps=eps)
+	# Sort theo khoảng cách giảm dần (xa nhất lên đầu)
+	sorted_positions = np.argsort(-dists)
+	
+	test_idx, val_idx, train_idx = [], [], []
+	for i, pos in enumerate(sorted_positions):
+		orig_idx = indices[pos]
+		if i < test_count:
+			test_idx.append(orig_idx)
+		elif i < test_count + val_count:
+			val_idx.append(orig_idx)
+		else:
+			train_idx.append(orig_idx)
+			
+	return train_idx, val_idx, test_idx
+
+
 def mahalanobis_fixed_split(
 	df: pd.DataFrame,
 	embeddings: np.ndarray,
@@ -288,20 +328,15 @@ def mahalanobis_iterative_split(
 		
 		subfolder_embs = np.array(subfolder_embs)
 
-		# Trường hợp đặc biệt
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
+		# Trường hợp đặc biệt: < 3 subfolders
+		if n_subfolders < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
 			continue
 
 		# Giảm chiều bằng PCA nếu số lượng subfolders lớn (128 chiều)
@@ -378,19 +413,14 @@ def group_based_split(
 		n_total = len(group)
 
 		# Phân bổ nguyên vẹn các subfolders
-		if len(subfolder_names) == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if len(subfolder_names) == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
+		if len(subfolder_names) < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
 			continue
 
 		# >= 3 subfolders
@@ -456,19 +486,14 @@ def hierarchical_clustering_split(
 		if n_subfolders == 0:
 			continue
 
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
+		if n_subfolders < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
 			continue
 
 		# Tính subfolder embeddings
@@ -521,7 +546,18 @@ def hierarchical_clustering_split(
 		# Sort: cụm xa nhất trước
 		cluster_info.sort(key=lambda x: -x[1])
 
-		# Phân bổ nguyên vẹn các cụm
+		# Đảm bảo tập Train không bao giờ trống và xử lý số lượng cụm < 3
+		if len(cluster_info) < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
+			continue
+
+		# >= 3 cụm
 		n_total = len(group)
 		target_train = int(n_total * train_ratio)
 		target_val = int(n_total * val_ratio)
@@ -583,19 +619,14 @@ def cosine_graph_split(
 		if n_subfolders == 0:
 			continue
 
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
+		if n_subfolders < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
 			continue
 
 		# Tính subfolder embeddings
@@ -652,7 +683,18 @@ def cosine_graph_split(
 		# Sort: component xa nhất trước
 		components.sort(key=lambda x: -x[1])
 
-		# Phân bổ nguyên vẹn các components
+		# Đảm bảo tập Train không bao giờ trống và xử lý số lượng components < 3
+		if len(components) < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
+			continue
+
+		# >= 3 components
 		n_total = len(group)
 		target_train = int(n_total * train_ratio)
 		target_val = int(n_total * val_ratio)
@@ -746,19 +788,14 @@ def agglom_stratified_split(
 		if n_subfolders == 0:
 			continue
 
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
+		if n_subfolders < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
 			continue
 
 		# Tính subfolder embeddings
@@ -807,6 +844,18 @@ def agglom_stratified_split(
 		clusters_info.sort(key=lambda x: x[0])
 		K = len(clusters_info)
 
+		# Đảm bảo tập Train không bao giờ trống và xử lý số lượng cụm < 3
+		if K < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
+			continue
+
+		# >= 3 cụm
 		# Chia thành 3 dải khoảng cách: Gần, Vừa, Xa
 		near_num = max(1, K // 3)
 		mid_num = max(1, (K - near_num) // 2)
@@ -903,19 +952,14 @@ def adversarial_validation_split(
 		if n_subfolders == 0:
 			continue
 
-		if n_subfolders == 1:
-			train_idx.extend(subfolder_groups.get_group(subfolder_names[0]).index.tolist())
-			continue
-
-		if n_subfolders == 2:
-			g0 = subfolder_groups.get_group(subfolder_names[0]).index.tolist()
-			g1 = subfolder_groups.get_group(subfolder_names[1]).index.tolist()
-			if len(g0) >= len(g1):
-				train_idx.extend(g0)
-				test_idx.extend(g1)
-			else:
-				train_idx.extend(g1)
-				test_idx.extend(g0)
+		if n_subfolders < 3:
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
 			continue
 
 		# Tính subfolder embeddings
