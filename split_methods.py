@@ -26,6 +26,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.sparse import csr_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.decomposition import PCA
 
 
 # ============================================================
@@ -209,6 +210,7 @@ def mahalanobis_iterative_split(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
 	PP2: Tính khoảng cách Mahalanobis, nhưng TÁI TÍNH centroid sau mỗi lần rút ảnh.
+	Được tối ưu hóa bằng PCA giảm chiều trước khi tính khoảng cách để tăng tốc độ.
 	"""
 	if len(df) != embeddings.shape[0]:
 		raise ValueError("Embeddings length does not match dataframe length")
@@ -223,29 +225,37 @@ def mahalanobis_iterative_split(
 		if n_total == 0:
 			continue
 
-		remaining = list(indices)
-		picked_test = []
-		picked_val = []
+		subset_emb = embeddings[np.array(indices)]
+		# Áp dụng PCA giảm chiều để tăng tốc tính toán ma trận hiệp phương sai
+		if n_total >= 5:
+			d_prime = min(n_total - 2, 32)
+			if d_prime >= 2:
+				pca = PCA(n_components=d_prime, random_state=seed)
+				subset_emb = pca.fit_transform(subset_emb)
+
+		remaining_pos = list(range(n_total))
+		picked_test_pos = []
+		picked_val_pos = []
 
 		# Rút test: lặp, mỗi lần tính lại centroid và rút ảnh xa nhất
-		for _ in range(min(test_count, len(remaining))):
-			subset_emb = embeddings[np.array(remaining)]
-			dists = _mahalanobis_distances(subset_emb, eps=eps)
+		for _ in range(min(test_count, len(remaining_pos))):
+			cur_embs = subset_emb[remaining_pos]
+			dists = _mahalanobis_distances(cur_embs, eps=eps)
 			max_pos = int(np.argmax(dists))
-			picked_test.append(remaining[max_pos])
-			remaining.pop(max_pos)
+			picked_test_pos.append(remaining_pos[max_pos])
+			remaining_pos.pop(max_pos)
 
 		# Rút val: tương tự
-		for _ in range(min(val_count, len(remaining))):
-			subset_emb = embeddings[np.array(remaining)]
-			dists = _mahalanobis_distances(subset_emb, eps=eps)
+		for _ in range(min(val_count, len(remaining_pos))):
+			cur_embs = subset_emb[remaining_pos]
+			dists = _mahalanobis_distances(cur_embs, eps=eps)
 			max_pos = int(np.argmax(dists))
-			picked_val.append(remaining[max_pos])
-			remaining.pop(max_pos)
+			picked_val_pos.append(remaining_pos[max_pos])
+			remaining_pos.pop(max_pos)
 
-		test_idx.extend(picked_test)
-		val_idx.extend(picked_val)
-		train_idx.extend(remaining)
+		test_idx.extend([indices[pos] for pos in picked_test_pos])
+		val_idx.extend([indices[pos] for pos in picked_val_pos])
+		train_idx.extend([indices[pos] for pos in remaining_pos])
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)

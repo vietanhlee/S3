@@ -20,6 +20,7 @@ Dự án này triển khai các phương pháp chia dữ liệu từ cơ bản (
   1. Trích xuất đặc trưng (embedding) của ảnh bằng mô hình EfficientNet-B4.
   2. Với mỗi lớp (class), tính centroid (trung bình) của các embedding.
   3. Lặp lại quá trình: tính khoảng cách Mahalanobis từ các điểm còn lại đến centroid hiện tại, chọn mẫu có khoảng cách lớn nhất (outlier) đưa vào tập Test (hoặc Val), sau đó cập nhật lại centroid. Quá trình tiếp diễn cho đến khi đủ số lượng mẫu quy định cho Test/Val. Phần còn lại đưa vào tập Train.
+  4. **Tối ưu hóa hiệu năng bằng PCA**: Sebelum tính khoảng cách Mahalanobis, embeddings của từng lớp được giảm chiều bằng PCA xuống còn tối đa 32 chiều ($d' = \min(n_{samples} - 2, 32)$). Việc này giúp giảm kích thước ma trận covariance, tăng tốc độ tính nghịch đảo ma trận lên hàng nghìn lần, đồng thời loại bỏ nhiễu và đa cộng tuyến.
 * **Mục tiêu chống leakage**: Feature-level stress-test.
 * **Đặc điểm**: Đẩy các mẫu ngoại lai (outliers) có đặc trưng lệch nhất làm Test set, giúp stress-test mô hình trong điều kiện khó khăn nhất.
 
@@ -70,7 +71,7 @@ Dự án này triển khai các phương pháp chia dữ liệu từ cơ bản (
 * **Mục tiêu chống leakage**: Vừa chống rò rỉ nhóm, vừa phân tầng nhãn lớp.
 * **Đặc điểm**: Đây là **tiêu chuẩn vàng** đối với dữ liệu vi phẫu gỗ, cân bằng hoàn hảo giữa việc cô lập mẫu vật lý và giải quyết bài toán mất cân bằng lớp.
 
-### PP9: Agglom Stratified Split (Phương pháp gom cụm phân tầng)
+### PP9: Agglom Stratified Split
 * **Cơ chế**:
   1. Gom cụm ảnh của từng lớp bằng thuật toán `AgglomerativeClustering`.
   2. Tính khoảng cách Euclidean từ centroid của mỗi cụm đến centroid chung của lớp.

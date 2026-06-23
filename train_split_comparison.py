@@ -140,7 +140,7 @@ def run_one_method(
 	val_ds = ImageListDataset(df_val, class_to_idx, transform=eval_tf)
 	test_ds = ImageListDataset(df_test, class_to_idx, transform=eval_tf)
 
-	num_workers = min(4, os.cpu_count() or 1)
+	num_workers = min(8, os.cpu_count() or 1)
 	train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=num_workers, pin_memory=True)
 	val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers, pin_memory=True)
 	test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers, pin_memory=True)
