@@ -76,18 +76,20 @@ def build_dataframe(samples: list[dict]) -> pd.DataFrame:
 		parts = path.parts
 		try:
 			label_idx = parts.index(label)
-			subfolder = parts[label_idx + 1] if label_idx + 1 < len(parts) - 1 else "__root__"
+			# Chỉ lấy ảnh nếu nó nằm trong subfolder thực sự của class
+			if label_idx + 1 < len(parts) - 1:
+				subfolder = parts[label_idx + 1]
+				rows.append(
+					{
+						"path": sample["path"],
+						"label": label,
+						"genus": genus,
+						"species": species,
+						"subfolder": subfolder,
+					}
+				)
 		except ValueError:
-			subfolder = "__root__"
-		rows.append(
-			{
-				"path": sample["path"],
-				"label": label,
-				"genus": genus,
-				"species": species,
-				"subfolder": subfolder,
-			}
-		)
+			pass
 	return pd.DataFrame(rows)
 
 
@@ -156,7 +158,32 @@ def eda_split_class_distribution(
 					color="white",
 				)
 			bottom += value
-	plt.title(title)
+
+	# Tính tỉ lệ phần trăm tổng thể Train/Val/Test
+	total_train = len(df_train)
+	total_val = len(df_val)
+	total_test = len(df_test)
+	total_all = total_train + total_val + total_test
+
+	p_train = total_train / total_all * 100 if total_all > 0 else 0.0
+	p_val = total_val / total_all * 100 if total_all > 0 else 0.0
+	p_test = total_test / total_all * 100 if total_all > 0 else 0.0
+
+	overall_text = (
+		f"Overall split ratio:\n"
+		f"  Train: {total_train} ({p_train:.1f}%)\n"
+		f"  Val:   {total_val} ({p_val:.1f}%)\n"
+		f"  Test:  {total_test} ({p_test:.1f}%)"
+	)
+
+	# Đặt text box ở góc trên bên trái biểu đồ
+	props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+	ax.text(
+		0.02, 0.95, overall_text, transform=ax.transAxes, fontsize=9,
+		verticalalignment='top', bbox=props
+	)
+
+	plt.title(f"{title} (Total: {total_all})")
 	plt.xlabel("Class")
 	plt.ylabel("Image count")
 	plt.xticks(rotation=45, ha="right")

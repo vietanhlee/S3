@@ -60,8 +60,8 @@ from train import (
 	validate_split_minimums,
 )
 
-# Import từ split_methods_v2.py
-from split_methods_v2 import (
+# Import từ split_methods.py
+from split_methods import (
 	SPLIT_METHODS,
 	validate_split,
 	cosine_graph_split,
@@ -175,7 +175,8 @@ def run_one_method(
 	evaluate_and_report(model, val_loader, device, class_names, output_dir, prefix="val")
 	evaluate_and_report(model, test_loader, device, class_names, output_dir, prefix="test")
 
-	# Thu thập per-class accuracy từ test report
+	# Thu thập per-class accuracy từ cả val và test report
+	val_report = _get_per_class_acc(model, val_loader, device, class_names)
 	test_report = _get_per_class_acc(model, test_loader, device, class_names)
 
 	# Kết quả
@@ -184,6 +185,17 @@ def run_one_method(
 		"best_val_acc": history.get("best_val_acc", 0.0),
 		"final_train_acc": history["train_acc"][-1] if history["train_acc"] else 0.0,
 		"final_val_acc": history["val_acc"][-1] if history["val_acc"] else 0.0,
+		
+		# Val metrics
+		"val_acc": val_report["overall_acc"],
+		"val_precision": val_report["precision_macro"],
+		"val_recall": val_report["recall_macro"],
+		"val_f1": val_report["f1_macro"],
+		"per_class_val_acc_min": val_report["min_acc"],
+		"per_class_val_acc_max": val_report["max_acc"],
+		"per_class_val_acc_mean": val_report["mean_acc"],
+		
+		# Test metrics
 		"test_acc": test_report["overall_acc"],
 		"test_precision": test_report["precision_macro"],
 		"test_recall": test_report["recall_macro"],
@@ -191,6 +203,7 @@ def run_one_method(
 		"per_class_test_acc_min": test_report["min_acc"],
 		"per_class_test_acc_max": test_report["max_acc"],
 		"per_class_test_acc_mean": test_report["mean_acc"],
+		
 		"train_size": len(df_train),
 		"val_size": len(df_val),
 		"test_size": len(df_test),
@@ -269,9 +282,10 @@ def _get_per_class_acc(
 def print_comparison_table(results: list[dict]) -> str:
 	"""In bảng so sánh đẹp và trả về string."""
 	header = (
-		f"{'Phương pháp':<30} {'Train ACC':>10} {'Val ACC':>10} "
+		f"{'Phương pháp':<25} {'Train ACC':>10} "
+		f"{'Val ACC':>10} {'Val P':>8} {'Val R':>8} {'Val F1':>8} "
 		f"{'Test ACC':>10} {'Test P':>8} {'Test R':>8} {'Test F1':>8} "
-		f"{'Min':>7} {'Max':>7} {'Mean':>7} "
+		f"{'Min(T)':>7} {'Max(T)':>7} {'Mean(T)':>7} "
 		f"{'Train':>6} {'Val':>5} {'Test':>5} {'Ep':>4}"
 	)
 	separator = "=" * len(header)
@@ -280,9 +294,12 @@ def print_comparison_table(results: list[dict]) -> str:
 
 	for r in results:
 		line = (
-			f"{r['method']:<30} "
+			f"{r['method']:<25} "
 			f"{r['final_train_acc']*100:>9.2f}% "
-			f"{r['final_val_acc']*100:>9.2f}% "
+			f"{r['val_acc']*100:>9.2f}% "
+			f"{r['val_precision']*100:>7.2f}% "
+			f"{r['val_recall']*100:>7.2f}% "
+			f"{r['val_f1']*100:>7.2f}% "
 			f"{r['test_acc']*100:>9.2f}% "
 			f"{r['test_precision']*100:>7.2f}% "
 			f"{r['test_recall']*100:>7.2f}% "
