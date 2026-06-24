@@ -1039,69 +1039,94 @@ def adversarial_validation_split(
 
 def stratified_group_kfold_split(
 	df: pd.DataFrame,
-	embeddings: np.ndarray,  # Không dùng, giữ signature nhất quán
+	embeddings: np.ndarray,
 	train_ratio: float = 0.60,
 	val_ratio: float = 0.20,
 	seed: int = 42,
+	eps: float = 1e-6,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
-	PP8: StratifiedGroupKFold — "tiêu chuẩn vàng" cho dữ liệu vi phẫu gỗ.
-
-	Kết hợp 2 yếu tố:
-	  - Group isolation: subfolder = group, KHÔNG bao giờ cắt subfolder
-	  - Stratification: giữ tỉ lệ class đồng nhất giữa các fold
-
-	Sử dụng sklearn.model_selection.StratifiedGroupKFold.
-	Chọn n_splits sao cho test fold ≈ test_ratio, rồi tách val từ train fold.
-
-	Tham khảo: Báo cáo 2.md — StratifiedGroupKFold là phương pháp tối ưu nhất
-	khi dữ liệu vừa có cấu trúc nhóm (cùng mẫu gỗ) vừa mất cân bằng lớp.
+	PP8: StratifiedGroupKFold — Cân bằng cách ly nhóm subfolder và phân tầng class.
+	Đối với các class có ít hơn 3 subfolders, ta phân rã ảnh ra và chia theo khoảng cách Mahalanobis mức ảnh.
+	Đối với các class có từ 3 subfolders trở lên, ta chia bằng StratifiedGroupKFold ở mức group.
 	"""
 	from sklearn.model_selection import StratifiedGroupKFold as SKF_Splitter
 
-	test_ratio = 1.0 - train_ratio - val_ratio
+	train_idx, val_idx, test_idx = [], [], []
 
-	# Tính n_splits sao cho mỗi fold ≈ test_ratio (VD: 0.20 → 5 folds)
-	n_splits_test = max(3, int(round(1.0 / test_ratio)))
+	# Tách dataframe thành các class lớn (>= 3 subfolders) và class nhỏ (< 3 subfolders)
+	large_class_groups = []
+	
+	for label, group in df.groupby("label"):
+		subfolder_names = group["subfolder"].unique()
+		n_subfolders = len(subfolder_names)
+		
+		if n_subfolders < 3:
+			# Class nhỏ: phân rã ảnh và chia theo Mahalanobis mức ảnh
+			indices = group.index.tolist()
+			tr, va, te = _split_by_mahalanobis_image_level(
+				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
+			)
+			train_idx.extend(tr)
+			val_idx.extend(va)
+			test_idx.extend(te)
+		else:
+			large_class_groups.append(group)
 
-	# Tạo group array từ subfolder
-	# Mỗi (label, subfolder) là 1 group unique
-	groups = (df["label"] + "___" + df["subfolder"]).values
-	labels = df["label"].values
+	if large_class_groups:
+		# Gộp các class lớn lại để chạy StratifiedGroupKFold
+		df_large = pd.concat(large_class_groups)
+		
+		# Tính n_splits sao cho mỗi fold ≈ test_ratio (VD: 0.20 → 5 folds)
+		test_ratio = 1.0 - train_ratio - val_ratio
+		n_splits_test = max(3, int(round(1.0 / test_ratio)))
 
-	# Bước 1: Tách test fold bằng StratifiedGroupKFold
-	sgkf_test = SKF_Splitter(n_splits=n_splits_test, shuffle=False, random_state=None)
+		# Tạo group array từ subfolder cho df_large
+		groups = (df_large["label"] + "___" + df_large["subfolder"]).values
+		labels = df_large["label"].values
 
-	# Lấy fold đầu tiên làm test
-	trainval_indices = None
-	test_indices = None
-	for tv_idx, te_idx in sgkf_test.split(df.index, labels, groups):
-		trainval_indices = tv_idx
-		test_indices = te_idx
-		break
+		# Bước 1: Tách test fold bằng StratifiedGroupKFold
+		sgkf_test = SKF_Splitter(n_splits=n_splits_test, shuffle=False, random_state=None)
 
-	df_trainval = df.iloc[trainval_indices].reset_index(drop=True)
-	df_test_raw = df.iloc[test_indices]
+		trainval_indices_rel = None
+		test_indices_rel = None
+		for tv_idx, te_idx in sgkf_test.split(df_large.index, labels, groups):
+			trainval_indices_rel = tv_idx
+			test_indices_rel = te_idx
+			break
 
-	# Bước 2: Tách val từ trainval bằng StratifiedGroupKFold
-	val_fraction = val_ratio / (train_ratio + val_ratio)
-	n_splits_val = max(3, int(round(1.0 / val_fraction)))
+		# Lấy indices tuyệt đối của df gốc
+		trainval_absolute_indices = df_large.index[trainval_indices_rel].tolist()
+		test_absolute_indices = df_large.index[test_indices_rel].tolist()
+		
+		df_trainval = df.loc[trainval_absolute_indices]
+		test_idx.extend(test_absolute_indices)
 
-	groups_tv = (df_trainval["label"] + "___" + df_trainval["subfolder"]).values
-	labels_tv = df_trainval["label"].values
+		# Bước 2: Tách val từ trainval bằng StratifiedGroupKFold
+		val_fraction = val_ratio / (train_ratio + val_ratio)
+		n_splits_val = max(3, int(round(1.0 / val_fraction)))
 
-	sgkf_val = SKF_Splitter(n_splits=n_splits_val, shuffle=False, random_state=None)
+		groups_tv = (df_trainval["label"] + "___" + df_trainval["subfolder"]).values
+		labels_tv = df_trainval["label"].values
 
-	train_indices_final = None
-	val_indices_final = None
-	for tr_idx, va_idx in sgkf_val.split(df_trainval.index, labels_tv, groups_tv):
-		train_indices_final = tr_idx
-		val_indices_final = va_idx
-		break
+		sgkf_val = SKF_Splitter(n_splits=n_splits_val, shuffle=False, random_state=None)
 
-	df_train = df_trainval.iloc[train_indices_final].reset_index(drop=True)
-	df_val = df_trainval.iloc[val_indices_final].reset_index(drop=True)
-	df_test = df_test_raw.reset_index(drop=True)
+		train_indices_rel = None
+		val_indices_rel = None
+		for tr_idx, va_idx in sgkf_val.split(df_trainval.index, labels_tv, groups_tv):
+			train_indices_rel = tr_idx
+			val_indices_rel = va_idx
+			break
+
+		train_absolute_indices = df_trainval.index[train_indices_rel].tolist()
+		val_absolute_indices = df_trainval.index[val_indices_rel].tolist()
+		
+		train_idx.extend(train_absolute_indices)
+		val_idx.extend(val_absolute_indices)
+
+	df_train = _shuffle_df(df.loc[train_idx], seed)
+	df_val = _shuffle_df(df.loc[val_idx], seed)
+	df_test = _shuffle_df(df.loc[test_idx], seed)
 
 	return df_train, df_val, df_test
 
