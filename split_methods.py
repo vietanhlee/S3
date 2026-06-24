@@ -919,6 +919,11 @@ def agglom_stratified_split(
 		allocate_band_clusters(mid_clusters)
 		allocate_band_clusters(far_clusters)
 
+	df_train = _shuffle_df(df.loc[train_idx], seed)
+	df_val = _shuffle_df(df.loc[val_idx], seed)
+	df_test = _shuffle_df(df.loc[test_idx], seed)
+	return df_train, df_val, df_test
+
 
 # ============================================================
 # PP7: Adversarial Validation Split

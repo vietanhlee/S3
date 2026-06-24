@@ -130,7 +130,7 @@ def main() -> None:
 		# Gọi hàm split
 		try:
 			if method_name == "PP5_Cosine_Graph":
-				df_train, df_val, df_test = split_fn(
+				df_train, df_test, df_val = split_fn(
 					df, embeddings,
 					train_ratio=args.train_ratio,
 					val_ratio=args.val_ratio,
@@ -138,7 +138,7 @@ def main() -> None:
 					cosine_threshold=args.cosine_threshold,
 				)
 			else:
-				df_train, df_val, df_test = split_fn(
+				df_train, df_test, df_val = split_fn(
 					df, embeddings,
 					train_ratio=args.train_ratio,
 					val_ratio=args.val_ratio,

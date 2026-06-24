@@ -369,7 +369,7 @@ def main() -> None:
 		try:
 			if method_name == "PP5_Cosine_Graph":
 				# PP5 cần thêm tham số cosine_threshold
-				df_train, df_val, df_test = split_fn(
+				df_train, df_test, df_val = split_fn(
 					df, embeddings,
 					train_ratio=TRAIN_RATIO,
 					val_ratio=VAL_RATIO,
@@ -377,7 +377,7 @@ def main() -> None:
 					cosine_threshold=COSINE_THRESHOLD,
 				)
 			else:
-				df_train, df_val, df_test = split_fn(
+				df_train, df_test, df_val = split_fn(
 					df, embeddings,
 					train_ratio=TRAIN_RATIO,
 					val_ratio=VAL_RATIO,

@@ -1085,7 +1085,7 @@ def main() -> None:
 
 	print("Computing embeddings for split...")
 	embeddings = compute_embeddings(df, batch_size=BATCH_SIZE, device=device)
-	df_train, df_val, df_test = mahalanobis_split_by_class(
+	df_train, df_test, df_val = mahalanobis_split_by_class(
 		df,
 		embeddings,
 		train_ratio=0.7,
