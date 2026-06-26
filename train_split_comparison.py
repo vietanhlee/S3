@@ -330,37 +330,52 @@ def print_comparison_table(results: list[dict]) -> str:
 
 
 def print_best_methods_per_class(results: list[dict], class_names: list[str]) -> str:
-	"""Tạo báo cáo chỉ ra phương pháp chia (PP) có F1-Score cao nhất cho từng class trên tập Test."""
+	"""Tạo báo cáo chỉ ra phương pháp chia (PP) và tập (val/test) có F1-Score cao nhất cho từng class."""
 	lines = []
-	lines.append("\n" + "=" * 90)
-	lines.append("BÁO CÁO PHƯƠNG PHÁP CHIA DỮ LIỆU TỐT NHẤT CHO TỪNG CLASS (DỰA TRÊN TEST F1-SCORE)")
-	lines.append("=" * 90)
+	lines.append("\n" + "=" * 105)
+	lines.append("BÁO CÁO PHƯƠNG PHÁP CHIA DỮ LIỆU TỐT NHẤT CHO TỪNG CLASS (DỰA TRÊN VAL/TEST F1-SCORE)")
+	lines.append("=" * 105)
 	
-	header = f"{'Loài gỗ (Class)':<35} | {'Phương pháp tốt nhất':<25} | {'F1-Score cao nhất':<18}"
+	header = f"{'Loài gỗ (Class)':<35} | {'Phương pháp tốt nhất':<25} | {'Tập (Val/Test)':<15} | {'F1-Score cao nhất':<18}"
 	lines.append(header)
-	lines.append("-" * 90)
+	lines.append("-" * 105)
 	
 	best_summary = []
 	for class_idx, class_name in enumerate(class_names):
 		best_method = "N/A"
+		best_subset = "N/A"
 		best_f1 = -1.0
 		
 		for r in results:
-			f1_list = r.get("per_class_test_f1", [])
-			if class_idx < len(f1_list):
-				f1_val = f1_list[class_idx]
+			# Check test F1
+			test_f1_list = r.get("per_class_test_f1", [])
+			if class_idx < len(test_f1_list):
+				f1_val = test_f1_list[class_idx]
 				if f1_val > best_f1:
 					best_f1 = f1_val
 					best_method = r["method"]
+					best_subset = "test"
+					
+			# Check val F1
+			val_f1_list = r.get("per_class_val_f1", [])
+			if class_idx < len(val_f1_list):
+				f1_val = val_f1_list[class_idx]
+				if f1_val > best_f1:
+					best_f1 = f1_val
+					best_method = r["method"]
+					best_subset = "val"
 		
-		lines.append(f"{class_name:<35} | {best_method:<25} | {best_f1*100:>16.2f}%")
-		best_summary.append(f"{class_name}: {best_method} (F1: {best_f1*100:.2f}%)")
+		lines.append(f"{class_name:<35} | {best_method:<25} | {best_subset:<15} | {best_f1*100:>16.2f}%")
 		
-	lines.append("=" * 90)
-	lines.append("\nTÓM TẮT PHƯƠNG PHÁP TỐT NHẤT:")
+		# Lấy tên ngắn gọn của PP (ví dụ: PP8_StratifiedGroupKFold -> PP8)
+		short_method = best_method.split("_")[0] if "_" in best_method else best_method
+		best_summary.append(f"{class_name}: {short_method} của {best_subset} (F1: {best_f1*100:.2f}%)")
+		
+	lines.append("=" * 105)
+	lines.append("\nTÓM TẮT PHƯƠNG PHÁP TỐT NHẤT (DỄ SAO CHÉP VÀO CẤU HÌNH):")
 	for item in best_summary:
 		lines.append(f"- {item}")
-	lines.append("=" * 90)
+	lines.append("=" * 105)
 	
 	report_str = "\n".join(lines)
 	print(report_str)
