@@ -35,7 +35,7 @@ LR = 5e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
 FOCAL_ALPHA = 0.25
-MODEL_NAME = "vit_base_patch16_224"
+MODEL_NAME = "swin_large_patch4_window7_224"
 FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5
 # ====================
@@ -101,7 +101,7 @@ def end_version_split(
 		"Afzelia quanzensis": ("PP7", "val"),
 		"Dalbergia cochinchinensis": ("PP4", "test"),
 		"Dalbergia melanoxylon": ("PP2", "val"),
-		"Dalbergia oliveri": ("PP5", "test"),
+		"Dalbergia oliveri": ("PP9", "test"),
 		"Dalbergia rimosa": ("PP4", "test"),
 		"Dalbergia tonkinensis": ("PP4", "val"),
 		"Guibourtia arnoldiana": ("PP4", "val"),
@@ -112,7 +112,7 @@ def end_version_split(
 		"Pterocarpus indicus": ("PP4", "test"),
 		"Pterocarpus macrocarpus": ("PP9", "val"),
 		"Pterocarpus soyauxii": ("PP4", "test"),
-		"Sindora cochinchinensis": ("PP9", "val"),
+		"Sindora cochinchinensis": ("PP9", "test"),
 		"Sindora tonkinensis": ("PP7", "test"),
 	}
 
