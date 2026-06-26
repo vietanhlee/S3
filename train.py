@@ -389,7 +389,7 @@ def build_transforms(img_size: int, mean, std):
 
 def build_efficientnetb4_embedding_model() -> nn.Module:
 	model = timm.create_model(
-		"tf_efficientnet_b4",
+		"convnext_tiny",
 		pretrained=True,
 		num_classes=0,
 		global_pool="avg",
