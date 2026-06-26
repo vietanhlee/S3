@@ -95,12 +95,12 @@ def end_version_split(
 
 	# 2. Định nghĩa cấu hình chia cho từng class
 	split_config = {
-		"Afzelia africana": ("PP8", "test"),
+		"Afzelia africana": ("PP8", "val"),
 		"Afzelia bella": ("PP4", "val"),
 		"Afzelia pachyloba": ("PP2", "val"),
 		"Afzelia quanzensis": ("PP7", "val"),
 		"Dalbergia cochinchinensis": ("PP4", "test"),
-		"Dalbergia melanoxylon": ("PP4", "test"),
+		"Dalbergia melanoxylon": ("PP2", "val"),
 		"Dalbergia oliveri": ("PP5", "test"),
 		"Dalbergia rimosa": ("PP4", "test"),
 		"Dalbergia tonkinensis": ("PP4", "val"),
@@ -109,7 +109,7 @@ def end_version_split(
 		"Guibourtia ehie": ("PP2", "val"),
 		"Peltogyne pubescens": ("PP4", "val"),
 		"Pterocarpus erinaceus": ("PP2", "test"),
-		"Pterocarpus indicus": ("PP4", "val"),
+		"Pterocarpus indicus": ("PP4", "test"),
 		"Pterocarpus macrocarpus": ("PP9", "val"),
 		"Pterocarpus soyauxii": ("PP4", "test"),
 		"Sindora cochinchinensis": ("PP9", "val"),
