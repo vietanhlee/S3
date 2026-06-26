@@ -387,26 +387,26 @@ def build_transforms(img_size: int, mean, std):
 	return train_tf, eval_tf
 
 
-# def build_embedding_model() -> nn.Module:
-# 	"""Tạo model embedding (swin_large_patch4_window7_224) phục vụ trích xuất đặc trưng."""
-# 	model = timm.create_model(
-# 		"swin_large_patch4_window7_224",
-# 		pretrained=True,
-# 		num_classes=0,
-# 	)
-# 	model.eval()
-# 	return model
-
 def build_embedding_model() -> nn.Module:
-	"""Tạo model embedding (tf_efficientnetv2_m_in21k) phục vụ trích xuất đặc trưng."""
+	"""Tạo model embedding (swin_large_patch4_window7_224) phục vụ trích xuất đặc trưng."""
 	model = timm.create_model(
-		"tf_efficientnetv2_m_in21k",
+		"swin_large_patch4_window7_224",
 		pretrained=True,
 		num_classes=0,
-		global_pool="avg",
 	)
 	model.eval()
 	return model
+
+# def build_embedding_model() -> nn.Module:
+# 	"""Tạo model embedding (tf_efficientnetv2_m_in21k) phục vụ trích xuất đặc trưng."""
+# 	model = timm.create_model(
+# 		"tf_efficientnetv2_m_in21k",
+# 		pretrained=True,
+# 		num_classes=0,
+# 		global_pool="avg",
+# 	)
+# 	model.eval()
+# 	return model
 
 
 def build_embedding_transform(model: nn.Module) -> transforms.Compose:
