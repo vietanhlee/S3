@@ -388,11 +388,12 @@ def build_transforms(img_size: int, mean, std):
 
 
 def build_embedding_model() -> nn.Module:
-	"""Tạo model embedding (swin_tiny_patch4_window7_224) phục vụ trích xuất đặc trưng."""
+	"""Tạo model embedding (tf_efficientnetv2_m_in21k) phục vụ trích xuất đặc trưng."""
 	model = timm.create_model(
-		"swin_tiny_patch4_window7_224",
+		"tf_efficientnetv2_m_in21k",
 		pretrained=True,
 		num_classes=0,
+		global_pool="avg",
 	)
 	model.eval()
 	return model
