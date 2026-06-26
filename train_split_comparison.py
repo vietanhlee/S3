@@ -34,7 +34,7 @@ LR = 5e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
 FOCAL_ALPHA = 0.25
-MODEL_NAME = "tf_efficientnet_b4"
+MODEL_NAME = "convnext_tiny"
 FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5 (Cosine Graph)
 # ============================================
