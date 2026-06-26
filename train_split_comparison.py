@@ -340,6 +340,7 @@ def print_best_methods_per_class(results: list[dict], class_names: list[str]) ->
 	lines.append(header)
 	lines.append("-" * 90)
 	
+	best_summary = []
 	for class_idx, class_name in enumerate(class_names):
 		best_method = "N/A"
 		best_f1 = -1.0
@@ -353,8 +354,14 @@ def print_best_methods_per_class(results: list[dict], class_names: list[str]) ->
 					best_method = r["method"]
 		
 		lines.append(f"{class_name:<35} | {best_method:<25} | {best_f1*100:>16.2f}%")
+		best_summary.append(f"{class_name}: {best_method} (F1: {best_f1*100:.2f}%)")
 		
 	lines.append("=" * 90)
+	lines.append("\nTÓM TẮT PHƯƠNG PHÁP TỐT NHẤT:")
+	for item in best_summary:
+		lines.append(f"- {item}")
+	lines.append("=" * 90)
+	
 	report_str = "\n".join(lines)
 	print(report_str)
 	return report_str

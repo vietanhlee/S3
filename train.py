@@ -387,12 +387,12 @@ def build_transforms(img_size: int, mean, std):
 	return train_tf, eval_tf
 
 
-def build_efficientnetb4_embedding_model() -> nn.Module:
+def build_embedding_model() -> nn.Module:
+	"""Tạo model embedding (swin_tiny_patch4_window7_224) phục vụ trích xuất đặc trưng."""
 	model = timm.create_model(
-		"convnext_tiny",
+		"swin_tiny_patch4_window7_224",
 		pretrained=True,
 		num_classes=0,
-		global_pool="avg",
 	)
 	model.eval()
 	return model
@@ -417,7 +417,7 @@ def compute_embeddings(
 	batch_size: int,
 	device: torch.device,
 ) -> np.ndarray:
-	model = build_efficientnetb4_embedding_model().to(device)
+	model = build_embedding_model().to(device)
 	if device.type == "cuda" and torch.cuda.device_count() > 1:
 		print(f"Phát hiện {torch.cuda.device_count()} GPUs. Sử dụng nn.DataParallel cho Embedding Extraction.")
 		model = nn.DataParallel(model)
