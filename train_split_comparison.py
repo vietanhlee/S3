@@ -194,6 +194,7 @@ def run_one_method(
 		"per_class_val_acc_min": val_report["min_acc"],
 		"per_class_val_acc_max": val_report["max_acc"],
 		"per_class_val_acc_mean": val_report["mean_acc"],
+		"per_class_val_f1": val_report.get("per_class_f1", []),
 		
 		# Test metrics
 		"test_acc": test_report["overall_acc"],
@@ -203,6 +204,7 @@ def run_one_method(
 		"per_class_test_acc_min": test_report["min_acc"],
 		"per_class_test_acc_max": test_report["max_acc"],
 		"per_class_test_acc_mean": test_report["mean_acc"],
+		"per_class_test_f1": test_report.get("per_class_f1", []),
 		
 		"train_size": len(df_train),
 		"val_size": len(df_val),
@@ -229,7 +231,7 @@ def _get_per_class_acc(
 	device: torch.device,
 	class_names: list[str],
 ) -> dict:
-	"""Tính accuracy tổng thể, metrics trung bình (precision, recall, f1) và per-class accuracy trên test set."""
+	"""Tính accuracy tổng thể, metrics trung bình (precision, recall, f1) và per-class metrics trên test set."""
 	model.eval()
 	y_true, y_pred = [], []
 	for images, targets in loader:
@@ -263,6 +265,11 @@ def _get_per_class_acc(
 		acc = correct_c / total if total > 0 else 0.0
 		per_class_acc.append(acc)
 
+	# Tính per-class F1-Score
+	_, _, f1s, _ = precision_recall_fscore_support(
+		y_true, y_pred, labels=list(range(len(class_names))), average=None, zero_division=0
+	)
+
 	return {
 		"overall_acc": overall_acc,
 		"precision_macro": float(precision_macro),
@@ -272,6 +279,7 @@ def _get_per_class_acc(
 		"max_acc": max(per_class_acc) if per_class_acc else 0.0,
 		"mean_acc": float(np.mean(per_class_acc)) if per_class_acc else 0.0,
 		"per_class": per_class_acc,
+		"per_class_f1": [float(f) for f in f1s],
 	}
 
 
@@ -319,6 +327,37 @@ def print_comparison_table(results: list[dict]) -> str:
 	table_str = "\n".join(lines)
 	print(table_str)
 	return table_str
+
+
+def print_best_methods_per_class(results: list[dict], class_names: list[str]) -> str:
+	"""Tạo báo cáo chỉ ra phương pháp chia (PP) có F1-Score cao nhất cho từng class trên tập Test."""
+	lines = []
+	lines.append("\n" + "=" * 90)
+	lines.append("BÁO CÁO PHƯƠNG PHÁP CHIA DỮ LIỆU TỐT NHẤT CHO TỪNG CLASS (DỰA TRÊN TEST F1-SCORE)")
+	lines.append("=" * 90)
+	
+	header = f"{'Loài gỗ (Class)':<35} | {'Phương pháp tốt nhất':<25} | {'F1-Score cao nhất':<18}"
+	lines.append(header)
+	lines.append("-" * 90)
+	
+	for class_idx, class_name in enumerate(class_names):
+		best_method = "N/A"
+		best_f1 = -1.0
+		
+		for r in results:
+			f1_list = r.get("per_class_test_f1", [])
+			if class_idx < len(f1_list):
+				f1_val = f1_list[class_idx]
+				if f1_val > best_f1:
+					best_f1 = f1_val
+					best_method = r["method"]
+		
+		lines.append(f"{class_name:<35} | {best_method:<25} | {best_f1*100:>16.2f}%")
+		
+	lines.append("=" * 90)
+	report_str = "\n".join(lines)
+	print(report_str)
+	return report_str
 
 
 # ============================================================
@@ -424,6 +463,14 @@ def main() -> None:
 			plot_comparison_chart(all_results, output_base / "comparison_chart.png")
 		except Exception as e:
 			print(f"ERROR khi vẽ biểu đồ so sánh: {e}")
+
+		# In và lưu báo cáo phương pháp tốt nhất cho từng class
+		try:
+			best_class_report = print_best_methods_per_class(all_results, class_names)
+			with open(output_base / "best_method_per_class.txt", "w", encoding="utf-8") as f:
+				f.write(best_class_report)
+		except Exception as e:
+			print(f"ERROR khi tạo báo cáo per-class: {e}")
 
 		print(f"\nKết quả đã lưu tại: {output_base}")
 	else:
