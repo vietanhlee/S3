@@ -35,7 +35,7 @@ LR = 5e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
 FOCAL_ALPHA = 0.25
-MODEL_NAME = "convnext_tiny"
+MODEL_NAME = "vit_base_patch16_224"
 FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5
 # ====================
