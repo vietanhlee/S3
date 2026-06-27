@@ -28,14 +28,14 @@ TRAIN_RATIO = 0.6
 VAL_RATIO = 0.2
 # TEST_RATIO = 1.0 - TRAIN_RATIO - VAL_RATIO = 0.2
 SEED = 42
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 EPOCHS = 22
 PATIENCE = 50
 LR = 5e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
 FOCAL_ALPHA = 0.25
-MODEL_NAME = "swin_large_patch4_window7_224"
+MODEL_NAME = "convnext_tiny"
 FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5
 # ====================
@@ -290,7 +290,7 @@ def main() -> None:
 	val_ds = ImageListDataset(df_val, class_to_idx, transform=eval_tf)
 	test_ds = ImageListDataset(df_test, class_to_idx, transform=eval_tf)
 
-	num_workers = min(8, os.cpu_count() or 1)
+	num_workers = min(4, os.cpu_count() or 1)
 	train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=num_workers, pin_memory=True)
 	val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers, pin_memory=True)
 	test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers, pin_memory=True)
