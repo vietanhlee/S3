@@ -307,7 +307,7 @@ def evaluate_retrieval(
 		# Loại bỏ chính mình
 		dists = dist_matrix[i].copy()
 		dists[i] = np.inf
-		sorted_indices = np.argsort(dists)
+		sorted_indices = np.argsort(dists)[:-1]
 
 		# Ground truth: cùng class
 		retrieved_labels = labels[sorted_indices]
