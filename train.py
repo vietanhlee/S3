@@ -24,9 +24,9 @@ from sklearn.metrics import confusion_matrix, classification_report
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 
 SEED = 42
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 20
-PATIENCE = 17
+PATIENCE = 9
 LR = 1e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
@@ -429,9 +429,6 @@ def compute_embeddings(
 	device: torch.device,
 ) -> np.ndarray:
 	model = build_embedding_model().to(device)
-	if device.type == "cuda" and torch.cuda.device_count() > 1:
-		print(f"Phát hiện {torch.cuda.device_count()} GPUs. Sử dụng nn.DataParallel cho Embedding Extraction.")
-		model = nn.DataParallel(model)
 	model.eval()
 	transform = build_embedding_transform(model)
 
@@ -753,7 +750,7 @@ def save_checkpoint(
 	best_val_acc: float,
 	history: dict,
 ) -> None:
-	raw_model = model.module if isinstance(model, nn.DataParallel) else model
+	raw_model = model
 	payload = {
 		"epoch": epoch,
 		"model_state": raw_model.state_dict(),
@@ -780,7 +777,7 @@ def train_model(
 	history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 	best_val_acc = 0.0
 	epochs_no_improve = 0
-	raw_model = model.module if isinstance(model, nn.DataParallel) else model
+	raw_model = model
 	model_name = getattr(raw_model, "model_name", "model")
 
 	for epoch in range(1, epochs + 1):
@@ -1131,9 +1128,6 @@ def main() -> None:
 	)
 	
 	model = model.to(device)
-	if device.type == "cuda" and torch.cuda.device_count() > 1:
-		print(f"Phát hiện {torch.cuda.device_count()} GPUs. Sử dụng nn.DataParallel.")
-		model = nn.DataParallel(model)
  
 	cfg = resolve_data_config({}, model=model)
 	img_size = cfg.get("input_size", (3, 224, 224))[-1]
@@ -1176,7 +1170,7 @@ def main() -> None:
 	)
 	plot_training_curves(history, output_dir)
 
-	raw_model = model.module if isinstance(model, nn.DataParallel) else model
+	raw_model = model
 	best_path = output_dir / f"best_model_{raw_model.model_name}.pth"
 	if best_path.exists():
 		raw_model.load_state_dict(torch.load(best_path, map_location=device))

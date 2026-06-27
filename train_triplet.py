@@ -43,7 +43,7 @@ SEED = 42
 P_CLASSES = 12          # Số class mỗi batch
 K_SAMPLES = 8           # Số ảnh mỗi class trong batch
 EPOCHS = 200
-PATIENCE = 20           # EarlyStopping patience
+PATIENCE = 10           # EarlyStopping patience
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 EMBEDDING_DIM = 256     # Projection head output
@@ -474,9 +474,6 @@ def main() -> None:
 	std = cfg.get("std", (0.229, 0.224, 0.225))
 
 	model = model.to(device)
-	if device.type == "cuda" and torch.cuda.device_count() > 1:
-		print(f"Phát hiện {torch.cuda.device_count()} GPUs → nn.DataParallel")
-		model = nn.DataParallel(model)
 
 	# ── 5. Transforms ──
 	train_tf = transforms.Compose([
@@ -548,7 +545,7 @@ def main() -> None:
 		if val_recall1 > best_recall1:
 			best_recall1 = val_recall1
 			epochs_no_improve = 0
-			raw_model = model.module if isinstance(model, nn.DataParallel) else model
+			raw_model = model
 			torch.save(raw_model.state_dict(), output_dir / "best_model.pth")
 			print(f"  → Saved best model (Recall@1={best_recall1:.4f})")
 		else:
@@ -559,7 +556,7 @@ def main() -> None:
 			break
 
 	# ── 9. Load best & đánh giá cuối ──
-	raw_model = model.module if isinstance(model, nn.DataParallel) else model
+	raw_model = model
 	best_path = output_dir / "best_model.pth"
 	if best_path.exists():
 		raw_model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))

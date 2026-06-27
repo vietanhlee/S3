@@ -28,7 +28,7 @@ TRAIN_RATIO = 0.6
 VAL_RATIO = 0.2
 # TEST_RATIO = 1.0 - TRAIN_RATIO - VAL_RATIO = 0.2
 SEED = 42
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 22
 PATIENCE = 50
 LR = 5e-4
@@ -274,9 +274,6 @@ def main() -> None:
 		f"frozen={model_info['frozen_params']:,}"
 	)
 	model = model.to(device)
-	if device.type == "cuda" and torch.cuda.device_count() > 1:
-		print(f"Phát hiện {torch.cuda.device_count()} GPUs. Sử dụng nn.DataParallel.")
-		model = torch.nn.DataParallel(model)
 
 	# Transforms
 	cfg = resolve_data_config({}, model=model)
@@ -317,7 +314,7 @@ def main() -> None:
 	# Load best model checkpoint để đánh giá
 	best_path = output_dir / f"best_model_{MODEL_NAME}.pth"
 	if best_path.exists():
-		raw_model = model.module if isinstance(model, torch.nn.DataParallel) else model
+		raw_model = model
 		raw_model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
 		print(f"\nĐã load checkpoint tốt nhất từ {best_path}")
 
