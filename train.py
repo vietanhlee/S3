@@ -24,7 +24,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 
 SEED = 42
-BATCH_SIZE = 128
+BATCH_SIZE = 32
 EPOCHS = 20
 PATIENCE = 17
 LR = 1e-4
@@ -698,22 +698,22 @@ def train_one_epoch(
 ) -> tuple[float, float]:
 	model.train()
 	running_loss, running_acc, count = 0.0, 0.0, 0
-	with tqdm(loader, desc=f"Train {epoch}/{epochs}") as pbar:
-		for images, targets in pbar:
-			images = images.to(device)
-			targets = targets.to(device)
+	pbar = tqdm(loader, desc=f"Train {epoch}/{epochs}")
+	for images, targets in pbar:
+		images = images.to(device)
+		targets = targets.to(device)
 
-			optimizer.zero_grad()
-			logits = model(images)
-			loss = criterion(logits, targets)
-			loss.backward()
-			optimizer.step()
+		optimizer.zero_grad()
+		logits = model(images)
+		loss = criterion(logits, targets)
+		loss.backward()
+		optimizer.step()
 
-			batch_size = targets.size(0)
-			running_loss += loss.item() * batch_size
-			running_acc += accuracy_from_logits(logits, targets) * batch_size
-			count += batch_size
-			pbar.set_postfix(loss=running_loss / count, acc=running_acc / count)
+		batch_size = targets.size(0)
+		running_loss += loss.item() * batch_size
+		running_acc += accuracy_from_logits(logits, targets) * batch_size
+		count += batch_size
+		pbar.set_postfix(loss=running_loss / count, acc=running_acc / count)
 
 	return running_loss / count, running_acc / count
 
@@ -729,18 +729,18 @@ def evaluate_one_epoch(
 ) -> tuple[float, float]:
 	model.eval()
 	running_loss, running_acc, count = 0.0, 0.0, 0
-	with tqdm(loader, desc=f"Val {epoch}/{epochs}") as pbar:
-		for images, targets in pbar:
-			images = images.to(device)
-			targets = targets.to(device)
+	pbar = tqdm(loader, desc=f"Val {epoch}/{epochs}")
+	for images, targets in pbar:
+		images = images.to(device)
+		targets = targets.to(device)
 
-			logits = model(images)
-			loss = criterion(logits, targets)
-			batch_size = targets.size(0)
-			running_loss += loss.item() * batch_size
-			running_acc += accuracy_from_logits(logits, targets) * batch_size
-			count += batch_size
-			pbar.set_postfix(loss=running_loss / count, acc=running_acc / count)
+		logits = model(images)
+		loss = criterion(logits, targets)
+		batch_size = targets.size(0)
+		running_loss += loss.item() * batch_size
+		running_acc += accuracy_from_logits(logits, targets) * batch_size
+		count += batch_size
+		pbar.set_postfix(loss=running_loss / count, acc=running_acc / count)
 
 	return running_loss / count, running_acc / count
 
@@ -821,12 +821,6 @@ def train_model(
 		if epochs_no_improve >= patience:
 			print(f"Early stopping at epoch {epoch} (patience {patience})")
 			break
-
-		# Giải phóng RAM/VRAM sau mỗi epoch tránh treo máy trên Kaggle
-		import gc
-		gc.collect()
-		if device.type == "cuda":
-			torch.cuda.empty_cache()
 
 	history["best_val_acc"] = best_val_acc
 	return history
