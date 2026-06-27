@@ -24,7 +24,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 
 SEED = 42
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 EPOCHS = 20
 PATIENCE = 9
 LR = 1e-4
