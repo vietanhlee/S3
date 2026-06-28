@@ -3,6 +3,7 @@ train_final.py
 ==============
 Script training model với phương pháp chia dữ liệu chuẩn cuối (End Version).
 Kết hợp nhiều phương pháp chia (PP2, PP4, PP5, PP7, PP8, PP9) cho từng class gỗ,
+sử dụng embeddings trích xuất từ các model tối ưu tương ứng (EfficientNetV2-M hoặc Swin-Large),
 có xử lý hoán đổi Val/Test đối với các class được cấu hình "của val",
 loại bỏ hoàn toàn lớp 'Pterocarpus sp'.
 """
@@ -14,9 +15,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from timm.data import resolve_data_config
 from sklearn.metrics import classification_report
@@ -45,7 +48,6 @@ from train import (
 	get_device,
 	collect_image_samples,
 	build_dataframe,
-	compute_embeddings,
 	log_split_summary,
 	eda_split_class_distribution,
 	ImageListDataset,
@@ -76,44 +78,104 @@ def build_model(num_classes: int) -> torch.nn.Module:
 	return model
 
 
+def compute_embeddings_v2(
+	df: pd.DataFrame,
+	model_name: str,
+	batch_size: int,
+	device: torch.device,
+) -> np.ndarray:
+	"""Trích xuất embeddings sử dụng model_name cụ thể."""
+	print(f"  -> Khởi tạo model embedding: {model_name}...")
+	timm_model_name = model_name
+	if model_name == "tf_efficientnetv2_m_in21k":
+		timm_model_name = "tf_efficientnetv2_m.in21k"
+
+	model = timm.create_model(timm_model_name, pretrained=True, num_classes=0)
+	model = model.to(device)
+	model.eval()
+
+	cfg = resolve_data_config({}, model=model)
+	img_size = cfg.get("input_size", (3, 224, 224))[-1]
+	mean = cfg.get("mean", (0.485, 0.456, 0.406))
+	std = cfg.get("std", (0.229, 0.224, 0.225))
+	transform = transforms.Compose(
+		[
+			transforms.Resize((img_size, img_size)),
+			transforms.ToTensor(),
+			transforms.Normalize(mean=mean, std=std),
+		]
+	)
+
+	from train import ImagePathDataset
+	fs = ImagePathDataset(df, transform=transform)
+	num_workers = min(4, os.cpu_count() or 1)
+	loader = DataLoader(
+		fs,
+		batch_size=batch_size,
+		shuffle=False,
+		num_workers=num_workers,
+		pin_memory=True,
+	)
+
+	features = []
+	with torch.no_grad():
+		for images in tqdm(loader, desc=f"Embed ({model_name})"):
+			images = images.to(device)
+			feats = model(images)
+			if isinstance(feats, (list, tuple)):
+				feats = feats[0]
+			features.append(feats.detach().cpu().numpy())
+
+	del model
+	if device.type == "cuda":
+		torch.cuda.empty_cache()
+
+	if not features:
+		return np.empty((0, 0), dtype=np.float32)
+	return np.concatenate(features, axis=0)
+
+
 def end_version_split(
 	df: pd.DataFrame,
-	embeddings: np.ndarray,
+	embs_eff: np.ndarray,
+	embs_swin: np.ndarray,
 	train_ratio: float = 0.60,
 	val_ratio: float = 0.20,
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""
 	PP Chuẩn cuối (End Version): Kết hợp nhiều phương pháp chia khác nhau cho từng class
-	theo cấu hình được định nghĩa trong note.md.
+	theo cấu hình được định nghĩa trong todo1.md.
 	Loại bỏ hoàn toàn class 'Pterocarpus sp'.
 	"""
 	# 1. Loại bỏ class 'Pterocarpus sp'
 	keep_mask = df["label"] != "Pterocarpus sp"
 	df_filtered = df[keep_mask].reset_index(drop=True)
-	emb_filtered = embeddings[keep_mask.values]
+	emb_eff_filtered = embs_eff[keep_mask.values]
+	emb_swin_filtered = embs_swin[keep_mask.values]
 
-	# 2. Định nghĩa cấu hình chia cho từng class
+	# 2. Định nghĩa cấu hình chia cho từng class theo todo1.md
+	# (PP_Key, Swap_Mode, Embedding_Model)
 	split_config = {
-		"Afzelia africana": ("PP8", "val"),
-		"Afzelia bella": ("PP4", "val"),
-		"Afzelia pachyloba": ("PP2", "val"),
-		"Afzelia quanzensis": ("PP7", "val"),
-		"Dalbergia cochinchinensis": ("PP4", "test"),
-		"Dalbergia melanoxylon": ("PP2", "val"),
-		"Dalbergia oliveri": ("PP9", "test"),
-		"Dalbergia rimosa": ("PP4", "test"),
-		"Dalbergia tonkinensis": ("PP4", "val"),
-		"Guibourtia arnoldiana": ("PP4", "val"),
-		"Guibourtia coleosperma": ("PP4", "test"),
-		"Guibourtia ehie": ("PP2", "val"),
-		"Peltogyne pubescens": ("PP4", "val"),
-		"Pterocarpus erinaceus": ("PP2", "test"),
-		"Pterocarpus indicus": ("PP4", "test"),
-		"Pterocarpus macrocarpus": ("PP9", "val"),
-		"Pterocarpus soyauxii": ("PP4", "test"),
-		"Sindora cochinchinensis": ("PP9", "test"),
-		"Sindora tonkinensis": ("PP7", "test"),
+		"Afzelia africana": ("PP8", "test", "eff"),
+		"Afzelia bella": ("PP4", "val", "swin"),
+		"Afzelia pachyloba": ("PP9", "test", "swin"),
+		"Afzelia quanzensis": ("PP2", "test", "eff"),
+		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
+		"Dalbergia melanoxylon": ("PP2", "val", "eff"),
+		"Dalbergia oliveri": ("PP8", "test", "eff"),
+		"Dalbergia rimosa": ("PP4", "test", "eff"),
+		"Dalbergia tonkinensis": ("PP4", "test", "swin"),
+		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
+		"Guibourtia coleosperma": ("PP9", "test", "swin"),
+		"Guibourtia ehie": ("PP4", "test", "swin"),
+		"Peltogyne pubescens": ("PP2", "test", "eff"),
+		"Pterocarpus erinaceus": ("PP9", "test", "eff"),
+		"Pterocarpus indicus": ("PP9", "test", "eff"),
+		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
+		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
+		"Sindora cochinchinensis": ("PP2", "test", "swin"),
+		"Sindora tonkinensis": ("PP9", "val", "eff"),
 	}
 
 	pp_map = {
@@ -131,23 +193,24 @@ def end_version_split(
 
 	# Duyệt qua từng class để chia riêng biệt
 	for label, group in df_filtered.groupby("label"):
-		# Lấy các hàng và embeddings tương ứng với class
+		# Lấy các hàng và mappings
 		indices = group.index.tolist()
 		sub_df = group.copy()
-		sub_emb = emb_filtered[indices]
-
-		# Tạo mapping từ path sang index gốc trong df_filtered để ánh xạ ngược an toàn
 		path_to_orig_idx = dict(zip(group["path"], group.index))
-
-		# Reset index của sub_df để khớp chỉ số (0 đến n-1) với sub_emb
 		sub_df_reset = sub_df.reset_index(drop=True)
 
 		# Lấy cấu hình chia
 		if label in split_config:
-			pp_key, mode = split_config[label]
+			pp_key, mode, model_type = split_config[label]
 		else:
 			print(f"[Warning] Class '{label}' không có trong cấu hình chia. Sử dụng mặc định PP8 của test.")
-			pp_key, mode = "PP8", "test"
+			pp_key, mode, model_type = "PP8", "test", "eff"
+
+		# Lấy embeddings tương ứng
+		if model_type == "eff":
+			sub_emb = emb_eff_filtered[indices]
+		else:
+			sub_emb = emb_swin_filtered[indices]
 
 		full_pp_name = pp_map[pp_key]
 		split_fn = SPLIT_METHODS[full_pp_name]
@@ -155,7 +218,6 @@ def end_version_split(
 		# Chạy hàm chia dữ liệu cho riêng class này
 		try:
 			if pp_key == "PP5":
-				# PP5 cần thêm tham số cosine_threshold
 				tr_df, val_df, te_df = split_fn(
 					sub_df_reset, sub_emb,
 					train_ratio=train_ratio,
@@ -172,7 +234,6 @@ def end_version_split(
 				)
 		except Exception as e:
 			print(f"[Error] Lỗi khi chia dữ liệu cho class '{label}' bằng {pp_key}: {e}")
-			# Fallback chia ngẫu nhiên nếu thuật toán lỗi
 			from split_methods import stratified_random_split
 			tr_df, val_df, te_df = stratified_random_split(
 				sub_df_reset, sub_emb,
@@ -188,17 +249,14 @@ def end_version_split(
 
 		# Áp dụng logic hoán đổi nếu mode là 'val'
 		if mode == "val":
-			# val lấy test, test lấy val
 			train_idx_all.extend(tr_orig_idx)
 			val_idx_all.extend(te_orig_idx)
 			test_idx_all.extend(val_orig_idx)
 		else:
-			# Giữ nguyên
 			train_idx_all.extend(tr_orig_idx)
 			val_idx_all.extend(val_orig_idx)
 			test_idx_all.extend(te_orig_idx)
 
-	# Trích xuất DataFrame train, val, test hoàn chỉnh từ df_filtered
 	df_train = df_filtered.loc[train_idx_all].sample(frac=1, random_state=seed).reset_index(drop=True)
 	df_val = df_filtered.loc[val_idx_all].sample(frac=1, random_state=seed).reset_index(drop=True)
 	df_test = df_filtered.loc[test_idx_all].sample(frac=1, random_state=seed).reset_index(drop=True)
@@ -234,19 +292,17 @@ def main() -> None:
 	with open(output_dir / "class_indices.json", "w", encoding="utf-8") as f:
 		json.dump(class_to_idx, f, indent=2, ensure_ascii=False)
 
-	# 2. Compute embeddings
+	# 2. Compute embeddings cho cả hai model: EfficientNetV2-M và Swin-Large
 	print("\n[Step 2] Compute embeddings...")
-	embeddings = compute_embeddings(df_filtered, batch_size=BATCH_SIZE, device=device)
-	print(f"Embeddings shape: {embeddings.shape}")
-
-	# Giải phóng VRAM sau khi compute embeddings
-	if device.type == "cuda":
-		torch.cuda.empty_cache()
+	print("Trích xuất embeddings với EfficientNetV2-M...")
+	embs_eff = compute_embeddings_v2(df_filtered, "tf_efficientnetv2_m_in21k", batch_size=BATCH_SIZE, device=device)
+	print("Trích xuất embeddings với Swin-Large...")
+	embs_swin = compute_embeddings_v2(df_filtered, "swin_large_patch4_window7_224", batch_size=BATCH_SIZE, device=device)
 
 	# 3. Thực hiện chia dữ liệu theo phương pháp chuẩn cuối (End Version)
 	print("\n[Step 3] Chia dữ liệu theo PP Chuẩn Cuối (End Version)...")
 	df_train, df_val, df_test = end_version_split(
-		df_filtered, embeddings,
+		df_filtered, embs_eff, embs_swin,
 		train_ratio=TRAIN_RATIO,
 		val_ratio=VAL_RATIO,
 		seed=SEED,
