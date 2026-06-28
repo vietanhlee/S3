@@ -70,7 +70,7 @@ from train import (
 	log_split_summary,
 	eda_split_class_distribution,
 )
-from train_final import end_version_split
+from train_final import end_version_split, compute_embeddings_v2
 from split_methods import validate_split
 
 
@@ -1224,16 +1224,15 @@ def main() -> None:
 
 	# ── 2. Compute embeddings cho chia dữ liệu ──
 	print("\n[Step 2] Compute embeddings cho chia dữ liệu...")
-	embeddings = compute_embeddings(df_filtered, batch_size=EMB_BATCH_SIZE, device=device)
-	print(f"Embeddings shape: {embeddings.shape}")
-
-	if device.type == "cuda":
-		torch.cuda.empty_cache()
+	print("Trích xuất embeddings với EfficientNetV2-M...")
+	embs_eff = compute_embeddings_v2(df_filtered, "tf_efficientnetv2_m_in21k", batch_size=EMB_BATCH_SIZE, device=device)
+	print("Trích xuất embeddings với Swin-Large...")
+	embs_swin = compute_embeddings_v2(df_filtered, "swin_large_patch4_window7_224", batch_size=EMB_BATCH_SIZE, device=device)
 
 	# ── 3. Chia dữ liệu End Version ──
 	print("\n[Step 3] Chia dữ liệu theo End Version Split...")
 	df_train, df_val, df_test = end_version_split(
-		df_filtered, embeddings,
+		df_filtered, embs_eff, embs_swin,
 		train_ratio=TRAIN_RATIO, val_ratio=VAL_RATIO, seed=SEED,
 	)
 	validate_split(df_filtered, df_train, df_val, df_test, "Triplet_EndVersion")
@@ -1245,7 +1244,7 @@ def main() -> None:
 	)
 
 	# Giải phóng embeddings (không cần nữa)
-	del embeddings
+	del embs_eff, embs_swin
 	gc.collect()
 	if device.type == "cuda":
 		torch.cuda.empty_cache()
