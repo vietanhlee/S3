@@ -432,6 +432,23 @@ def evaluate_retrieval(
 	except Exception:
 		nmi = 0.0
 
+	# --- Tính toán tỷ lệ Intra/Inter Class Distance ---
+	try:
+		intra_dists = []
+		inter_dists = []
+		for i in range(n):
+			for j in range(i + 1, n):
+				d = dist_matrix[i, j]
+				if labels[i] == labels[j]:
+					intra_dists.append(d)
+				else:
+					inter_dists.append(d)
+		intra_mean = np.mean(intra_dists) if intra_dists else 0.0
+		inter_mean = np.mean(inter_dists) if inter_dists else 0.0
+		intra_inter_ratio = float(intra_mean / inter_mean) if inter_mean > 0 else 0.0
+	except Exception:
+		intra_inter_ratio = 0.0
+
 	# --- Tính toán metrics cho từng class ---
 	per_class_recall1 = []
 	per_class_recall5 = []
@@ -488,6 +505,7 @@ def evaluate_retrieval(
 		"Calinski-Harabasz": chi,
 		"Dunn-Index": dunn,
 		"NMI": nmi,
+		"Intra-Inter-Ratio": intra_inter_ratio,
 		"per_class_recall1": per_class_recall1,
 		"per_class_recall5": per_class_recall5,
 		"per_class_map": per_class_map,
@@ -517,7 +535,7 @@ def format_retrieval_report(results: dict, class_names: list[str], prefix: str =
 
 	# 2. Chỉ số phân cụm
 	lines.append("\nChỉ số phân cụm không gian nhúng (Clustering Metrics):")
-	clustering_keys = ["Silhouette", "Davies-Bouldin", "Calinski-Harabasz", "Dunn-Index", "NMI"]
+	clustering_keys = ["Silhouette", "Davies-Bouldin", "Calinski-Harabasz", "Dunn-Index", "NMI", "Intra-Inter-Ratio"]
 	for k in clustering_keys:
 		if k in results:
 			val = results[k]
@@ -1304,14 +1322,10 @@ def main() -> None:
 			model, reps_flat, before_protos, class_to_idx, eval_tf, device, method=method
 		)
 	
-	# Tính embeddings cho toàn bộ dữ liệu trước training (cho t-SNE & distance analysis)
-	print("  Trích xuất đặc trưng của Train, Val, Test trước training...")
-	before_train_embs, train_labels = extract_all_embeddings(model, train_eval_loader, device)
-	before_val_embs, val_labels = extract_all_embeddings(model, val_loader, device)
+	# Tính embeddings cho tập Test trước training (cho t-SNE & distance analysis)
+	print("  Trích xuất đặc trưng của tập Test trước training...")
 	before_test_embs, test_labels = extract_all_embeddings(model, test_loader, device)
-	
-	before_all_embs = torch.cat([before_train_embs, before_val_embs, before_test_embs], dim=0).numpy()
-	all_labels = np.concatenate([train_labels, val_labels, test_labels], axis=0)
+	before_test_embs = before_test_embs.numpy()
 
 	# ── 9. Training loop ──
 	print(f"\n{'=' * 60}")
@@ -1452,19 +1466,16 @@ def main() -> None:
 			f"Pterocarpus ({method})", output_dir / f"gradcam_pterocarpus_{method}.png"
 		)
 	
-	# Tính embeddings sau training cho toàn bộ dữ liệu
-	print("  Trích xuất đặc trưng của Train, Val, Test sau training...")
-	after_train_embs, _ = extract_all_embeddings(model, train_eval_loader, device)
-	after_val_embs, _ = extract_all_embeddings(model, val_loader, device)
+	# Tính embeddings sau training cho tập Test
+	print("  Trích xuất đặc trưng của tập Test sau training...")
 	after_test_embs, _ = extract_all_embeddings(model, test_loader, device)
+	after_test_embs = after_test_embs.numpy()
 	
-	after_all_embs = torch.cat([after_train_embs, after_val_embs, after_test_embs], dim=0).numpy()
+	# Vẽ t-SNE so sánh trên tập Test
+	plot_tsne_comparison(before_test_embs, after_test_embs, test_labels, class_names, output_dir / "tsne_comparison.png")
 	
-	# Vẽ t-SNE so sánh trên toàn bộ dữ liệu
-	plot_tsne_comparison(before_all_embs, after_all_embs, all_labels, class_names, output_dir / "tsne_comparison.png")
-	
-	# Phân tích khoảng cách trên toàn bộ dữ liệu
-	plot_distance_analysis(before_all_embs, after_all_embs, all_labels, output_dir / "distance_distribution.png")
+	# Phân tích khoảng cách trên tập Test
+	plot_distance_analysis(before_test_embs, after_test_embs, test_labels, output_dir / "distance_distribution.png")
 
 	# Vẽ biểu đồ tổng hợp metrics
 	plot_metrics_summary(history, model, val_loader, test_loader, device, output_dir)
