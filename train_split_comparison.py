@@ -331,13 +331,13 @@ def print_comparison_table(results: list[dict]) -> str:
 
 
 def print_best_methods_per_class(results: list[dict], class_names: list[str]) -> str:
-	"""Tạo báo cáo chỉ ra phương pháp chia (PP) và tập (val/test) có F1-Score cao nhất cho từng class."""
+	"""Tạo báo cáo chỉ ra phương pháp chia (PP) và tập (val/test) có F1-Score thấp nhất (nghiêm ngặt nhất) cho từng class."""
 	lines = []
 	lines.append("\n" + "=" * 105)
-	lines.append("BÁO CÁO PHƯƠNG PHÁP CHIA DỮ LIỆU TỐT NHẤT CHO TỪNG CLASS (DỰA TRÊN VAL/TEST F1-SCORE)")
+	lines.append("BÁO CÁO PHƯƠNG PHÁP CHIA DỮ LIỆU NGHIÊM NGẶT NHẤT CHO TỪNG CLASS (DỰA TRÊN VAL/TEST F1-SCORE THẤP NHẤT)")
 	lines.append("=" * 105)
 	
-	header = f"{'Loài gỗ (Class)':<35} | {'Phương pháp tốt nhất':<25} | {'Tập (Val/Test)':<15} | {'F1-Score cao nhất':<18}"
+	header = f"{'Loài gỗ (Class)':<35} | {'Phương pháp nghiêm ngặt':<25} | {'Tập (Val/Test)':<15} | {'F1-Score thấp nhất':<18}"
 	lines.append(header)
 	lines.append("-" * 105)
 	
@@ -345,14 +345,14 @@ def print_best_methods_per_class(results: list[dict], class_names: list[str]) ->
 	for class_idx, class_name in enumerate(class_names):
 		best_method = "N/A"
 		best_subset = "N/A"
-		best_f1 = -1.0
+		best_f1 = float('inf')
 		
 		for r in results:
 			# Check test F1
 			test_f1_list = r.get("per_class_test_f1", [])
 			if class_idx < len(test_f1_list):
 				f1_val = test_f1_list[class_idx]
-				if f1_val > best_f1:
+				if f1_val < best_f1:
 					best_f1 = f1_val
 					best_method = r["method"]
 					best_subset = "test"
@@ -361,7 +361,7 @@ def print_best_methods_per_class(results: list[dict], class_names: list[str]) ->
 			val_f1_list = r.get("per_class_val_f1", [])
 			if class_idx < len(val_f1_list):
 				f1_val = val_f1_list[class_idx]
-				if f1_val > best_f1:
+				if f1_val < best_f1:
 					best_f1 = f1_val
 					best_method = r["method"]
 					best_subset = "val"
@@ -373,7 +373,7 @@ def print_best_methods_per_class(results: list[dict], class_names: list[str]) ->
 		best_summary.append(f"{class_name}: {short_method} của {best_subset} (F1: {best_f1*100:.2f}%)")
 		
 	lines.append("=" * 105)
-	lines.append("\nTÓM TẮT PHƯƠNG PHÁP TỐT NHẤT (DỄ SAO CHÉP VÀO CẤU HÌNH):")
+	lines.append("\nTÓM TẮT PHƯƠNG PHÁP NGHIÊM NGẶT NHẤT (DỄ SAO CHÉP VÀO CẤU HÌNH):")
 	for item in best_summary:
 		lines.append(f"- {item}")
 	lines.append("=" * 105)

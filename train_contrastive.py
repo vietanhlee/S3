@@ -41,10 +41,11 @@ OUTPUT_DIR = "outputs_contrastive"
 TRAIN_RATIO = 0.6
 VAL_RATIO = 0.2
 SEED = 42
-P_CLASSES = 12          # Số class mỗi batch
-K_SAMPLES = 8           # Số ảnh mỗi class trong batch
+P_CLASSES = 18          # Số class mỗi batch
+K_SAMPLES = 10          # Số ảnh mỗi class trong batch
 EPOCHS = 100
-PATIENCE = 10           # EarlyStopping patience
+PATIENCE = 30           # EarlyStopping patience
+CAM_METHODS = ["gradcam", "gradcam++", "xgradcam", "eigencam", "hirescam", "layercam", "eigengradcam"]
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 EMBEDDING_DIM = 256     # Projection head output
@@ -378,9 +379,10 @@ def format_retrieval_report(results: dict, prefix: str = "") -> str:
 
 
 class MetricGradCAM:
-	def __init__(self, model: nn.Module, target_layer: nn.Module) -> None:
+	def __init__(self, model: nn.Module, target_layer: nn.Module, method: str = "gradcam") -> None:
 		self.model = model
 		self.target_layer = target_layer
+		self.method = method.lower()
 		self.activations = None
 		self.forward_handle = target_layer.register_forward_hook(self._forward_hook)
 
@@ -391,21 +393,75 @@ class MetricGradCAM:
 		self.forward_handle.remove()
 
 	def __call__(self, input_tensor: torch.Tensor, prototype: torch.Tensor) -> np.ndarray:
-		self.model.zero_grad()
-		emb = self.model(input_tensor)
-		score = (emb * prototype.unsqueeze(0)).sum()
-		if self.activations is None:
-			raise RuntimeError("GradCAM hook did not capture activations")
+		if self.method == "eigencam":
+			self.model.eval()
+			with torch.no_grad():
+				_ = self.model(input_tensor)
+			act = self.activations.squeeze(0).detach().cpu().numpy()
+			c, h, w = act.shape
+			A = act.reshape(c, h * w).T
+			A = A - np.mean(A, axis=0)
+			U, S, Vt = np.linalg.svd(A, full_matrices=False)
+			projection = U[:, 0].reshape(h, w)
+			if np.sum(projection) < 0:
+				projection = -projection
+			cam = np.maximum(projection, 0)
+		else:
+			self.model.zero_grad()
+			emb = self.model(input_tensor)
+			score = (emb * prototype.unsqueeze(0)).sum()
+			if self.activations is None:
+				raise RuntimeError("CAM hook did not capture activations")
 
-		grads = torch.autograd.grad(score, self.activations, retain_graph=True)[0]
-		weights = grads.mean(dim=(2, 3), keepdim=True)
-		cam = (weights * self.activations).sum(dim=1, keepdim=True)
-		cam = F.relu(cam)
-		cam = cam.squeeze().detach().cpu().numpy()
+			grads = torch.autograd.grad(score, self.activations, retain_graph=True)[0]
+			
+			if self.method == "gradcam++":
+				grads_pos = torch.clamp(grads, min=0)
+				grads_power_2 = grads_pos ** 2
+				grads_power_3 = grads_pos ** 3
+				sum_activations = torch.sum(self.activations, dim=(2, 3), keepdim=True)
+				eps = 1e-7
+				aij = grads_power_2 / (2 * grads_power_2 + sum_activations * grads_power_3 + eps)
+				weights = torch.sum(aij * grads_pos, dim=(2, 3), keepdim=True)
+				cam = torch.sum(weights * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "xgradcam":
+				sum_activations = torch.sum(self.activations, dim=(2, 3), keepdim=True) + 1e-7
+				weights = torch.sum(grads * self.activations / sum_activations, dim=(2, 3), keepdim=True)
+				cam = torch.sum(weights * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "hirescam":
+				cam = torch.sum(grads * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "layercam":
+				cam = torch.sum(torch.clamp(grads, min=0) * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "eigengradcam":
+				weighted_act = grads * self.activations
+				act = weighted_act.squeeze(0).detach().cpu().numpy()
+				c, h, w = act.shape
+				A = act.reshape(c, h * w).T
+				A = A - np.mean(A, axis=0)
+				U, S, Vt = np.linalg.svd(A, full_matrices=False)
+				projection = U[:, 0].reshape(h, w)
+				if np.sum(projection) < 0:
+					projection = -projection
+				cam = np.maximum(projection, 0)
+			else:
+				weights = grads.mean(dim=(2, 3), keepdim=True)
+				cam = (weights * self.activations).sum(dim=1, keepdim=True)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+
 		if cam.ndim == 0:
 			cam = np.array([[float(cam)]])
 		elif cam.ndim == 1:
 			cam = cam[None, :]
+		
 		cam -= cam.min()
 		if cam.max() > 0:
 			cam /= cam.max()
@@ -484,13 +540,14 @@ def generate_gradcam_maps(
 	prototypes: torch.Tensor,
 	class_to_idx: dict[str, int],
 	transform,
-	device: torch.device
+	device: torch.device,
+	method: str = "gradcam"
 ) -> list[np.ndarray]:
 	target_layer = find_last_conv_layer(model)
 	if target_layer is None:
 		print("Warning: Không tìm thấy Conv2d layer trong model để vẽ Grad-CAM")
 		return [np.zeros((224, 224)) for _ in representatives]
-	gradcam = MetricGradCAM(model, target_layer)
+	gradcam = MetricGradCAM(model, target_layer, method=method)
 	model.eval()
 	cam_maps = []
 	for rep in representatives:
@@ -885,9 +942,13 @@ def main() -> None:
 	reps_dict = select_gradcam_representatives(df_filtered, seed=SEED)
 	reps_flat = reps_dict['Dalbergia'] + reps_dict['Pterocarpus']
 	
-	# Tính prototype & CAM trước training
+	# Tính prototype & CAM trước training cho tất cả các phương pháp
 	before_protos = compute_class_prototypes(model, train_eval_loader, device, len(class_names))
-	before_cams = generate_gradcam_maps(model, reps_flat, before_protos, class_to_idx, eval_tf, device)
+	before_cams_dict = {}
+	for method in CAM_METHODS:
+		before_cams_dict[method] = generate_gradcam_maps(
+			model, reps_flat, before_protos, class_to_idx, eval_tf, device, method=method
+		)
 	
 	# Tính embeddings validation trước training (cho t-SNE & distance analysis)
 	before_val_embs, val_labels = extract_all_embeddings(model, val_loader, device)
@@ -994,12 +1055,21 @@ def main() -> None:
 	# ── 11. Trích xuất trạng thái sau training (Post-training analysis) ──
 	print("\n[Analysis] Trích xuất đặc trưng và sinh Grad-CAM sau training...")
 	after_protos = compute_class_prototypes(model, train_eval_loader, device, len(class_names))
-	after_cams = generate_gradcam_maps(model, reps_flat, after_protos, class_to_idx, eval_tf, device)
 	
-	# Chia cam cho từng chi
 	n_dal = len(reps_dict['Dalbergia'])
-	plot_gradcam_comparison(reps_dict['Dalbergia'], before_cams[:n_dal], after_cams[:n_dal], 'Dalbergia', output_dir / "gradcam_dalbergia.png")
-	plot_gradcam_comparison(reps_dict['Pterocarpus'], before_cams[n_dal:], after_cams[n_dal:], 'Pterocarpus', output_dir / "gradcam_pterocarpus.png")
+	for method in CAM_METHODS:
+		after_cams = generate_gradcam_maps(
+			model, reps_flat, after_protos, class_to_idx, eval_tf, device, method=method
+		)
+		before_cams = before_cams_dict[method]
+		plot_gradcam_comparison(
+			reps_dict['Dalbergia'], before_cams[:n_dal], after_cams[:n_dal], 
+			f"Dalbergia ({method})", output_dir / f"gradcam_dalbergia_{method}.png"
+		)
+		plot_gradcam_comparison(
+			reps_dict['Pterocarpus'], before_cams[n_dal:], after_cams[n_dal:], 
+			f"Pterocarpus ({method})", output_dir / f"gradcam_pterocarpus_{method}.png"
+		)
 	
 	# Tính embeddings validation sau training
 	after_val_embs, _ = extract_all_embeddings(model, val_loader, device)

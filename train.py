@@ -31,6 +31,7 @@ LR = 1e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
 FOCAL_ALPHA = 0.25
+CAM_METHODS = ["gradcam", "gradcam++", "xgradcam", "eigencam", "hirescam", "layercam", "eigengradcam"]
 
 
 def set_seed(seed: int) -> None:
@@ -855,9 +856,10 @@ def find_last_conv_layer(model: nn.Module) -> nn.Module | None:
 
 
 class GradCAM:
-	def __init__(self, model: nn.Module, target_layer: nn.Module) -> None:
+	def __init__(self, model: nn.Module, target_layer: nn.Module, method: str = "gradcam") -> None:
 		self.model = model
 		self.target_layer = target_layer
+		self.method = method.lower()
 		self.activations = None
 		self.forward_handle = target_layer.register_forward_hook(self._forward_hook)
 
@@ -868,23 +870,77 @@ class GradCAM:
 		self.forward_handle.remove()
 
 	def __call__(self, input_tensor: torch.Tensor, class_idx: int | None = None) -> np.ndarray:
-		self.model.zero_grad()
-		output = self.model(input_tensor)
-		if class_idx is None:
-			class_idx = int(torch.argmax(output, dim=1).item())
-		score = output[:, class_idx].sum()
-		if self.activations is None:
-			raise RuntimeError("GradCAM hook did not capture activations")
+		if self.method == "eigencam":
+			self.model.eval()
+			with torch.no_grad():
+				_ = self.model(input_tensor)
+			act = self.activations.squeeze(0).detach().cpu().numpy()
+			c, h, w = act.shape
+			A = act.reshape(c, h * w).T
+			A = A - np.mean(A, axis=0)
+			U, S, Vt = np.linalg.svd(A, full_matrices=False)
+			projection = U[:, 0].reshape(h, w)
+			if np.sum(projection) < 0:
+				projection = -projection
+			cam = np.maximum(projection, 0)
+		else:
+			self.model.zero_grad()
+			output = self.model(input_tensor)
+			if class_idx is None:
+				class_idx = int(torch.argmax(output, dim=1).item())
+			score = output[:, class_idx].sum()
+			if self.activations is None:
+				raise RuntimeError("GradCAM hook did not capture activations")
 
-		grads = torch.autograd.grad(score, self.activations, retain_graph=True)[0]
-		weights = grads.mean(dim=(2, 3), keepdim=True)
-		cam = (weights * self.activations).sum(dim=1, keepdim=True)
-		cam = F.relu(cam)
-		cam = cam.squeeze().detach().cpu().numpy()
+			grads = torch.autograd.grad(score, self.activations, retain_graph=True)[0]
+			
+			if self.method == "gradcam++":
+				grads_pos = torch.clamp(grads, min=0)
+				grads_power_2 = grads_pos ** 2
+				grads_power_3 = grads_pos ** 3
+				sum_activations = torch.sum(self.activations, dim=(2, 3), keepdim=True)
+				eps = 1e-7
+				aij = grads_power_2 / (2 * grads_power_2 + sum_activations * grads_power_3 + eps)
+				weights = torch.sum(aij * grads_pos, dim=(2, 3), keepdim=True)
+				cam = torch.sum(weights * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "xgradcam":
+				sum_activations = torch.sum(self.activations, dim=(2, 3), keepdim=True) + 1e-7
+				weights = torch.sum(grads * self.activations / sum_activations, dim=(2, 3), keepdim=True)
+				cam = torch.sum(weights * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "hirescam":
+				cam = torch.sum(grads * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "layercam":
+				cam = torch.sum(torch.clamp(grads, min=0) * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "eigengradcam":
+				weighted_act = grads * self.activations
+				act = weighted_act.squeeze(0).detach().cpu().numpy()
+				c, h, w = act.shape
+				A = act.reshape(c, h * w).T
+				A = A - np.mean(A, axis=0)
+				U, S, Vt = np.linalg.svd(A, full_matrices=False)
+				projection = U[:, 0].reshape(h, w)
+				if np.sum(projection) < 0:
+					projection = -projection
+				cam = np.maximum(projection, 0)
+			else:
+				weights = grads.mean(dim=(2, 3), keepdim=True)
+				cam = (weights * self.activations).sum(dim=1, keepdim=True)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+
 		if cam.ndim == 0:
 			cam = np.array([[float(cam)]])
 		elif cam.ndim == 1:
 			cam = cam[None, :]
+		
 		cam -= cam.min()
 		if cam.max() > 0:
 			cam /= cam.max()
@@ -915,24 +971,29 @@ def save_gradcam_samples(
 		print("GradCAM skipped: no Conv2d layer found in model")
 		return
 
-	gradcam = GradCAM(model, target_layer)
 	model.eval()
-	output_dir.mkdir(parents=True, exist_ok=True)
 	count = min(num_samples, len(df))
 	if count == 0:
 		return
 	batch = df.sample(n=count, random_state=SEED).reset_index(drop=True)
-	for i, row in batch.iterrows():
-		with Image.open(row["path"]) as img:
-			img = img.convert("RGB")
-		input_tensor = eval_tf(img).unsqueeze(0).to(device)
-		cam = gradcam(input_tensor)
-		overlay = overlay_cam_on_image(img, cam)
-		label = str(row["label"]).replace(" ", "_")
-		out_path = output_dir / f"gradcam_{i}_{label}.png"
-		overlay.save(out_path)
 
-	gradcam.remove()
+	# Lặp qua tất cả các phương pháp CAM
+	for method in CAM_METHODS:
+		method_dir = output_dir / method
+		method_dir.mkdir(parents=True, exist_ok=True)
+
+		gradcam = GradCAM(model, target_layer, method=method)
+		for i, row in batch.iterrows():
+			with Image.open(row["path"]) as img:
+				img = img.convert("RGB")
+			input_tensor = eval_tf(img).unsqueeze(0).to(device)
+			cam = gradcam(input_tensor)
+			overlay = overlay_cam_on_image(img, cam)
+			label = str(row["label"]).replace(" ", "_")
+			out_path = method_dir / f"gradcam_{i}_{label}.png"
+			overlay.save(out_path)
+		gradcam.remove()
+		print(f"Đã lưu ảnh giải thích mô hình cho phương pháp: {method} → {method_dir}/")
 
 
 @torch.no_grad()
