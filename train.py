@@ -31,7 +31,7 @@ LR = 1e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
 FOCAL_ALPHA = 0.25
-CAM_METHODS = ["gradcam", "gradcam++", "xgradcam", "eigencam", "hirescam", "layercam", "eigengradcam"]
+CAM_METHODS = ["gradcam", "gradcam++", "xgradcam", "eigencam", "hirescam", "layercam", "eigengradcam", "finercam"]
 
 
 def set_seed(seed: int) -> None:
@@ -879,16 +879,35 @@ class GradCAM:
 			A = act.reshape(c, h * w).T
 			A = A - np.mean(A, axis=0)
 			U, S, Vt = np.linalg.svd(A, full_matrices=False)
-			projection = U[:, 0].reshape(h, w)
+			projection = (A @ Vt[0, :]).reshape(h, w)
 			if np.sum(projection) < 0:
 				projection = -projection
 			cam = np.maximum(projection, 0)
 		else:
 			self.model.zero_grad()
-			output = self.model(input_tensor)
-			if class_idx is None:
-				class_idx = int(torch.argmax(output, dim=1).item())
-			score = output[:, class_idx].sum()
+			if self.method == "finercam":
+				output = self.model(input_tensor)
+				if class_idx is None:
+					class_idx = int(torch.argmax(output, dim=1).item())
+				prob = torch.softmax(output, dim=-1)
+				output_data = output[0].detach().cpu().numpy()
+				target_logit = output_data[class_idx]
+				
+				sorted_indices = np.argsort(np.abs(output_data - target_logit))
+				comparison_categories = sorted_indices[1:4]  # 3 lớp gần nhất tiếp theo
+				alpha = 1.0
+				
+				wn = output[0, class_idx]
+				weights = [prob[0, idx] for idx in comparison_categories]
+				numerator = sum(w * (wn - alpha * output[0, idx]) for w, idx in zip(weights, comparison_categories))
+				denominator = sum(weights)
+				score = numerator / (denominator + 1e-9)
+			else:
+				output = self.model(input_tensor)
+				if class_idx is None:
+					class_idx = int(torch.argmax(output, dim=1).item())
+				score = output[:, class_idx].sum()
+
 			if self.activations is None:
 				raise RuntimeError("GradCAM hook did not capture activations")
 
@@ -926,11 +945,11 @@ class GradCAM:
 				A = act.reshape(c, h * w).T
 				A = A - np.mean(A, axis=0)
 				U, S, Vt = np.linalg.svd(A, full_matrices=False)
-				projection = U[:, 0].reshape(h, w)
+				projection = (A @ Vt[0, :]).reshape(h, w)
 				if np.sum(projection) < 0:
 					projection = -projection
 				cam = np.maximum(projection, 0)
-			else:
+			else:  # gradcam and finercam use gradcam aggregation
 				weights = grads.mean(dim=(2, 3), keepdim=True)
 				cam = (weights * self.activations).sum(dim=1, keepdim=True)
 				cam = F.relu(cam)

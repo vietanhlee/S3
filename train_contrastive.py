@@ -47,7 +47,7 @@ P_CLASSES = 18          # Số class mỗi batch
 K_SAMPLES = 10          # Số ảnh mỗi class trong batch
 EPOCHS = 100
 PATIENCE = 30           # EarlyStopping patience
-CAM_METHODS = ["gradcam", "gradcam++", "xgradcam", "eigencam", "hirescam", "layercam", "eigengradcam"]
+CAM_METHODS = ["gradcam", "gradcam++", "xgradcam", "eigencam", "hirescam", "layercam", "eigengradcam", "finercam"]
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 EMBEDDING_DIM = 256     # Projection head output
@@ -710,7 +710,7 @@ class MetricGradCAM:
 	def remove(self) -> None:
 		self.forward_handle.remove()
 
-	def __call__(self, input_tensor: torch.Tensor, prototype: torch.Tensor) -> np.ndarray:
+	def __call__(self, input_tensor: torch.Tensor, prototype: torch.Tensor, all_prototypes: torch.Tensor = None, target_class_idx: int = None) -> np.ndarray:
 		if self.method == "eigencam":
 			self.model.eval()
 			with torch.no_grad():
@@ -720,14 +720,33 @@ class MetricGradCAM:
 			A = act.reshape(c, h * w).T
 			A = A - np.mean(A, axis=0)
 			U, S, Vt = np.linalg.svd(A, full_matrices=False)
-			projection = U[:, 0].reshape(h, w)
+			projection = (A @ Vt[0, :]).reshape(h, w)
 			if np.sum(projection) < 0:
 				projection = -projection
 			cam = np.maximum(projection, 0)
 		else:
 			self.model.zero_grad()
-			emb = self.model(input_tensor)
-			score = (emb * prototype.unsqueeze(0)).sum()
+			if self.method == "finercam" and all_prototypes is not None and target_class_idx is not None:
+				emb = self.model(input_tensor)
+				logits = torch.matmul(emb, all_prototypes.to(emb.device).T)
+				main_category = target_class_idx
+				prob = torch.softmax(logits, dim=-1)
+				output_data = logits[0].detach().cpu().numpy()
+				target_logit = output_data[main_category]
+				
+				sorted_indices = np.argsort(np.abs(output_data - target_logit))
+				comparison_categories = sorted_indices[1:4]  # 3 lớp gần nhất tiếp theo
+				alpha = 1.0
+				
+				wn = logits[0, main_category]
+				weights = [prob[0, idx] for idx in comparison_categories]
+				numerator = sum(w * (wn - alpha * logits[0, idx]) for w, idx in zip(weights, comparison_categories))
+				denominator = sum(weights)
+				score = numerator / (denominator + 1e-9)
+			else:
+				emb = self.model(input_tensor)
+				score = (emb * prototype.unsqueeze(0)).sum()
+
 			if self.activations is None:
 				raise RuntimeError("CAM hook did not capture activations")
 
@@ -765,11 +784,11 @@ class MetricGradCAM:
 				A = act.reshape(c, h * w).T
 				A = A - np.mean(A, axis=0)
 				U, S, Vt = np.linalg.svd(A, full_matrices=False)
-				projection = U[:, 0].reshape(h, w)
+				projection = (A @ Vt[0, :]).reshape(h, w)
 				if np.sum(projection) < 0:
 					projection = -projection
 				cam = np.maximum(projection, 0)
-			else:
+			else:  # gradcam and finercam use gradcam aggregation
 				weights = grads.mean(dim=(2, 3), keepdim=True)
 				cam = (weights * self.activations).sum(dim=1, keepdim=True)
 				cam = F.relu(cam)
@@ -874,7 +893,7 @@ def generate_gradcam_maps(
 		input_tensor = transform(img).unsqueeze(0).to(device)
 		class_idx = class_to_idx[rep['label']]
 		proto = prototypes[class_idx].to(device)
-		cam = gradcam(input_tensor, proto)
+		cam = gradcam(input_tensor, proto, all_prototypes=prototypes, target_class_idx=class_idx)
 		cam_maps.append(cam)
 	gradcam.remove()
 	return cam_maps
