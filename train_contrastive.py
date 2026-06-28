@@ -32,7 +32,9 @@ from torchvision import transforms
 
 import timm
 from timm.data import resolve_data_config
-from sklearn.metrics import roc_auc_score, roc_curve, auc
+from sklearn.metrics import roc_auc_score, roc_curve, auc, silhouette_score, davies_bouldin_score, calinski_harabasz_score, normalized_mutual_info_score
+from sklearn.cluster import KMeans
+from scipy.spatial.distance import cdist
 from sklearn.manifold import TSNE
 
 # ===== CẤU HÌNH =====
@@ -70,6 +72,41 @@ from train import (
 )
 from train_final import end_version_split
 from split_methods import validate_split
+
+
+def compute_dunn_index(embeddings: np.ndarray, labels: np.ndarray) -> float:
+	"""
+	Tính Dunn Index: tỷ lệ giữa khoảng cách liên cụm nhỏ nhất và đường kính nội cụm lớn nhất.
+	Dunn = min_inter_dist / max_intra_dist
+	"""
+	unique_labels = np.unique(labels)
+	n_clusters = len(unique_labels)
+	if n_clusters <= 1:
+		return 0.0
+
+	max_intra_dist = 0.0
+	cluster_masks = [labels == label for label in unique_labels]
+	cluster_embs = [embeddings[mask] for mask in cluster_masks]
+
+	for embs in cluster_embs:
+		if len(embs) > 1:
+			dists = cdist(embs, embs, metric='euclidean')
+			max_val = dists.max()
+			if max_val > max_intra_dist:
+				max_intra_dist = max_val
+
+	if max_intra_dist == 0.0:
+		return 0.0
+
+	min_inter_dist = float('inf')
+	for i in range(n_clusters):
+		for j in range(i + 1, n_clusters):
+			dists = cdist(cluster_embs[i], cluster_embs[j], metric='euclidean')
+			min_val = dists.min()
+			if min_val < min_inter_dist:
+				min_inter_dist = min_val
+
+	return float(min_inter_dist / max_intra_dist)
 
 
 # ============================================================
@@ -291,14 +328,17 @@ def evaluate_retrieval(
 	k_values: list[int] | None = None,
 ) -> dict:
 	"""
-	Tính toán Recall@K, Precision@K, mAP, AUC trên một tập dữ liệu.
-	Mỗi ảnh làm query, toàn bộ ảnh còn lại là gallery.
+	Tính toán Recall@K, Precision@K, mAP, AUC toàn cục,
+	các chỉ số phân cụm (Silhouette, Davies-Bouldin, Calinski-Harabasz, Dunn, NMI),
+	và các chỉ số chi tiết cho từng class.
 	"""
 	if k_values is None:
 		k_values = [1, 5, 10]
 
 	embeddings, labels = extract_all_embeddings(model, loader, device)
+	embeddings_np = embeddings.numpy()
 	n = len(labels)
+	n_classes = len(class_names)
 
 	# Ma trận khoảng cách Euclid (n x n) trên CPU
 	dist_matrix = torch.cdist(embeddings, embeddings, p=2).numpy()
@@ -306,6 +346,11 @@ def evaluate_retrieval(
 	recall_at_k = {k: 0.0 for k in k_values}
 	precision_at_k = {k: 0.0 for k in k_values}
 	aps = []
+
+	# Lưu metrics cá thể cho từng mẫu để tính per-class
+	sample_recall1 = []
+	sample_recall5 = []
+	sample_map = []
 
 	for i in range(n):
 		# Loại bỏ chính mình
@@ -319,6 +364,235 @@ def evaluate_retrieval(
 		n_positives = int((labels == labels[i]).sum()) - 1  # trừ chính mình
 
 		if n_positives == 0:
+			sample_recall1.append(0.0)
+			sample_recall5.append(0.0)
+			sample_map.append(0.0)
+			continue
+
+		# Recall@K và Precision@K cho toàn cục
+		for k in k_values:
+			top_k_relevant = is_relevant[:k]
+			recall_at_k[k] += float(top_k_relevant.any())
+			precision_at_k[k] += float(top_k_relevant.sum()) / k
+
+		# Lưu thông tin cho mẫu i
+		sample_recall1.append(float(is_relevant[:1].any()))
+		sample_recall5.append(float(is_relevant[:5].any()))
+
+		# AP của mẫu i
+		cumsum = np.cumsum(is_relevant).astype(np.float64)
+		precision_curve = cumsum / np.arange(1, n, dtype=np.float64)
+		ap = (precision_curve * is_relevant).sum() / n_positives
+		aps.append(ap)
+		sample_map.append(ap)
+
+	# Trung bình toàn cục
+	n_valid = max(len(aps), 1)
+	for k in k_values:
+		recall_at_k[k] /= n_valid
+		precision_at_k[k] /= n_valid
+	mAP = float(np.mean(aps)) if aps else 0.0
+
+	# AUC toàn cục — dùng negative distance làm score
+	auc_val = 0.0
+	try:
+		pair_labels = []
+		pair_scores = []
+		for i in range(n):
+			for j in range(i + 1, n):
+				pair_labels.append(int(labels[i] == labels[j]))
+				pair_scores.append(-dist_matrix[i][j])
+		auc_val = float(roc_auc_score(pair_labels, pair_scores))
+	except Exception:
+		auc_val = 0.0
+
+	# --- Tính toán các chỉ số phân cụm ---
+	try:
+		silhouette = float(silhouette_score(embeddings_np, labels))
+	except Exception:
+		silhouette = 0.0
+
+	try:
+		dbi = float(davies_bouldin_score(embeddings_np, labels))
+	except Exception:
+		dbi = 0.0
+
+	try:
+		chi = float(calinski_harabasz_score(embeddings_np, labels))
+	except Exception:
+		chi = 0.0
+
+	try:
+		dunn = float(compute_dunn_index(embeddings_np, labels))
+	except Exception:
+		dunn = 0.0
+
+	try:
+		kmeans = KMeans(n_clusters=n_classes, random_state=42, n_init=10)
+		kmeans_labels = kmeans.fit_predict(embeddings_np)
+		nmi = float(normalized_mutual_info_score(labels, kmeans_labels))
+	except Exception:
+		nmi = 0.0
+
+	# --- Tính toán metrics cho từng class ---
+	per_class_recall1 = []
+	per_class_recall5 = []
+	per_class_map = []
+	per_class_auc = []
+
+	for c in range(n_classes):
+		class_indices = np.where(labels == c)[0]
+		if len(class_indices) == 0:
+			per_class_recall1.append(0.0)
+			per_class_recall5.append(0.0)
+			per_class_map.append(0.0)
+			per_class_auc.append(0.0)
+			continue
+
+		# Lấy trung bình Recall/mAP của các mẫu thuộc class c
+		c_recall1 = np.mean([sample_recall1[idx] for idx in class_indices])
+		c_recall5 = np.mean([sample_recall5[idx] for idx in class_indices])
+		c_map = np.mean([sample_map[idx] for idx in class_indices])
+
+		# Tính AUC riêng cho class c
+		c_auc = 0.0
+		try:
+			pair_labels_c = []
+			pair_scores_c = []
+			for idx_i in class_indices:
+				# Cặp positive (cùng class c)
+				for idx_j in class_indices:
+					if idx_i < idx_j:
+						pair_labels_c.append(1)
+						pair_scores_c.append(-dist_matrix[idx_i][idx_j])
+				# Cặp negative (khác class c)
+				other_indices = np.where(labels != c)[0]
+				for idx_k in other_indices:
+					pair_labels_c.append(0)
+					pair_scores_c.append(-dist_matrix[idx_i][idx_k])
+			if len(set(pair_labels_c)) > 1:
+				c_auc = float(roc_auc_score(pair_labels_c, pair_scores_c))
+			else:
+				c_auc = 0.0
+		except Exception:
+			c_auc = 0.0
+
+		per_class_recall1.append(c_recall1)
+		per_class_recall5.append(c_recall5)
+		per_class_map.append(c_map)
+		per_class_auc.append(c_auc)
+
+	results = {
+		"mAP": mAP,
+		"AUC": auc_val,
+		"Silhouette": silhouette,
+		"Davies-Bouldin": dbi,
+		"Calinski-Harabasz": chi,
+		"Dunn-Index": dunn,
+		"NMI": nmi,
+		"per_class_recall1": per_class_recall1,
+		"per_class_recall5": per_class_recall5,
+		"per_class_map": per_class_map,
+		"per_class_auc": per_class_auc,
+	}
+	for k in k_values:
+		results[f"Recall@{k}"] = recall_at_k[k]
+		results[f"Precision@{k}"] = precision_at_k[k]
+
+	return results
+
+
+def format_retrieval_report(results: dict, class_names: list[str], prefix: str = "") -> str:
+	"""Tạo báo cáo chi tiết per-class và global dưới dạng bảng text chuyên nghiệp."""
+	lines = []
+	lines.append(f"\n=======================================================================")
+	lines.append(f"  BÁO CÁO TRUY VẤN CHI TIẾT (RETRIEVAL REPORT) - {prefix.upper()}")
+	lines.append(f"=======================================================================")
+
+	# 1. Metrics toàn cục
+	lines.append("Chỉ số toàn cục (Global Metrics):")
+	global_keys = ["mAP", "AUC", "Recall@1", "Recall@5", "Recall@10", "Precision@1", "Precision@5", "Precision@10"]
+	for k in global_keys:
+		if k in results:
+			val = results[k]
+			lines.append(f"  {k:<15}: {val*100:.2f}%" if k != "AUC" else f"  {k:<15}: {val:.4f}")
+
+	# 2. Chỉ số phân cụm
+	lines.append("\nChỉ số phân cụm không gian nhúng (Clustering Metrics):")
+	clustering_keys = ["Silhouette", "Davies-Bouldin", "Calinski-Harabasz", "Dunn-Index", "NMI"]
+	for k in clustering_keys:
+		if k in results:
+			val = results[k]
+			lines.append(f"  {k:<20}: {val:.4f}")
+
+	# 3. Bảng chi tiết từng class
+	lines.append("\nChi tiết cho từng loài gỗ (Class-wise Metrics):")
+	header = f"{'Loài gỗ (Class)':<35} | {'Recall@1':<10} | {'Recall@5':<10} | {'mAP':<10} | {'AUC':<10}"
+	lines.append(header)
+	lines.append("-" * len(header))
+
+	per_class_recall1 = results.get("per_class_recall1", [])
+	per_class_recall5 = results.get("per_class_recall5", [])
+	per_class_map = results.get("per_class_map", [])
+	per_class_auc = results.get("per_class_auc", [])
+
+	for idx, name in enumerate(class_names):
+		r1 = per_class_recall1[idx] * 100 if idx < len(per_class_recall1) else 0.0
+		r5 = per_class_recall5[idx] * 100 if idx < len(per_class_recall5) else 0.0
+		m = per_class_map[idx] * 100 if idx < len(per_class_map) else 0.0
+		a = per_class_auc[idx] if idx < len(per_class_auc) else 0.0
+		lines.append(f"{name:<35} | {r1:>8.2f}% | {r5:>8.2f}% | {m:>8.2f}% | {a:>10.4f}")
+
+	lines.append("=======================================================================")
+	return "\n".join(lines)
+
+
+def evaluate_cross_retrieval(
+	model: nn.Module,
+	query_loader: DataLoader,
+	gallery_loader: DataLoader,
+	device: torch.device,
+	class_names: list[str],
+	k_values: list[int] | None = None,
+) -> dict:
+	"""
+	Đánh giá truy vấn chéo (Cross-Retrieval): Query là query_loader, Gallery là gallery_loader.
+	Tính Recall@K, Precision@K, mAP, AUC toàn cục và per-class.
+	"""
+	if k_values is None:
+		k_values = [1, 5, 10]
+
+	query_embs, query_labels = extract_all_embeddings(model, query_loader, device)
+	gallery_embs, gallery_labels = extract_all_embeddings(model, gallery_loader, device)
+
+	n_query = len(query_labels)
+	n_gallery = len(gallery_labels)
+	n_classes = len(class_names)
+
+	# Tính khoảng cách Euclidean giữa Query và Gallery (n_query x n_gallery)
+	dist_matrix = torch.cdist(query_embs, gallery_embs, p=2).numpy()
+
+	recall_at_k = {k: 0.0 for k in k_values}
+	precision_at_k = {k: 0.0 for k in k_values}
+	aps = []
+
+	sample_recall1 = []
+	sample_recall5 = []
+	sample_map = []
+
+	for i in range(n_query):
+		dists = dist_matrix[i].copy()
+		sorted_indices = np.argsort(dists)
+
+		# Nhãn của gallery được sắp xếp theo khoảng cách
+		retrieved_labels = gallery_labels[sorted_indices]
+		is_relevant = (retrieved_labels == query_labels[i])
+		n_positives = int((gallery_labels == query_labels[i]).sum())
+
+		if n_positives == 0:
+			sample_recall1.append(0.0)
+			sample_recall5.append(0.0)
+			sample_map.append(0.0)
 			continue
 
 		# Recall@K và Precision@K
@@ -327,55 +601,99 @@ def evaluate_retrieval(
 			recall_at_k[k] += float(top_k_relevant.any())
 			precision_at_k[k] += float(top_k_relevant.sum()) / k
 
+		sample_recall1.append(float(is_relevant[:1].any()))
+		sample_recall5.append(float(is_relevant[:5].any()))
+
 		# Average Precision (AP)
 		cumsum = np.cumsum(is_relevant).astype(np.float64)
-		precision_curve = cumsum / np.arange(1, n, dtype=np.float64)
+		precision_curve = cumsum / np.arange(1, n_gallery + 1, dtype=np.float64)
 		ap = (precision_curve * is_relevant).sum() / n_positives
 		aps.append(ap)
+		sample_map.append(ap)
 
-	# Trung bình
+	# Trung bình toàn cục
 	n_valid = max(len(aps), 1)
 	for k in k_values:
 		recall_at_k[k] /= n_valid
 		precision_at_k[k] /= n_valid
 	mAP = float(np.mean(aps)) if aps else 0.0
 
-	# AUC — dùng negative distance làm score (càng gần → score càng cao)
-	auc = 0.0
+	# AUC chéo
+	auc_val = 0.0
 	try:
 		pair_labels = []
 		pair_scores = []
-		for i in range(n):
-			for j in range(i + 1, n):
-				pair_labels.append(int(labels[i] == labels[j]))
-				pair_scores.append(-dist_matrix[i][j])
-		auc = float(roc_auc_score(pair_labels, pair_scores))
+		for i in range(n_query):
+			class_i = query_labels[i]
+			pos_indices = np.where(gallery_labels == class_i)[0]
+			neg_indices = np.where(gallery_labels != class_i)[0]
+			
+			for pos_idx in pos_indices:
+				pair_labels.append(1)
+				pair_scores.append(-dist_matrix[i][pos_idx])
+			for neg_idx in neg_indices:
+				pair_labels.append(0)
+				pair_scores.append(-dist_matrix[i][neg_idx])
+		if len(set(pair_labels)) > 1:
+			auc_val = float(roc_auc_score(pair_labels, pair_scores))
 	except Exception:
-		auc = 0.0
+		auc_val = 0.0
 
-	results: dict = {"mAP": mAP, "AUC": auc}
+	# --- Tính per-class cho truy vấn chéo ---
+	per_class_recall1 = []
+	per_class_recall5 = []
+	per_class_map = []
+	per_class_auc = []
+
+	for c in range(n_classes):
+		class_query_indices = np.where(query_labels == c)[0]
+		if len(class_query_indices) == 0:
+			per_class_recall1.append(0.0)
+			per_class_recall5.append(0.0)
+			per_class_map.append(0.0)
+			per_class_auc.append(0.0)
+			continue
+
+		c_recall1 = np.mean([sample_recall1[idx] for idx in class_query_indices])
+		c_recall5 = np.mean([sample_recall5[idx] for idx in class_query_indices])
+		c_map = np.mean([sample_map[idx] for idx in class_query_indices])
+
+		c_auc = 0.0
+		try:
+			pair_labels_c = []
+			pair_scores_c = []
+			for idx_i in class_query_indices:
+				pos_indices = np.where(gallery_labels == c)[0]
+				neg_indices = np.where(gallery_labels != c)[0]
+				for pos_idx in pos_indices:
+					pair_labels_c.append(1)
+					pair_scores_c.append(-dist_matrix[idx_i][pos_idx])
+				for neg_idx in neg_indices:
+					pair_labels_c.append(0)
+					pair_scores_c.append(-dist_matrix[idx_i][neg_idx])
+			if len(set(pair_labels_c)) > 1:
+				c_auc = float(roc_auc_score(pair_labels_c, pair_scores_c))
+		except Exception:
+			c_auc = 0.0
+
+		per_class_recall1.append(c_recall1)
+		per_class_recall5.append(c_recall5)
+		per_class_map.append(c_map)
+		per_class_auc.append(c_auc)
+
+	results = {
+		"mAP": mAP,
+		"AUC": auc_val,
+		"per_class_recall1": per_class_recall1,
+		"per_class_recall5": per_class_recall5,
+		"per_class_map": per_class_map,
+		"per_class_auc": per_class_auc
+	}
 	for k in k_values:
 		results[f"Recall@{k}"] = recall_at_k[k]
 		results[f"Precision@{k}"] = precision_at_k[k]
 
 	return results
-
-
-def format_retrieval_report(results: dict, prefix: str = "") -> str:
-	"""Định dạng bảng kết quả retrieval dạng text."""
-	header = f"{'Metric':<20} | {'Value':>10}"
-	sep = "-" * 35
-	lines = [
-		f"\n{'=' * 35}",
-		f"  Retrieval Report ({prefix})",
-		f"{'=' * 35}",
-		header,
-		sep,
-	]
-	for k, v in results.items():
-		lines.append(f"{k:<20} | {v * 100:>9.2f}%")
-	lines.append("=" * 35)
-	return "\n".join(lines)
 
 
 class MetricGradCAM:
@@ -676,6 +994,15 @@ def plot_distance_analysis(
 	intra_before, inter_before = calculate_pairwise_distances(before_embs, labels)
 	intra_after, inter_after = calculate_pairwise_distances(after_embs, labels)
 
+	# Tính toán giá trị trung bình và tỷ lệ
+	intra_mean_bef = np.mean(intra_before)
+	inter_mean_bef = np.mean(inter_before)
+	ratio_bef = intra_mean_bef / inter_mean_bef if inter_mean_bef > 0 else 0.0
+
+	intra_mean_aft = np.mean(intra_after)
+	inter_mean_aft = np.mean(inter_after)
+	ratio_aft = intra_mean_aft / inter_mean_aft if inter_mean_aft > 0 else 0.0
+
 	fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
 	ax1.hist(intra_before, bins=30, alpha=0.6, density=True, label="Intra-class (Same Class)", color="#3498db")
@@ -685,6 +1012,11 @@ def plot_distance_analysis(
 	ax1.set_title("Distance Distribution Before Training", fontsize=11, fontweight='bold')
 	ax1.legend()
 	ax1.grid(alpha=0.3)
+	
+	# In thông số lên ax1
+	text_bef = f"Intra Mean: {intra_mean_bef:.4f}\nInter Mean: {inter_mean_bef:.4f}\nRatio: {ratio_bef:.4f}"
+	ax1.text(0.05, 0.72, text_bef, transform=ax1.transAxes, fontsize=9,
+	         bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'))
 
 	ax2.hist(intra_after, bins=30, alpha=0.6, density=True, label="Intra-class (Same Class)", color="#2ecc71")
 	ax2.hist(inter_after, bins=30, alpha=0.6, density=True, label="Inter-class (Diff Class)", color="#e74c3c")
@@ -693,6 +1025,11 @@ def plot_distance_analysis(
 	ax2.set_title("Distance Distribution After Training", fontsize=11, fontweight='bold')
 	ax2.legend()
 	ax2.grid(alpha=0.3)
+	
+	# In thông số lên ax2
+	text_aft = f"Intra Mean: {intra_mean_aft:.4f}\nInter Mean: {inter_mean_aft:.4f}\nRatio: {ratio_aft:.4f}"
+	ax2.text(0.05, 0.72, text_aft, transform=ax2.transAxes, fontsize=9,
+	         bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'))
 
 	plt.suptitle("Pairwise Distance Analysis: Intra-class vs Inter-class", fontsize=13, fontweight='bold')
 	plt.tight_layout()
@@ -950,9 +1287,14 @@ def main() -> None:
 			model, reps_flat, before_protos, class_to_idx, eval_tf, device, method=method
 		)
 	
-	# Tính embeddings validation trước training (cho t-SNE & distance analysis)
+	# Tính embeddings cho toàn bộ dữ liệu trước training (cho t-SNE & distance analysis)
+	print("  Trích xuất đặc trưng của Train, Val, Test trước training...")
+	before_train_embs, train_labels = extract_all_embeddings(model, train_eval_loader, device)
 	before_val_embs, val_labels = extract_all_embeddings(model, val_loader, device)
-	before_val_embs = before_val_embs.numpy()
+	before_test_embs, test_labels = extract_all_embeddings(model, test_loader, device)
+	
+	before_all_embs = torch.cat([before_train_embs, before_val_embs, before_test_embs], dim=0).numpy()
+	all_labels = np.concatenate([train_labels, val_labels, test_labels], axis=0)
 
 	# ── 9. Training loop ──
 	print(f"\n{'=' * 60}")
@@ -967,9 +1309,10 @@ def main() -> None:
 		"train_precision1": [], "val_precision1": [],
 		"train_precision5": [], "val_precision5": [],
 		"train_map": [], "val_map": [],
-		"train_auc": [], "val_auc": []
+		"train_auc": [], "val_auc": [],
+		"val_cross_map": [], "val_cross_recall1": [], "val_cross_recall5": []
 	}
-	best_recall1 = 0.0
+	best_map = 0.0
 	epochs_no_improve = 0
 
 	for epoch in range(1, EPOCHS + 1):
@@ -982,8 +1325,9 @@ def main() -> None:
 		# Evaluate
 		train_results = evaluate_retrieval(model, train_eval_loader, device, class_names, k_values=[1, 5])
 		val_results = evaluate_retrieval(model, val_loader, device, class_names, k_values=[1, 5])
+		val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names, k_values=[1, 5])
 		
-		val_recall1 = val_results["Recall@1"]
+		val_map = val_results["mAP"]
 		
 		history["train_loss"].append(loss)
 		history["val_loss"].append(val_loss)
@@ -999,16 +1343,21 @@ def main() -> None:
 		history["val_map"].append(val_results["mAP"])
 		history["train_auc"].append(train_results["AUC"])
 		history["val_auc"].append(val_results["AUC"])
+		
+		# Lưu thông tin chéo Val vs Train
+		history["val_cross_map"].append(val_cross_results["mAP"])
+		history["val_cross_recall1"].append(val_cross_results["Recall@1"])
+		history["val_cross_recall5"].append(val_cross_results["Recall@5"])
 
 		current_lr = optimizer.param_groups[0]["lr"]
 		print(
 			f"Epoch {epoch}/{EPOCHS} —\n"
 			f"  Loss (Train/Val): {loss:.4f} / {val_loss:.4f}\n"
-			f"  Recall@1 (Train/Val): {train_results['Recall@1']*100:.2f}% / {val_results['Recall@1']*100:.2f}%\n"
-			f"  Recall@5 (Train/Val): {train_results['Recall@5']*100:.2f}% / {val_results['Recall@5']*100:.2f}%\n"
+			f"  Recall@1 (Train/Val/Val-Cross): {train_results['Recall@1']*100:.2f}% / {val_results['Recall@1']*100:.2f}% / {val_cross_results['Recall@1']*100:.2f}%\n"
+			f"  Recall@5 (Train/Val/Val-Cross): {train_results['Recall@5']*100:.2f}% / {val_results['Recall@5']*100:.2f}% / {val_cross_results['Recall@5']*100:.2f}%\n"
 			f"  Precision@1 (Train/Val): {train_results['Precision@1']*100:.2f}% / {val_results['Precision@1']*100:.2f}%\n"
 			f"  Precision@5 (Train/Val): {train_results['Precision@5']*100:.2f}% / {val_results['Precision@5']*100:.2f}%\n"
-			f"  mAP (Train/Val): {train_results['mAP']*100:.2f}% / {val_results['mAP']*100:.2f}%\n"
+			f"  mAP (Train/Val/Val-Cross): {train_results['mAP']*100:.2f}% / {val_results['mAP']*100:.2f}% / {val_cross_results['mAP']*100:.2f}%\n"
 			f"  AUC (Train/Val): {train_results['AUC']:.4f} / {val_results['AUC']:.4f}\n"
 			f"  LR: {current_lr:.6f}"
 		)
@@ -1016,12 +1365,12 @@ def main() -> None:
 		scheduler.step()
 
 		# Checkpoint best model
-		if val_recall1 > best_recall1:
-			best_recall1 = val_recall1
+		if val_map > best_map:
+			best_map = val_map
 			epochs_no_improve = 0
 			raw_model = model
 			torch.save(raw_model.state_dict(), output_dir / "best_model.pth")
-			print(f"  → Saved best model (Recall@1={best_recall1:.4f})")
+			print(f"  → Saved best model (mAP={best_map*100:.2f}%)")
 		else:
 			epochs_no_improve += 1
 
@@ -1039,7 +1388,7 @@ def main() -> None:
 	# Đánh giá Val
 	print("\n[Đánh giá cuối - Validation]")
 	val_results = evaluate_retrieval(model, val_loader, device, class_names)
-	val_report = format_retrieval_report(val_results, prefix="Val")
+	val_report = format_retrieval_report(val_results, class_names, prefix="Val")
 	print(val_report)
 	with open(output_dir / "retrieval_report_val.txt", "w", encoding="utf-8") as f:
 		f.write(val_report)
@@ -1047,10 +1396,25 @@ def main() -> None:
 	# Đánh giá Test
 	print("\n[Đánh giá cuối - Test]")
 	test_results = evaluate_retrieval(model, test_loader, device, class_names)
-	test_report = format_retrieval_report(test_results, prefix="Test")
+	test_report = format_retrieval_report(test_results, class_names, prefix="Test")
 	print(test_report)
 	with open(output_dir / "retrieval_report_test.txt", "w", encoding="utf-8") as f:
 		f.write(test_report)
+
+	# Đánh giá truy vấn chéo (Cross-Retrieval): Val/Test làm Query, Train làm Gallery
+	print("\n[Đánh giá chéo - Validation Query vs Training Gallery]")
+	val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
+	val_cross_report = format_retrieval_report(val_cross_results, class_names, prefix="Val Query vs Train Gallery")
+	print(val_cross_report)
+	with open(output_dir / "retrieval_report_val_query_train_gallery.txt", "w", encoding="utf-8") as f:
+		f.write(val_cross_report)
+
+	print("\n[Đánh giá chéo - Test Query vs Training Gallery]")
+	test_cross_results = evaluate_cross_retrieval(model, test_loader, train_eval_loader, device, class_names)
+	test_cross_report = format_retrieval_report(test_cross_results, class_names, prefix="Test Query vs Train Gallery")
+	print(test_cross_report)
+	with open(output_dir / "retrieval_report_test_query_train_gallery.txt", "w", encoding="utf-8") as f:
+		f.write(test_cross_report)
 
 	# ── 11. Trích xuất trạng thái sau training (Post-training analysis) ──
 	print("\n[Analysis] Trích xuất đặc trưng và sinh Grad-CAM sau training...")
@@ -1071,18 +1435,43 @@ def main() -> None:
 			f"Pterocarpus ({method})", output_dir / f"gradcam_pterocarpus_{method}.png"
 		)
 	
-	# Tính embeddings validation sau training
+	# Tính embeddings sau training cho toàn bộ dữ liệu
+	print("  Trích xuất đặc trưng của Train, Val, Test sau training...")
+	after_train_embs, _ = extract_all_embeddings(model, train_eval_loader, device)
 	after_val_embs, _ = extract_all_embeddings(model, val_loader, device)
-	after_val_embs = after_val_embs.numpy()
+	after_test_embs, _ = extract_all_embeddings(model, test_loader, device)
 	
-	# Vẽ t-SNE so sánh
-	plot_tsne_comparison(before_val_embs, after_val_embs, val_labels, class_names, output_dir / "tsne_comparison.png")
+	after_all_embs = torch.cat([after_train_embs, after_val_embs, after_test_embs], dim=0).numpy()
 	
-	# Phân tích khoảng cách
-	plot_distance_analysis(before_val_embs, after_val_embs, val_labels, output_dir / "distance_distribution.png")
+	# Vẽ t-SNE so sánh trên toàn bộ dữ liệu
+	plot_tsne_comparison(before_all_embs, after_all_embs, all_labels, class_names, output_dir / "tsne_comparison.png")
+	
+	# Phân tích khoảng cách trên toàn bộ dữ liệu
+	plot_distance_analysis(before_all_embs, after_all_embs, all_labels, output_dir / "distance_distribution.png")
 
 	# Vẽ biểu đồ tổng hợp metrics
 	plot_metrics_summary(history, model, val_loader, test_loader, device, output_dir)
+
+	# Lọc các metrics kiểu số để lưu vào summary.json
+	val_summary = {}
+	for k, v in val_results.items():
+		if isinstance(v, (int, float, np.integer, np.floating)):
+			val_summary[k] = round(float(v), 6)
+
+	test_summary = {}
+	for k, v in test_results.items():
+		if isinstance(v, (int, float, np.integer, np.floating)):
+			test_summary[k] = round(float(v), 6)
+
+	val_cross_summary = {}
+	for k, v in val_cross_results.items():
+		if isinstance(v, (int, float, np.integer, np.floating)):
+			val_cross_summary[k] = round(float(v), 6)
+
+	test_cross_summary = {}
+	for k, v in test_cross_results.items():
+		if isinstance(v, (int, float, np.integer, np.floating)):
+			test_cross_summary[k] = round(float(v), 6)
 
 	summary = {
 		"method": "Contrastive Loss (Online Hard Pair Mining)",
@@ -1093,9 +1482,11 @@ def main() -> None:
 		"k_samples": K_SAMPLES,
 		"batch_size": P_CLASSES * K_SAMPLES,
 		"epochs_trained": len(history["train_loss"]),
-		"best_val_recall1": best_recall1,
-		"val_results": {k: round(v, 6) for k, v in val_results.items()},
-		"test_results": {k: round(v, 6) for k, v in test_results.items()},
+		"best_val_map": best_map,
+		"val_results": val_summary,
+		"test_results": test_summary,
+		"val_cross_results": val_cross_summary,
+		"test_cross_results": test_cross_summary,
 		"train_size": len(df_train),
 		"val_size": len(df_val),
 		"test_size": len(df_test),
