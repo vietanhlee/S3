@@ -157,10 +157,10 @@ def end_version_split(
 	# 2. Định nghĩa cấu hình chia cho từng class theo todo1.md
 	# (PP_Key, Swap_Mode, Embedding_Model)
 	split_config = {
-		"Afzelia africana": ("PP8", "test", "eff"),
+		"Afzelia africana": ("PP8", "val", "eff"),
 		"Afzelia bella": ("PP4", "val", "swin"),
 		"Afzelia pachyloba": ("PP9", "test", "swin"),
-		"Afzelia quanzensis": ("PP2", "test", "eff"),
+		"Afzelia quanzensis": ("PP2", "val", "eff"),
 		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
 		"Dalbergia melanoxylon": ("PP2", "val", "eff"),
 		"Dalbergia oliveri": ("PP8", "test", "eff"),
@@ -170,12 +170,12 @@ def end_version_split(
 		"Guibourtia coleosperma": ("PP9", "test", "swin"),
 		"Guibourtia ehie": ("PP4", "test", "swin"),
 		"Peltogyne pubescens": ("PP2", "test", "eff"),
-		"Pterocarpus erinaceus": ("PP9", "test", "eff"),
-		"Pterocarpus indicus": ("PP9", "test", "eff"),
+		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
+		"Pterocarpus indicus": ("PP9", "val", "eff"),
 		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
 		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
 		"Sindora cochinchinensis": ("PP2", "test", "swin"),
-		"Sindora tonkinensis": ("PP9", "val", "eff"),
+		"Sindora tonkinensis": ("PP9", "test", "eff"),
 	}
 
 	pp_map = {
