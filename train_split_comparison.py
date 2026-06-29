@@ -40,8 +40,8 @@ FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5 (Cosine Graph)
 # ============================================
 
-# Import từ train.py
-from train import (
+# Import các helper chung từ utils.py
+from utils import (
 	set_seed,
 	get_device,
 	collect_image_samples,
@@ -51,21 +51,24 @@ from train import (
 	eda_split_class_distribution,
 	ImageListDataset,
 	build_transforms,
+	summarize_model,
+	freeze_model_layers,
+	validate_split_minimums,
+)
+
+# Import các logic huấn luyện đặc thù cho classification từ train_final.py
+from train_final import (
 	FocalLoss,
 	accuracy_from_logits,
 	train_model,
 	plot_training_curves,
 	evaluate_and_report,
-	summarize_model,
-	freeze_model_layers,
-	validate_split_minimums,
 )
 
 # Import từ split_methods.py
 from split_methods import (
 	SPLIT_METHODS,
 	validate_split,
-	cosine_graph_split,
 )
 
 import timm
@@ -431,22 +434,12 @@ def main() -> None:
 
 		# Gọi hàm chia dữ liệu
 		try:
-			if method_name == "PP5_Cosine_Graph":
-				# PP5 cần thêm tham số cosine_threshold
-				df_train, df_val, df_test = split_fn(
-					df, embeddings,
-					train_ratio=TRAIN_RATIO,
-					val_ratio=VAL_RATIO,
-					seed=SEED,
-					cosine_threshold=COSINE_THRESHOLD,
-				)
-			else:
-				df_train, df_val, df_test = split_fn(
-					df, embeddings,
-					train_ratio=TRAIN_RATIO,
-					val_ratio=VAL_RATIO,
-					seed=SEED,
-				)
+			df_train, df_val, df_test = split_fn(
+				df, embeddings,
+				train_ratio=TRAIN_RATIO,
+				val_ratio=VAL_RATIO,
+				seed=SEED,
+			)
 		except Exception as e:
 			print(f"[{method_name}] ERROR khi chia dữ liệu: {e}")
 			continue

@@ -15,7 +15,7 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 
-from train import (
+from utils import (
 	set_seed,
 	get_device,
 	collect_image_samples,
@@ -129,21 +129,12 @@ def main() -> None:
 
 		# Gọi hàm split
 		try:
-			if method_name == "PP5_Cosine_Graph":
-				df_train, df_test, df_val = split_fn(
-					df, embeddings,
-					train_ratio=args.train_ratio,
-					val_ratio=args.val_ratio,
-					seed=args.seed,
-					cosine_threshold=args.cosine_threshold,
-				)
-			else:
-				df_train, df_test, df_val = split_fn(
-					df, embeddings,
-					train_ratio=args.train_ratio,
-					val_ratio=args.val_ratio,
-					seed=args.seed,
-				)
+			df_train, df_test, df_val = split_fn(
+				df, embeddings,
+				train_ratio=args.train_ratio,
+				val_ratio=args.val_ratio,
+				seed=args.seed,
+			)
 		except Exception as e:
 			print(f"  ❌ Lỗi khi phân chia phương pháp {method_name}: {e}")
 			continue

@@ -43,7 +43,7 @@ FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5
 # ====================
 
-from train import (
+from utils import (
 	set_seed,
 	get_device,
 	collect_image_samples,
@@ -51,15 +51,12 @@ from train import (
 	log_split_summary,
 	eda_split_class_distribution,
 	ImageListDataset,
+	ImagePathDataset,
 	build_transforms,
-	FocalLoss,
-	accuracy_from_logits,
-	train_model,
-	plot_training_curves,
-	evaluate_and_report,
 	summarize_model,
 	freeze_model_layers,
 	validate_split_minimums,
+	split_genus_species,
 )
 
 from split_methods import (
@@ -68,6 +65,518 @@ from split_methods import (
 )
 
 import timm
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
+
+
+# ============================================================
+# Lớp & Hàm Phục Vụ Huấn Luyện Phân Loại (Classification)
+# ============================================================
+
+class FocalLoss(nn.Module):
+	def __init__(self, gamma: float = 2.0, alpha: float = 0.25) -> None:
+		super().__init__()
+		self.gamma = gamma
+		self.alpha = alpha
+
+	def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+		ce = F.cross_entropy(logits, targets, reduction="none")
+		pt = torch.exp(-ce)
+		loss = self.alpha * (1 - pt) ** self.gamma * ce
+		return loss.mean()
+
+
+def accuracy_from_logits(logits: torch.Tensor, targets: torch.Tensor) -> float:
+	preds = torch.argmax(logits, dim=1)
+	correct = (preds == targets).sum().item()
+	return correct / len(targets)
+
+
+def train_one_epoch(
+	model: nn.Module,
+	loader: DataLoader,
+	criterion: nn.Module,
+	optimizer: torch.optim.Optimizer,
+	device: torch.device,
+	epoch: int,
+	epochs: int,
+) -> tuple[float, float]:
+	model.train()
+	running_loss, running_acc, count = 0.0, 0.0, 0
+	pbar = tqdm(loader, desc=f"Train {epoch}/{epochs}")
+	for images, targets in pbar:
+		images = images.to(device)
+		targets = targets.to(device)
+
+		optimizer.zero_grad()
+		logits = model(images)
+		loss = criterion(logits, targets)
+		loss.backward()
+		optimizer.step()
+
+		batch_size = targets.size(0)
+		running_loss += loss.item() * batch_size
+		running_acc += accuracy_from_logits(logits, targets) * batch_size
+		count += batch_size
+		pbar.set_postfix(loss=running_loss / count, acc=running_acc / count)
+
+	return running_loss / count, running_acc / count
+
+
+@torch.no_grad()
+def evaluate_one_epoch(
+	model: nn.Module,
+	loader: DataLoader,
+	criterion: nn.Module,
+	device: torch.device,
+	epoch: int,
+	epochs: int,
+) -> tuple[float, float]:
+	model.eval()
+	running_loss, running_acc, count = 0.0, 0.0, 0
+	pbar = tqdm(loader, desc=f"Val {epoch}/{epochs}")
+	for images, targets in pbar:
+		images = images.to(device)
+		targets = targets.to(device)
+
+		logits = model(images)
+		loss = criterion(logits, targets)
+		batch_size = targets.size(0)
+		running_loss += loss.item() * batch_size
+		running_acc += accuracy_from_logits(logits, targets) * batch_size
+		count += batch_size
+		pbar.set_postfix(loss=running_loss / count, acc=running_acc / count)
+
+	return running_loss / count, running_acc / count
+
+
+def save_checkpoint(
+	path: Path,
+	model: nn.Module,
+	optimizer: torch.optim.Optimizer,
+	epoch: int,
+	best_val_acc: float,
+	history: dict,
+) -> None:
+	raw_model = model
+	payload = {
+		"epoch": epoch,
+		"model_state": raw_model.state_dict(),
+		"optimizer_state": optimizer.state_dict(),
+		"best_val_acc": best_val_acc,
+		"history": history,
+		"model_name": getattr(raw_model, "model_name", "model"),
+	}
+	torch.save(payload, path)
+
+
+def train_model(
+	model: nn.Module,
+	train_loader: DataLoader,
+	val_loader: DataLoader,
+	optimizer: torch.optim.Optimizer,
+	criterion: nn.Module,
+	device: torch.device,
+	epochs: int,
+	patience: int,
+	output_dir: Path,
+	scheduler=None,
+) -> dict:
+	history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
+	best_val_acc = 0.0
+	epochs_no_improve = 0
+	raw_model = model
+	model_name = getattr(raw_model, "model_name", "model")
+
+	for epoch in range(1, epochs + 1):
+		train_loss, train_acc = train_one_epoch(
+			model, train_loader, criterion, optimizer, device, epoch, epochs
+		)
+		val_loss, val_acc = evaluate_one_epoch(
+			model, val_loader, criterion, device, epoch, epochs
+		)
+
+		history["train_loss"].append(train_loss)
+		history["train_acc"].append(train_acc)
+		history["val_loss"].append(val_loss)
+		history["val_acc"].append(val_acc)
+
+		current_lr = optimizer.param_groups[0]["lr"]
+		print(
+			f"Epoch {epoch}/{epochs} - "
+			f"train_loss={train_loss:.4f}, train_acc={train_acc:.4f}, "
+			f"val_loss={val_loss:.4f}, val_acc={val_acc:.4f}, "
+			f"lr={current_lr:.6f}"
+		)
+
+		if scheduler is not None:
+			scheduler.step()
+
+		last_path = output_dir / f"last_epoch.pth"
+		save_checkpoint(last_path, model, optimizer, epoch, best_val_acc, history)
+
+		if val_acc > best_val_acc:
+			best_val_acc = val_acc
+			best_path = output_dir / f"best_model_{model_name}.pth"
+			torch.save(raw_model.state_dict(), best_path)
+			epochs_no_improve = 0
+		else:
+			epochs_no_improve += 1
+
+		if epochs_no_improve >= patience:
+			print(f"Early stopping at epoch {epoch} (patience {patience})")
+			break
+
+	history["best_val_acc"] = best_val_acc
+	return history
+
+
+def plot_training_curves(history: dict, output_dir: Path) -> None:
+	epochs = range(1, len(history["train_loss"]) + 1)
+	plt.figure(figsize=(8, 4))
+	plt.plot(epochs, history["train_loss"], label="train_loss")
+	plt.plot(epochs, history["val_loss"], label="val_loss")
+	plt.xlabel("Epoch")
+	plt.ylabel("Loss")
+	plt.legend()
+	plt.tight_layout()
+	plt.savefig(output_dir / "loss_curve.png", dpi=200)
+	plt.close()
+
+	plt.figure(figsize=(8, 4))
+	plt.plot(epochs, history["train_acc"], label="train_acc")
+	plt.plot(epochs, history["val_acc"], label="val_acc")
+	plt.xlabel("Epoch")
+	plt.ylabel("Accuracy")
+	plt.legend()
+	plt.tight_layout()
+	plt.savefig(output_dir / "acc_curve.png", dpi=200)
+	plt.close()
+
+
+@torch.no_grad()
+def collect_predictions(
+	model: nn.Module, loader: DataLoader, device: torch.device
+) -> tuple[list[int], list[int]]:
+	model.eval()
+	y_true, y_pred = [], []
+	for images, targets in tqdm(loader, desc="Predict"):
+		images = images.to(device)
+		logits = model(images)
+		preds = torch.argmax(logits, dim=1).cpu().tolist()
+		y_pred.extend(preds)
+		y_true.extend(targets.tolist())
+	return y_true, y_pred
+
+
+def plot_confusion_matrix(
+	y_true: list[int],
+	y_pred: list[int],
+	labels: list[str],
+	title: str,
+	save_path: Path,
+) -> None:
+	from sklearn.metrics import confusion_matrix
+	cm = confusion_matrix(y_true, y_pred, labels=list(range(len(labels))))
+	plt.figure(figsize=(10, 8))
+	plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+	plt.title(title)
+	plt.colorbar()
+	tick_marks = np.arange(len(labels))
+	plt.xticks(tick_marks, labels, rotation=45, ha="right")
+	plt.yticks(tick_marks, labels)
+	plt.ylabel("True label")
+	plt.xlabel("Predicted label")
+	plt.tight_layout()
+	plt.savefig(save_path, dpi=200)
+	plt.close()
+
+
+def save_report(report: str, path: Path) -> None:
+	with open(path, "w", encoding="utf-8") as f:
+		f.write(report)
+
+
+def evaluate_and_report(
+	model: nn.Module,
+	loader: DataLoader,
+	device: torch.device,
+	class_names: list[str],
+	output_dir: Path,
+	prefix: str,
+) -> None:
+	y_true, y_pred = collect_predictions(model, loader, device)
+	labels = list(range(len(class_names)))
+
+	report = classification_report(
+		y_true, y_pred, labels=labels, target_names=class_names, digits=4
+	)
+	print(f"\n{prefix} classification report:\n{report}")
+	save_report(report, output_dir / f"report_{prefix}.txt")
+
+	plot_confusion_matrix(
+		y_true,
+		y_pred,
+		class_names,
+		f"Confusion Matrix ({prefix})",
+		output_dir / f"confusion_matrix_{prefix}.png",
+	)
+
+	genus_labels = [split_genus_species(name)[0] for name in class_names]
+	genus_names = sorted(list(set(genus_labels)))
+	genus_to_idx = {g: i for i, g in enumerate(genus_names)}
+
+	y_true_genus = [genus_to_idx[split_genus_species(class_names[i])[0]] for i in y_true]
+	y_pred_genus = [genus_to_idx[split_genus_species(class_names[i])[0]] for i in y_pred]
+
+	genus_report = classification_report(
+		y_true_genus, y_pred_genus, target_names=genus_names, digits=4
+	)
+	print(f"\n{prefix} genus report:\n{genus_report}")
+	save_report(genus_report, output_dir / f"report_{prefix}_genus.txt")
+
+	plot_confusion_matrix(
+		y_true_genus,
+		y_pred_genus,
+		genus_names,
+		f"Confusion Matrix - Genus ({prefix})",
+		output_dir / f"confusion_matrix_{prefix}_genus.png",
+	)
+
+	for genus in genus_names:
+		indices = [
+			i
+			for i, true_idx in enumerate(y_true)
+			if split_genus_species(class_names[true_idx])[0] == genus
+		]
+		if not indices:
+			continue
+		genus_true = [y_true[i] for i in indices]
+		genus_pred = [y_pred[i] for i in indices]
+		species_classes = sorted({class_names[idx] for idx in genus_true})
+		pred_labels = []
+		has_other_genus = False
+		for idx in genus_pred:
+			pred_label = class_names[idx]
+			pred_genus = split_genus_species(pred_label)[0]
+			if pred_genus == genus:
+				pred_labels.append(pred_label)
+			else:
+				pred_labels.append("Other Genus")
+				has_other_genus = True
+
+		for label in pred_labels:
+			if label != "Other Genus" and label not in species_classes:
+				species_classes.append(label)
+
+		species_classes = sorted(species_classes)
+		if has_other_genus:
+			species_classes.append("Other Genus")
+
+		species_to_idx = {name: i for i, name in enumerate(species_classes)}
+		mapped_true = [species_to_idx[class_names[idx]] for idx in genus_true]
+		mapped_pred = [species_to_idx[label] for label in pred_labels]
+
+		species_report = classification_report(
+			mapped_true, mapped_pred, target_names=species_classes, digits=4
+		)
+		print(f"\n{prefix} species report for genus {genus}:\n{species_report}")
+		save_report(
+			species_report,
+			output_dir / f"report_{prefix}_species_{genus}.txt",
+		)
+
+		plot_confusion_matrix(
+			mapped_true,
+			mapped_pred,
+			species_classes,
+			f"Confusion Matrix - Species ({prefix}, {genus})",
+			output_dir / f"confusion_matrix_{prefix}_species_{genus}.png",
+		)
+
+
+class GradCAM:
+	def __init__(self, model: nn.Module, target_layer: nn.Module, method: str = "gradcam") -> None:
+		self.model = model
+		self.target_layer = target_layer
+		self.method = method.lower()
+		self.activations = None
+		self.forward_handle = target_layer.register_forward_hook(self._forward_hook)
+
+	def _forward_hook(self, module, inputs, output):
+		self.activations = output
+
+	def remove(self) -> None:
+		self.forward_handle.remove()
+
+	def __call__(self, input_tensor: torch.Tensor, class_idx: int | None = None) -> np.ndarray:
+		if self.method == "eigencam":
+			self.model.eval()
+			with torch.no_grad():
+				_ = self.model(input_tensor)
+			act = self.activations.squeeze(0).detach().cpu().numpy()
+			c, h, w = act.shape
+			A = act.reshape(c, h * w).T
+			A = A - np.mean(A, axis=0)
+			U, S, Vt = np.linalg.svd(A, full_matrices=False)
+			projection = (A @ Vt[0, :]).reshape(h, w)
+			if np.sum(projection) < 0:
+				projection = -projection
+			cam = np.maximum(projection, 0)
+		else:
+			self.model.zero_grad()
+			if self.method == "finercam":
+				output = self.model(input_tensor)
+				if class_idx is None:
+					class_idx = int(torch.argmax(output, dim=1).item())
+				prob = torch.softmax(output, dim=-1)
+				output_data = output[0].detach().cpu().numpy()
+				target_logit = output_data[class_idx]
+				
+				sorted_indices = np.argsort(np.abs(output_data - target_logit))
+				comparison_categories = sorted_indices[1:4]
+				alpha = 1.0
+				
+				wn = output[0, class_idx]
+				weights = [prob[0, idx] for idx in comparison_categories]
+				numerator = sum(w * (wn - alpha * output[0, idx]) for w, idx in zip(weights, comparison_categories))
+				denominator = sum(weights)
+				score = numerator / (denominator + 1e-9)
+			else:
+				output = self.model(input_tensor)
+				if class_idx is None:
+					class_idx = int(torch.argmax(output, dim=1).item())
+				score = output[:, class_idx].sum()
+
+			if self.activations is None:
+				raise RuntimeError("GradCAM hook did not capture activations")
+
+			grads = torch.autograd.grad(score, self.activations, retain_graph=True)[0]
+			
+			if self.method == "gradcam++":
+				grads_pos = torch.clamp(grads, min=0)
+				grads_power_2 = grads_pos ** 2
+				grads_power_3 = grads_pos ** 3
+				sum_activations = torch.sum(self.activations, dim=(2, 3), keepdim=True)
+				eps = 1e-7
+				aij = grads_power_2 / (2 * grads_power_2 + sum_activations * grads_power_3 + eps)
+				weights = torch.sum(aij * grads_pos, dim=(2, 3), keepdim=True)
+				cam = torch.sum(weights * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "xgradcam":
+				sum_activations = torch.sum(self.activations, dim=(2, 3), keepdim=True) + 1e-7
+				weights = torch.sum(grads * self.activations / sum_activations, dim=(2, 3), keepdim=True)
+				cam = torch.sum(weights * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "hirescam":
+				cam = torch.sum(grads * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "layercam":
+				cam = torch.sum(torch.clamp(grads, min=0) * self.activations, dim=1)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+			elif self.method == "eigengradcam":
+				weighted_act = grads * self.activations
+				act = weighted_act.squeeze(0).detach().cpu().numpy()
+				c, h, w = act.shape
+				A = act.reshape(c, h * w).T
+				A = A - np.mean(A, axis=0)
+				U, S, Vt = np.linalg.svd(A, full_matrices=False)
+				projection = (A @ Vt[0, :]).reshape(h, w)
+				if np.sum(projection) < 0:
+					projection = -projection
+				cam = np.maximum(projection, 0)
+			else:
+				weights = grads.mean(dim=(2, 3), keepdim=True)
+				cam = (weights * self.activations).sum(dim=1, keepdim=True)
+				cam = F.relu(cam)
+				cam = cam.squeeze().detach().cpu().numpy()
+
+		if cam.ndim == 0:
+			cam = np.array([[float(cam)]])
+		elif cam.ndim == 1:
+			cam = cam[None, :]
+		
+		cam -= cam.min()
+		if cam.max() > 0:
+			cam /= cam.max()
+		return cam
+
+
+def save_gradcam_samples(
+	model: nn.Module,
+	df: pd.DataFrame,
+	eval_tf,
+	device: torch.device,
+	output_dir: Path,
+	num_samples: int = 8,
+) -> None:
+	from utils import find_last_conv_layer, overlay_cam_on_image
+	target_layer = find_last_conv_layer(model)
+	if target_layer is None:
+		print("GradCAM skipped: no Conv2d layer found in model")
+		return
+
+	model.eval()
+	count = min(num_samples, len(df))
+	if count == 0:
+		return
+	batch = df.sample(n=count, random_state=SEED).reset_index(drop=True)
+
+	for method in CAM_METHODS:
+		method_dir = output_dir / method
+		method_dir.mkdir(parents=True, exist_ok=True)
+
+		gradcam = GradCAM(model, target_layer, method=method)
+		for i, row in batch.iterrows():
+			with Image.open(row["path"]) as img:
+				img = img.convert("RGB")
+			input_tensor = eval_tf(img).unsqueeze(0).to(device)
+			cam = gradcam(input_tensor)
+			overlay = overlay_cam_on_image(img, cam)
+			label = str(row["label"]).replace(" ", "_")
+			out_path = method_dir / f"gradcam_{i}_{label}.png"
+			overlay.save(out_path)
+		gradcam.remove()
+		print(f"Đã lưu ảnh giải thích mô hình cho phương pháp: {method} → {method_dir}/")
+
+
+# ============================================================
+# Các hàm khởi tạo Model cho Classification
+# ============================================================
+
+def _create_timm_model(model_name: str, num_classes: int, freeze_ratio: float) -> nn.Module:
+	model = timm.create_model(model_name, pretrained=True, num_classes=num_classes)
+	freeze_model_layers(model, freeze_ratio)
+	model.model_name = model_name
+	return model
+
+def build_mobilenet_large(num_classes: int) -> nn.Module:
+	return _create_timm_model("mobilenetv3_large_100", num_classes, freeze_ratio=0.90)
+
+def build_efficientnet_large(num_classes: int) -> nn.Module:
+	return _create_timm_model("tf_efficientnet_b4", num_classes, freeze_ratio=0.90)
+
+def build_resnet_large(num_classes: int) -> nn.Module:
+	return _create_timm_model("resnet50", num_classes, freeze_ratio=0.90)
+
+def build_convnext_large(num_classes: int) -> nn.Module:
+	return _create_timm_model("convnext_tiny", num_classes, freeze_ratio=0.97)
+
+def build_vit_large(num_classes: int) -> nn.Module:
+	return _create_timm_model("vit_base_patch16_224", num_classes, freeze_ratio=0.97)
+
+def build_deit_base(num_classes: int) -> nn.Module:
+	return _create_timm_model("deit_base_patch16_224", num_classes, freeze_ratio=0.90)
+
+def build_swin_large(num_classes: int) -> nn.Module:
+	return _create_timm_model("swin_large_patch4_window7_224", num_classes, freeze_ratio=0.97)
+
+def build_beit_large(num_classes: int) -> nn.Module:
+	return _create_timm_model("beit_large_patch16_224", num_classes, freeze_ratio=0.97)
 
 
 def build_model(num_classes: int) -> torch.nn.Module:
@@ -162,20 +671,20 @@ def end_version_split(
 		"Afzelia pachyloba": ("PP9", "test", "swin"),
 		"Afzelia quanzensis": ("PP2", "val", "eff"),
 		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
-		"Dalbergia melanoxylon": ("PP2", "val", "eff"),
-		"Dalbergia oliveri": ("PP8", "test", "eff"),
+		"Dalbergia melanoxylon": ("PP2", "test", "eff"),
+		"Dalbergia oliveri": ("PP8", "val", "eff"),
 		"Dalbergia rimosa": ("PP4", "test", "eff"),
 		"Dalbergia tonkinensis": ("PP4", "test", "swin"),
 		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
 		"Guibourtia coleosperma": ("PP9", "test", "swin"),
 		"Guibourtia ehie": ("PP4", "test", "swin"),
-		"Peltogyne pubescens": ("PP2", "test", "eff"),
+		"Peltogyne pubescens": ("PP2", "val", "eff"),
 		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
-		"Pterocarpus indicus": ("PP9", "val", "eff"),
+		"Pterocarpus indicus": ("PP9", "test", "eff"),
 		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
 		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
 		"Sindora cochinchinensis": ("PP2", "test", "swin"),
-		"Sindora tonkinensis": ("PP9", "test", "eff"),
+		"Sindora tonkinensis": ("PP9", "val", "eff"),
 	}
 
 	pp_map = {
