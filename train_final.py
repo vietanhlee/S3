@@ -616,7 +616,6 @@ def compute_embeddings_v2(
 		]
 	)
 
-	from train import ImagePathDataset
 	fs = ImagePathDataset(df, transform=transform)
 	num_workers = min(4, os.cpu_count() or 1)
 	loader = DataLoader(
