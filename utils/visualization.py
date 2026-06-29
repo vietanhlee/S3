@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from PIL import Image
+from pathlib import Path
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
 from sklearn.manifold import TSNE
