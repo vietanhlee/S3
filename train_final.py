@@ -678,7 +678,7 @@ def end_version_split(
 		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
 		"Guibourtia coleosperma": ("PP9", "test", "swin"),
 		"Guibourtia ehie": ("PP4", "test", "swin"),
-		"Peltogyne pubescens": ("PP2", "val", "eff"),
+		"Peltogyne pubescens": ("PP4", "val", "eff"),
 		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
 		"Pterocarpus indicus": ("PP9", "test", "eff"),
 		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
