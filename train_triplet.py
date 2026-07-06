@@ -31,6 +31,7 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 from torchvision import transforms
 
 import timm
+from timm.data import resolve_data_config
 
 # ===== CẤU HÌNH =====
 ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
