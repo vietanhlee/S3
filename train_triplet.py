@@ -40,16 +40,17 @@ VAL_RATIO = 0.2
 SEED = 42
 P_CLASSES = 18          # Số class mỗi batch
 K_SAMPLES = 10          # Số ảnh mỗi class trong batch
-EPOCHS = 20
-PATIENCE = 6            # EarlyStopping patience
+EPOCHS = 40
+PATIENCE = 15           # EarlyStopping patience
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 EMBEDDING_DIM = 256     # Projection head output
-MARGIN = 0.3            # Triplet loss margin (thông dụng với L2 normalized embeddings)
+MARGIN = 0.5            # Triplet loss margin (thông dụng với L2 normalized embeddings)
 FREEZE_RATIO = 0.90
 MODEL_NAME = "convnext_tiny"
 COSINE_THRESHOLD = 0.92
-EMB_BATCH_SIZE = 64
+EMB_BATCH_SIZE = 128
+CALCULATE_CLUSTERING_METRICS = False  # Đặt True nếu muốn tính toán clustering metrics mỗi epoch
 # =====================
 
 # Import utilities từ utils.py
@@ -383,8 +384,8 @@ def main() -> None:
 		val_loss = evaluate_loss(model, val_loader, criterion, device)
 		
 		# Đánh giá retrieval
-		train_results = evaluate_retrieval(model, train_eval_loader, device, class_names)
-		val_results = evaluate_retrieval(model, val_loader, device, class_names)
+		train_results = evaluate_retrieval(model, train_eval_loader, device, class_names, eval_clustering=CALCULATE_CLUSTERING_METRICS)
+		val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=CALCULATE_CLUSTERING_METRICS)
 		val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
 
 		# Lưu history
@@ -459,7 +460,7 @@ def main() -> None:
 
 	# Đánh giá Val
 	print("\n[Đánh giá cuối - Validation]")
-	val_results = evaluate_retrieval(model, val_loader, device, class_names)
+	val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=True)
 	val_report = format_retrieval_report(val_results, class_names, prefix="Val")
 	print(val_report)
 	print(
@@ -476,7 +477,7 @@ def main() -> None:
 
 	# Đánh giá Test
 	print("\n[Đánh giá cuối - Test]")
-	test_results = evaluate_retrieval(model, test_loader, device, class_names)
+	test_results = evaluate_retrieval(model, test_loader, device, class_names, eval_clustering=True)
 	test_report = format_retrieval_report(test_results, class_names, prefix="Test")
 	print(test_report)
 	print(

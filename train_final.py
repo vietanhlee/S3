@@ -12,6 +12,7 @@ import os
 import json
 import random
 from pathlib import Path
+from PIL import Image
 
 import numpy as np
 import pandas as pd
@@ -298,6 +299,79 @@ def save_report(report: str, path: Path) -> None:
 		f.write(report)
 
 
+def plot_misclassified_samples(
+	loader: DataLoader,
+	y_true: list[int],
+	y_pred: list[int],
+	class_names: list[str],
+	output_dir: Path,
+	max_images: int = 50,
+) -> None:
+	"""Vẽ lưới các ảnh dự đoán sai trong tập test kèm nhãn dự đoán và nhãn đúng."""
+	df = loader.dataset.df
+	misclassified_indices = [i for i, (t, p) in enumerate(zip(y_true, y_pred)) if t != p]
+
+	if not misclassified_indices:
+		print("  -> Không có ảnh nào bị dự đoán sai trên tập này!")
+		return
+
+	print(f"  -> Tìm thấy {len(misclassified_indices)} ảnh bị dự đoán sai. Đang vẽ tối đa {min(max_images, len(misclassified_indices))} ảnh...")
+
+	save_dir = Path(output_dir) / "misclassified_test_samples"
+	save_dir.mkdir(parents=True, exist_ok=True)
+
+	# Lấy tối đa 50 ảnh bị dự đoán sai
+	selected_indices = misclassified_indices[:max_images]
+	imgs_per_fig = 25
+	num_figs = (len(selected_indices) + imgs_per_fig - 1) // imgs_per_fig
+
+	for fig_idx in range(num_figs):
+		fig_indices = selected_indices[fig_idx * imgs_per_fig : (fig_idx + 1) * imgs_per_fig]
+		n_imgs = len(fig_indices)
+
+		cols = 5
+		rows = (n_imgs + cols - 1) // cols
+
+		fig, axes = plt.subplots(rows, cols, figsize=(20, 4 * rows))
+		# Đảm bảo axes luôn là mảng 2 chiều
+		if rows == 1:
+			axes = np.expand_dims(axes, axis=0)
+		if cols == 1:
+			axes = np.expand_dims(axes, axis=-1)
+
+		for idx, sample_idx in enumerate(fig_indices):
+			r_idx = idx // cols
+			c_idx = idx % cols
+
+			row = df.iloc[sample_idx]
+			img_path = row["path"]
+			true_lbl = class_names[y_true[sample_idx]]
+			pred_lbl = class_names[y_pred[sample_idx]]
+
+			ax = axes[r_idx, c_idx]
+			try:
+				with Image.open(img_path) as img:
+					ax.imshow(img)
+			except Exception as e:
+				ax.text(0.5, 0.5, f"Error\n{e}", ha="center", va="center")
+
+			ax.axis("off")
+			# Chú thích nhãn dự đoán và nhãn đúng
+			ax.set_title(f"True: {true_lbl}\nPred: {pred_lbl}", fontsize=8, color="red")
+
+		# Ẩn các trục trống nếu lưới không được lấp đầy
+		for idx in range(n_imgs, rows * cols):
+			r_idx = idx // cols
+			c_idx = idx % cols
+			axes[r_idx, c_idx].axis("off")
+
+		plt.suptitle(f"Misclassified Test Samples - Part {fig_idx + 1}", fontsize=14, fontweight="bold")
+		plt.tight_layout()
+		plt.savefig(save_dir / f"misclassified_part_{fig_idx + 1}.png", dpi=200, bbox_inches="tight")
+		plt.close()
+		print(f"  -> Đã lưu figure ghép tại: {save_dir / f'misclassified_part_{fig_idx + 1}.png'}")
+
+
 def evaluate_and_report(
 	model: nn.Module,
 	loader: DataLoader,
@@ -308,6 +382,9 @@ def evaluate_and_report(
 ) -> None:
 	y_true, y_pred = collect_predictions(model, loader, device)
 	labels = list(range(len(class_names)))
+
+	if prefix == "test":
+		plot_misclassified_samples(loader, y_true, y_pred, class_names, output_dir, max_images=50)
 
 	report = classification_report(
 		y_true, y_pred, labels=labels, target_names=class_names, digits=4

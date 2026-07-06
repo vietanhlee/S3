@@ -54,7 +54,7 @@ def compute_dunn_index(embeddings: np.ndarray, labels: np.ndarray) -> float:
 	return float(min_inter_dist / max_intra_dist)
 
 
-def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.device, class_names: list[str], k_values: list[int] | None = None) -> dict:
+def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.device, class_names: list[str], k_values: list[int] | None = None, eval_clustering: bool = False) -> dict:
 	if k_values is None:
 		k_values = [1, 5, 10]
 
@@ -121,49 +121,57 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 		auc_val = 0.0
 
 	# Clustering metrics
-	try:
-		silhouette = float(silhouette_score(embeddings_np, labels))
-	except Exception:
-		silhouette = 0.0
+	silhouette = 0.0
+	dbi = 0.0
+	chi = 0.0
+	dunn = 0.0
+	nmi = 0.0
+	intra_inter_ratio = 0.0
 
-	try:
-		dbi = float(davies_bouldin_score(embeddings_np, labels))
-	except Exception:
-		dbi = 0.0
+	if eval_clustering:
+		try:
+			silhouette = float(silhouette_score(embeddings_np, labels))
+		except Exception:
+			silhouette = 0.0
 
-	try:
-		chi = float(calinski_harabasz_score(embeddings_np, labels))
-	except Exception:
-		chi = 0.0
+		try:
+			dbi = float(davies_bouldin_score(embeddings_np, labels))
+		except Exception:
+			dbi = 0.0
 
-	try:
-		dunn = float(compute_dunn_index(embeddings_np, labels))
-	except Exception:
-		dunn = 0.0
+		try:
+			chi = float(calinski_harabasz_score(embeddings_np, labels))
+		except Exception:
+			chi = 0.0
 
-	try:
-		kmeans = KMeans(n_clusters=n_classes, random_state=42, n_init=10)
-		kmeans_labels = kmeans.fit_predict(embeddings_np)
-		nmi = float(normalized_mutual_info_score(labels, kmeans_labels))
-	except Exception:
-		nmi = 0.0
+		try:
+			dunn = float(compute_dunn_index(embeddings_np, labels))
+		except Exception:
+			dunn = 0.0
 
-	# Intra-Inter ratio
-	try:
-		intra_dists = []
-		inter_dists = []
-		for i in range(n):
-			for j in range(i + 1, n):
-				d = dist_matrix[i, j]
-				if labels[i] == labels[j]:
-					intra_dists.append(d)
-				else:
-					inter_dists.append(d)
-		intra_mean = np.mean(intra_dists) if intra_dists else 0.0
-		inter_mean = np.mean(inter_dists) if inter_dists else 0.0
-		intra_inter_ratio = float(intra_mean / inter_mean) if inter_mean > 0 else 0.0
-	except Exception:
-		intra_inter_ratio = 0.0
+		try:
+			kmeans = KMeans(n_clusters=n_classes, random_state=42, n_init=10)
+			kmeans_labels = kmeans.fit_predict(embeddings_np)
+			nmi = float(normalized_mutual_info_score(labels, kmeans_labels))
+		except Exception:
+			nmi = 0.0
+
+		# Intra-Inter ratio
+		try:
+			intra_dists = []
+			inter_dists = []
+			for i in range(n):
+				for j in range(i + 1, n):
+					d = dist_matrix[i, j]
+					if labels[i] == labels[j]:
+						intra_dists.append(d)
+					else:
+						inter_dists.append(d)
+			intra_mean = np.mean(intra_dists) if intra_dists else 0.0
+			inter_mean = np.mean(inter_dists) if inter_dists else 0.0
+			intra_inter_ratio = float(intra_mean / inter_mean) if inter_mean > 0 else 0.0
+		except Exception:
+			intra_inter_ratio = 0.0
 
 	# Per class metrics
 	per_class_recall1 = []
@@ -226,6 +234,7 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 		results[f"Precision@{k}"] = precision_at_k[k]
 
 	return results
+
 
 
 def format_retrieval_report(results: dict, class_names: list[str], prefix: str = "") -> str:
