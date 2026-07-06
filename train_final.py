@@ -58,6 +58,7 @@ from utils import (
 	freeze_model_layers,
 	validate_split_minimums,
 	split_genus_species,
+	CAM_METHODS,
 )
 
 from split_methods import (

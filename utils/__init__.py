@@ -45,4 +45,6 @@ from .visualization import (
 	plot_distance_analysis,
 	plot_metrics_summary,
 	plot_all_metrics_per_epoch,
+	CAM_METHODS,
 )
+
