@@ -51,10 +51,13 @@ class ImagePathDataset(Dataset):
 def build_transforms(img_size: int, mean, std):
 	train_tf = transforms.Compose(
 		[
-			transforms.Resize((img_size, img_size)),
-			transforms.RandomRotation(degrees=15),
+			# Thay Resize bằng RandomResizedCrop để tăng cường khả năng chống chịu thu phóng (từ 80% đến 100% vùng ảnh gốc)
+			transforms.RandomResizedCrop(size=(img_size, img_size), scale=(0.8, 1.0), ratio=(0.9, 1.1)),
+			transforms.RandomRotation(degrees=30),                                # Tăng góc xoay tối đa lên 30 độ
 			transforms.RandomHorizontalFlip(p=0.5),
-			transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+			transforms.RandomVerticalFlip(p=0.5),                                 # Lật dọc ngẫu nhiên (hữu ích cho thớ gỗ đảo chiều)
+			transforms.ColorJitter(brightness=0.25, contrast=0.25, saturation=0.25, hue=0.05), # Tăng nhẹ độ tương phản và thay đổi nhẹ hue
+			transforms.RandomGrayscale(p=0.05),                                    # 5% ảnh chuyển xám để mô hình học cấu trúc vân thay vì chỉ dựa vào màu sắc
 			transforms.ToTensor(),
 			transforms.Normalize(mean=mean, std=std),
 		]
