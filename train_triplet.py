@@ -51,6 +51,7 @@ FREEZE_RATIO = 0.90
 MODEL_NAME = "convnext_tiny"
 CALCULATE_CLUSTERING_METRICS = True  # Đặt True nếu muốn tính toán clustering metrics mỗi epoch
 EVAL_MODE = "cross"                   # Chế độ đánh giá: 'self' (truy vấn chính nó), 'cross' (truy vấn lên train), hoặc 'both' (cả hai)
+EMB_BATCH_SIZE = 128
 # =====================
 
 # Import utilities từ utils.py
