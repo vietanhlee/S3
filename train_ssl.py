@@ -41,6 +41,7 @@ from utils import (
 	log_split_summary,
 	eda_split_class_distribution,
 	evaluate_cross_retrieval,
+	evaluate_retrieval,
 	format_retrieval_report,
 	build_transforms,
 )
@@ -63,6 +64,7 @@ LAMBD = 0.0051  # Hệ số phạt dư thừa chéo (off-diagonal term)
 FREEZE_RATIO = 0.90
 MODEL_NAME = "convnext_tiny"
 NUM_WORKERS = 8
+CALCULATE_CLUSTERING_METRICS = True
 # =====================
 
 class DoubleViewTransform:
@@ -330,6 +332,10 @@ def main() -> None:
 		"val_cross_map": [],
 		"val_cross_auc": []
 	}
+	if CALCULATE_CLUSTERING_METRICS:
+		history.update({
+			"val_silhouette": [], "val_dbi": [], "val_chi": [], "val_dunn": [], "val_nmi": [], "val_ratio": []
+		})
 	
 	best_map = 0.0
 	epochs_no_improve = 0
@@ -348,15 +354,31 @@ def main() -> None:
 		history["val_cross_map"].append(val_cross_results["mAP"])
 		history["val_cross_auc"].append(val_cross_results["AUC"])
 
+		# Tính toán clustering metrics nếu được bật
+		val_results = None
+		if CALCULATE_CLUSTERING_METRICS:
+			val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=True)
+			# Lưu history
+			history["val_silhouette"].append(val_results["Silhouette"])
+			history["val_dbi"].append(val_results["Davies-Bouldin"])
+			history["val_chi"].append(val_results["Calinski-Harabasz"])
+			history["val_dunn"].append(val_results["Dunn-Index"])
+			history["val_nmi"].append(val_results["NMI"])
+			history["val_ratio"].append(val_results["Intra-Inter-Ratio"])
+
 		current_lr = optimizer.param_groups[0]["lr"]
-		print(
-			f"Epoch {epoch}/{EPOCHS} —\n"
-			f"  Loss (SSL Train)           : {loss:.4f}\n"
-			f"  Val Cross mAP (Retrieval)  : {val_cross_results['mAP']*100:.2f}%\n"
-			f"  Val Cross Recall@1         : {val_cross_results['Recall@1']*100:.2f}%\n"
-			f"  Val Cross AUC              : {val_cross_results['AUC']:.4f}\n"
-			f"  LR                         : {current_lr:.6f}"
-		)
+		
+		log_msg = f"Epoch {epoch}/{EPOCHS} —\n"
+		log_msg += f"  Loss (SSL Train)           : {loss:.4f}\n"
+		log_msg += f"  Val Cross mAP (Retrieval)  : {val_cross_results['mAP']*100:.2f}%\n"
+		log_msg += f"  Val Cross Recall@1         : {val_cross_results['Recall@1']*100:.2f}%\n"
+		log_msg += f"  Val Cross AUC              : {val_cross_results['AUC']:.4f}\n"
+		
+		if val_results is not None:
+			log_msg += f"  Val Clustering             : Silhouette: {val_results['Silhouette']:.4f} | DBI: {val_results['Davies-Bouldin']:.4f} | CHI: {val_results['Calinski-Harabasz']:.2f} | Dunn: {val_results['Dunn-Index']:.4f} | NMI: {val_results['NMI']:.4f} | Ratio: {val_results['Intra-Inter-Ratio']:.4f}\n"
+			
+		log_msg += f"  LR                         : {current_lr:.6f}"
+		print(log_msg)
 
 		scheduler.step()
 
