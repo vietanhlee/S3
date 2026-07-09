@@ -308,7 +308,7 @@ def plot_misclassified_samples(
 	output_dir: Path,
 	max_images: int = 50,
 ) -> None:
-	"""Vẽ lưới các ảnh dự đoán sai trong tập test kèm nhãn dự đoán và nhãn đúng."""
+	"""Vẽ lưới các ảnh dự đoán sai trong tập test kèm nhãn dự đoán và nhãn đúng (lọc trùng cặp lỗi, hàng 3 ảnh)."""
 	df = loader.dataset.df
 	misclassified_indices = [i for i, (t, p) in enumerate(zip(y_true, y_pred)) if t != p]
 
@@ -316,24 +316,35 @@ def plot_misclassified_samples(
 		print("  -> Không có ảnh nào bị dự đoán sai trên tập này!")
 		return
 
-	print(f"  -> Tìm thấy {len(misclassified_indices)} ảnh bị dự đoán sai. Đang vẽ tối đa {min(max_images, len(misclassified_indices))} ảnh...")
+	# Lọc để mỗi cặp lỗi (Nhãn đúng, Nhãn dự đoán sai) chỉ xuất hiện tối đa 1 lần
+	seen_errors = set()
+	filtered_indices = []
+	for idx in misclassified_indices:
+		t = y_true[idx]
+		p = y_pred[idx]
+		error_pair = (t, p)
+		if error_pair not in seen_errors:
+			seen_errors.add(error_pair)
+			filtered_indices.append(idx)
+
+	print(f"  -> Tìm thấy {len(misclassified_indices)} ảnh bị dự đoán sai (sau khi lọc trùng cặp lỗi còn {len(filtered_indices)} ảnh). Đang vẽ tối đa {min(max_images, len(filtered_indices))} ảnh...")
 
 	save_dir = Path(output_dir) / "misclassified_test_samples"
 	save_dir.mkdir(parents=True, exist_ok=True)
 
-	# Lấy tối đa 50 ảnh bị dự đoán sai
-	selected_indices = misclassified_indices[:max_images]
-	imgs_per_fig = 25
+	# Lấy tối đa max_images ảnh bị dự đoán sai sau khi lọc
+	selected_indices = filtered_indices[:max_images]
+	imgs_per_fig = 15  # 5 hàng x 3 cột
 	num_figs = (len(selected_indices) + imgs_per_fig - 1) // imgs_per_fig
 
 	for fig_idx in range(num_figs):
 		fig_indices = selected_indices[fig_idx * imgs_per_fig : (fig_idx + 1) * imgs_per_fig]
 		n_imgs = len(fig_indices)
 
-		cols = 5
+		cols = 3
 		rows = (n_imgs + cols - 1) // cols
 
-		fig, axes = plt.subplots(rows, cols, figsize=(20, 4 * rows))
+		fig, axes = plt.subplots(rows, cols, figsize=(15, 5 * rows))
 		# Đảm bảo axes luôn là mảng 2 chiều
 		if rows == 1:
 			axes = np.expand_dims(axes, axis=0)

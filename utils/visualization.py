@@ -389,7 +389,10 @@ def plot_metrics_summary(history: dict, model: nn.Module, val_loader: DataLoader
 
 	# 2. Recall@1
 	axes[0, 1].plot(epochs_range, history["train_recall1"], label="Train R@1", color="#3498db", lw=2)
-	axes[0, 1].plot(epochs_range, history["val_recall1"], label="Val R@1", color="#2ecc71", lw=2)
+	if "val_recall1" in history and len(history["val_recall1"]) == len(epochs_range):
+		axes[0, 1].plot(epochs_range, history["val_recall1"], label="Val R@1 (Self)", color="#2ecc71", lw=2)
+	if "val_cross_recall1" in history and len(history["val_cross_recall1"]) == len(epochs_range):
+		axes[0, 1].plot(epochs_range, history["val_cross_recall1"], label="Val R@1 (Cross)", color="#e67e22", lw=2, linestyle="--")
 	axes[0, 1].set_xlabel("Epoch")
 	axes[0, 1].set_ylabel("Recall@1")
 	axes[0, 1].set_title("Recall@1 Curve")
@@ -398,7 +401,10 @@ def plot_metrics_summary(history: dict, model: nn.Module, val_loader: DataLoader
 
 	# 3. Recall@5
 	axes[0, 2].plot(epochs_range, history["train_recall5"], label="Train R@5", color="#3498db", lw=2)
-	axes[0, 2].plot(epochs_range, history["val_recall5"], label="Val R@5", color="#2ecc71", lw=2)
+	if "val_recall5" in history and len(history["val_recall5"]) == len(epochs_range):
+		axes[0, 2].plot(epochs_range, history["val_recall5"], label="Val R@5 (Self)", color="#2ecc71", lw=2)
+	if "val_cross_recall5" in history and len(history["val_cross_recall5"]) == len(epochs_range):
+		axes[0, 2].plot(epochs_range, history["val_cross_recall5"], label="Val R@5 (Cross)", color="#e67e22", lw=2, linestyle="--")
 	axes[0, 2].set_xlabel("Epoch")
 	axes[0, 2].set_ylabel("Recall@5")
 	axes[0, 2].set_title("Recall@5 Curve")
@@ -407,7 +413,10 @@ def plot_metrics_summary(history: dict, model: nn.Module, val_loader: DataLoader
 
 	# 4. Precision@1
 	axes[0, 3].plot(epochs_range, history["train_precision1"], label="Train P@1", color="#3498db", lw=2)
-	axes[0, 3].plot(epochs_range, history["val_precision1"], label="Val P@1", color="#2ecc71", lw=2)
+	if "val_precision1" in history and len(history["val_precision1"]) == len(epochs_range):
+		axes[0, 3].plot(epochs_range, history["val_precision1"], label="Val P@1 (Self)", color="#2ecc71", lw=2)
+	if "val_cross_precision1" in history and len(history["val_cross_precision1"]) == len(epochs_range):
+		axes[0, 3].plot(epochs_range, history["val_cross_precision1"], label="Val P@1 (Cross)", color="#e67e22", lw=2, linestyle="--")
 	axes[0, 3].set_xlabel("Epoch")
 	axes[0, 3].set_ylabel("Precision@1")
 	axes[0, 3].set_title("Precision@1 Curve")
@@ -416,7 +425,10 @@ def plot_metrics_summary(history: dict, model: nn.Module, val_loader: DataLoader
 
 	# 5. Precision@5
 	axes[1, 0].plot(epochs_range, history["train_precision5"], label="Train P@5", color="#3498db", lw=2)
-	axes[1, 0].plot(epochs_range, history["val_precision5"], label="Val P@5", color="#2ecc71", lw=2)
+	if "val_precision5" in history and len(history["val_precision5"]) == len(epochs_range):
+		axes[1, 0].plot(epochs_range, history["val_precision5"], label="Val P@5 (Self)", color="#2ecc71", lw=2)
+	if "val_cross_precision5" in history and len(history["val_cross_precision5"]) == len(epochs_range):
+		axes[1, 0].plot(epochs_range, history["val_cross_precision5"], label="Val P@5 (Cross)", color="#e67e22", lw=2, linestyle="--")
 	axes[1, 0].set_xlabel("Epoch")
 	axes[1, 0].set_ylabel("Precision@5")
 	axes[1, 0].set_title("Precision@5 Curve")
@@ -425,7 +437,10 @@ def plot_metrics_summary(history: dict, model: nn.Module, val_loader: DataLoader
 
 	# 6. mAP
 	axes[1, 1].plot(epochs_range, history["train_map"], label="Train mAP", color="#3498db", lw=2)
-	axes[1, 1].plot(epochs_range, history["val_map"], label="Val mAP", color="#2ecc71", lw=2)
+	if "val_map" in history and len(history["val_map"]) == len(epochs_range):
+		axes[1, 1].plot(epochs_range, history["val_map"], label="Val mAP (Self)", color="#2ecc71", lw=2)
+	if "val_cross_map" in history and len(history["val_cross_map"]) == len(epochs_range):
+		axes[1, 1].plot(epochs_range, history["val_cross_map"], label="Val mAP (Cross)", color="#e67e22", lw=2, linestyle="--")
 	axes[1, 1].set_xlabel("Epoch")
 	axes[1, 1].set_ylabel("mAP")
 	axes[1, 1].set_title("mAP Curve")
@@ -434,7 +449,10 @@ def plot_metrics_summary(history: dict, model: nn.Module, val_loader: DataLoader
 
 	# 7. AUC
 	axes[1, 2].plot(epochs_range, history["train_auc"], label="Train AUC", color="#3498db", lw=2)
-	axes[1, 2].plot(epochs_range, history["val_auc"], label="Val AUC", color="#2ecc71", lw=2)
+	if "val_auc" in history and len(history["val_auc"]) == len(epochs_range):
+		axes[1, 2].plot(epochs_range, history["val_auc"], label="Val AUC (Self)", color="#2ecc71", lw=2)
+	if "val_cross_auc" in history and len(history["val_cross_auc"]) == len(epochs_range):
+		axes[1, 2].plot(epochs_range, history["val_cross_auc"], label="Val AUC (Cross)", color="#e67e22", lw=2, linestyle="--")
 	axes[1, 2].set_xlabel("Epoch")
 	axes[1, 2].set_ylabel("AUC")
 	axes[1, 2].set_title("AUC Curve")
@@ -501,21 +519,22 @@ def plot_all_metrics_per_epoch(history: dict, output_dir: Path) -> None:
 		scale: float = 1.0,
 	) -> None:
 		tv = [v * scale for v in history[train_key]]
-		vv = [v * scale for v in history[val_key]]
 
-		# Biểu đồ 1: Train vs Val
-		_, ax = plt.subplots(figsize=(8, 5))
-		ax.plot(epochs_range, tv, color="#3498db", lw=2, label="Train")
-		ax.plot(epochs_range, vv, color="#2ecc71", lw=2, label="Val")
-		_save_fig(ax, f"{label} — Train vs Val", ylabel, fname_tv)
+		# Biểu đồ 1: Train vs Val (Self)
+		if val_key in history and len(history[val_key]) == len(epochs_range):
+			vv = [v * scale for v in history[val_key]]
+			_, ax = plt.subplots(figsize=(8, 5))
+			ax.plot(epochs_range, tv, color="#3498db", lw=2, label="Train")
+			ax.plot(epochs_range, vv, color="#2ecc71", lw=2, label="Val (Self)")
+			_save_fig(ax, f"{label} — Train vs Val (Self)", ylabel, fname_tv)
 
-		# Biểu đồ 2: Train vs Val-Cross
-		if cross_key and history.get(cross_key):
+		# Biểu đồ 2: Train vs Val-Cross (Cross)
+		if cross_key and history.get(cross_key) and len(history[cross_key]) == len(epochs_range):
 			vc = [v * scale for v in history[cross_key]]
 			_, ax = plt.subplots(figsize=(8, 5))
 			ax.plot(epochs_range, tv,   color="#3498db", lw=2, label="Train")
-			ax.plot(epochs_range, vc,   color="#e67e22", lw=2, linestyle="--", label="Val-Cross")
-			_save_fig(ax, f"{label} — Train vs Val-Cross", ylabel, fname_tc)
+			ax.plot(epochs_range, vc,   color="#e67e22", lw=2, linestyle="--", label="Val (Cross)")
+			_save_fig(ax, f"{label} — Train vs Val (Cross)", ylabel, fname_tc)
 
 	# 1. Loss
 	_, ax = plt.subplots(figsize=(8, 5))

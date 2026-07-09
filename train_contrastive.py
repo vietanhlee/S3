@@ -41,8 +41,8 @@ VAL_RATIO = 0.2
 SEED = 42
 P_CLASSES = 18          # Số class mỗi batch
 K_SAMPLES = 10          # Số ảnh mỗi class trong batch
-EPOCHS = 40
-PATIENCE = 15           # EarlyStopping patience
+EPOCHS = 30
+PATIENCE = 10           # EarlyStopping patience
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 EMBEDDING_DIM = 256     # Projection head output
@@ -51,7 +51,8 @@ FREEZE_RATIO = 0.90
 MODEL_NAME = "convnext_tiny"
 COSINE_THRESHOLD = 0.92
 EMB_BATCH_SIZE = 128
-CALCULATE_CLUSTERING_METRICS = False  # Đặt True nếu muốn tính toán clustering metrics mỗi epoch
+CALCULATE_CLUSTERING_METRICS = True  # Đặt True nếu muốn tính toán clustering metrics mỗi epoch
+EVAL_MODE = "cross"                   # Chế độ đánh giá: 'self' (truy vấn chính nó), 'cross' (truy vấn lên train), hoặc 'both' (cả hai)
 # =====================
 
 # Import utilities từ utils.py
@@ -177,7 +178,7 @@ class MetricModel(nn.Module):
 # ============================================================
 
 class OnlineContrastiveLoss(nn.Module):
-	"""Contrastive Loss với Online Hard Pair Mining."""
+	"""Contrastive Loss với Online Hard Pair Mining (chọn positive xa nhất và negative gần nhất cho mỗi anchor)."""
 	def __init__(self, margin: float = 0.5) -> None:
 		super().__init__()
 		self.margin = margin
@@ -187,16 +188,33 @@ class OnlineContrastiveLoss(nn.Module):
 		n = embeddings.size(0)
 
 		labels_col = labels.unsqueeze(1)
-		is_positive = (labels_col == labels_col.t()).float()
-		is_negative = 1.0 - is_positive
-		mask_diag = 1.0 - torch.eye(n, device=embeddings.device)
-		is_positive = is_positive * mask_diag
-		is_negative = is_negative * mask_diag
+		is_positive = (labels_col == labels_col.t()).bool()
+		is_negative = ~is_positive
 
-		pos_loss = (is_positive * (dist_matrix ** 2)).sum() / max(1.0, is_positive.sum())
+		# Loại bỏ chính nó khỏi tập positive
+		is_positive.fill_diagonal_(False)
 
-		neg_loss_terms = torch.clamp(self.margin - dist_matrix, min=0.0) ** 2
-		neg_loss = (is_negative * neg_loss_terms).sum() / max(1.0, is_negative.sum())
+		# 1. Tìm Hardest Positive cho mỗi anchor (khoảng cách lớn nhất)
+		pos_dists = dist_matrix.clone()
+		pos_dists[is_negative] = 0.0
+		hardest_pos_dist, _ = pos_dists.max(dim=1)
+
+		# 2. Tìm Hardest Negative cho mỗi anchor (khoảng cách nhỏ nhất)
+		neg_dists = dist_matrix.clone()
+		neg_dists[is_positive] = 1e6
+		neg_dists.fill_diagonal_(1e6)
+		hardest_neg_dist, _ = neg_dists.min(dim=1)
+
+		# Chỉ tính loss cho các anchor có ít nhất 1 positive và 1 negative hợp lệ trong batch
+		has_pos = is_positive.sum(dim=1) > 0
+		has_neg = is_negative.sum(dim=1) > 0
+		valid_anchors = has_pos & has_neg
+
+		if not valid_anchors.any():
+			return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
+
+		pos_loss = (hardest_pos_dist[valid_anchors] ** 2).mean()
+		neg_loss = (torch.clamp(self.margin - hardest_neg_dist[valid_anchors], min=0.0) ** 2).mean()
 
 		return pos_loss + neg_loss
 
@@ -356,17 +374,24 @@ def main() -> None:
 	print("\n[Step 9] Bắt đầu huấn luyện Metric Learning...")
 	history = {
 		"train_loss": [], "val_loss": [],
-		"train_recall1": [], "val_recall1": [],
-		"train_recall5": [], "val_recall5": [],
-		"train_precision1": [], "val_precision1": [],
-		"train_precision5": [], "val_precision5": [],
-		"train_map": [], "val_map": [],
-		"train_auc": [], "val_auc": [],
-		"val_cross_recall1": [], "val_cross_recall5": [],
-		"val_cross_precision1": [], "val_cross_precision5": [],
-		"val_cross_map": [], "val_cross_auc": [],
-		"val_silhouette": [], "val_dbi": [], "val_chi": [], "val_dunn": [], "val_nmi": [], "val_ratio": []
+		"train_recall1": [], "train_recall5": [],
+		"train_precision1": [], "train_precision5": [],
+		"train_map": [], "train_auc": [],
 	}
+	if EVAL_MODE in ["self", "both"]:
+		history.update({
+			"val_recall1": [], "val_recall5": [],
+			"val_precision1": [], "val_precision5": [],
+			"val_map": [], "val_auc": [],
+			"val_silhouette": [], "val_dbi": [], "val_chi": [], "val_dunn": [], "val_nmi": [], "val_ratio": []
+		})
+	if EVAL_MODE in ["cross", "both"]:
+		history.update({
+			"val_cross_recall1": [], "val_cross_recall5": [],
+			"val_cross_precision1": [], "val_cross_precision5": [],
+			"val_cross_map": [], "val_cross_auc": []
+		})
+
 	best_map = 0.0
 	epochs_no_improve = 0
 
@@ -374,64 +399,73 @@ def main() -> None:
 		# Train
 		loss = train_one_epoch(model, train_loader, optimizer, criterion, device, epoch, EPOCHS)
 		
-		# Val loss
+		# Val loss (luôn tính vì rất nhẹ)
 		val_loss = evaluate_loss(model, val_loader, criterion, device)
 		
-		# Đánh giá retrieval
-		train_results = evaluate_retrieval(model, train_eval_loader, device, class_names, eval_clustering=CALCULATE_CLUSTERING_METRICS)
-		val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=CALCULATE_CLUSTERING_METRICS)
-		val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
+		# Luôn đánh giá retrieval trên tập train
+		train_results = evaluate_retrieval(model, train_eval_loader, device, class_names, eval_clustering=False)
 
-		# Lưu history
+		# Lưu history chung
 		history["train_loss"].append(loss)
 		history["val_loss"].append(val_loss)
 		history["train_recall1"].append(train_results["Recall@1"])
-		history["val_recall1"].append(val_results["Recall@1"])
 		history["train_recall5"].append(train_results["Recall@5"])
-		history["val_recall5"].append(val_results["Recall@5"])
 		history["train_precision1"].append(train_results["Precision@1"])
-		history["val_precision1"].append(val_results["Precision@1"])
 		history["train_precision5"].append(train_results["Precision@5"])
-		history["val_precision5"].append(val_results["Precision@5"])
 		history["train_map"].append(train_results["mAP"])
-		history["val_map"].append(val_results["mAP"])
 		history["train_auc"].append(train_results["AUC"])
-		history["val_auc"].append(val_results["AUC"])
 
-		# Lưu thông tin chéo Val vs Train
-		history["val_cross_recall1"].append(val_cross_results["Recall@1"])
-		history["val_cross_recall5"].append(val_cross_results["Recall@5"])
-		history["val_cross_precision1"].append(val_cross_results["Precision@1"])
-		history["val_cross_precision5"].append(val_cross_results["Precision@5"])
-		history["val_cross_map"].append(val_cross_results["mAP"])
-		history["val_cross_auc"].append(val_cross_results["AUC"])
+		# Tính toán có điều kiện theo EVAL_MODE
+		val_results = None
+		val_cross_results = None
 
-		# Lưu chỉ số phân cụm tập Validation
-		history["val_silhouette"].append(val_results["Silhouette"])
-		history["val_dbi"].append(val_results["Davies-Bouldin"])
-		history["val_chi"].append(val_results["Calinski-Harabasz"])
-		history["val_dunn"].append(val_results["Dunn-Index"])
-		history["val_nmi"].append(val_results["NMI"])
-		history["val_ratio"].append(val_results["Intra-Inter-Ratio"])
+		if EVAL_MODE in ["self", "both"]:
+			val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=CALCULATE_CLUSTERING_METRICS)
+			history["val_recall1"].append(val_results["Recall@1"])
+			history["val_recall5"].append(val_results["Recall@5"])
+			history["val_precision1"].append(val_results["Precision@1"])
+			history["val_precision5"].append(val_results["Precision@5"])
+			history["val_map"].append(val_results["mAP"])
+			history["val_auc"].append(val_results["AUC"])
+			# Lưu chỉ số phân cụm tập Validation
+			history["val_silhouette"].append(val_results["Silhouette"])
+			history["val_dbi"].append(val_results["Davies-Bouldin"])
+			history["val_chi"].append(val_results["Calinski-Harabasz"])
+			history["val_dunn"].append(val_results["Dunn-Index"])
+			history["val_nmi"].append(val_results["NMI"])
+			history["val_ratio"].append(val_results["Intra-Inter-Ratio"])
+
+		if EVAL_MODE in ["cross", "both"]:
+			val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
+			history["val_cross_recall1"].append(val_cross_results["Recall@1"])
+			history["val_cross_recall5"].append(val_cross_results["Recall@5"])
+			history["val_cross_precision1"].append(val_cross_results["Precision@1"])
+			history["val_cross_precision5"].append(val_cross_results["Precision@5"])
+			history["val_cross_map"].append(val_cross_results["mAP"])
+			history["val_cross_auc"].append(val_cross_results["AUC"])
 
 		current_lr = optimizer.param_groups[0]["lr"]
-		print(
-			f"Epoch {epoch}/{EPOCHS} —\n"
-			f"  Loss (Train/Val): {loss:.4f} / {val_loss:.4f}\n"
-			f"  Recall@1    (Train/Val/Val-Cross): {train_results['Recall@1']*100:.2f}% / {val_results['Recall@1']*100:.2f}% / {val_cross_results['Recall@1']*100:.2f}%\n"
-			f"  Recall@5    (Train/Val/Val-Cross): {train_results['Recall@5']*100:.2f}% / {val_results['Recall@5']*100:.2f}% / {val_cross_results['Recall@5']*100:.2f}%\n"
-			f"  Precision@1 (Train/Val/Val-Cross): {train_results['Precision@1']*100:.2f}% / {val_results['Precision@1']*100:.2f}% / {val_cross_results['Precision@1']*100:.2f}%\n"
-			f"  Precision@5 (Train/Val/Val-Cross): {train_results['Precision@5']*100:.2f}% / {val_results['Precision@5']*100:.2f}% / {val_cross_results['Precision@5']*100:.2f}%\n"
-			f"  mAP         (Train/Val/Val-Cross): {train_results['mAP']*100:.2f}% / {val_results['mAP']*100:.2f}% / {val_cross_results['mAP']*100:.2f}%\n"
-			f"  AUC         (Train/Val/Val-Cross): {train_results['AUC']:.4f} / {val_results['AUC']:.4f} / {val_cross_results['AUC']:.4f}\n"
-			f"  Clustering Metrics (Val): Silhouette: {val_results['Silhouette']:.4f} | DBI: {val_results['Davies-Bouldin']:.4f} | CHI: {val_results['Calinski-Harabasz']:.2f} | Dunn: {val_results['Dunn-Index']:.4f} | NMI: {val_results['NMI']:.4f} | Ratio: {val_results['Intra-Inter-Ratio']:.4f}\n"
-			f"  LR: {current_lr:.6f}"
-		)
+
+		# Xây dựng log động
+		log_msg = f"Epoch {epoch}/{EPOCHS} —\n"
+		log_msg += f"  Loss (Train/Val): {loss:.4f} / {val_loss:.4f}\n"
+		log_msg += f"  Train Metrics: R@1: {train_results['Recall@1']*100:.2f}% | R@5: {train_results['Recall@5']*100:.2f}% | P@1: {train_results['Precision@1']*100:.2f}% | mAP: {train_results['mAP']*100:.2f}% | AUC: {train_results['AUC']:.4f}\n"
+
+		if val_results is not None:
+			log_msg += f"  Val Self Metrics: R@1: {val_results['Recall@1']*100:.2f}% | R@5: {val_results['Recall@5']*100:.2f}% | P@1: {val_results['Precision@1']*100:.2f}% | mAP: {val_results['mAP']*100:.2f}% | AUC: {val_results['AUC']:.4f}\n"
+			if CALCULATE_CLUSTERING_METRICS:
+				log_msg += f"    Clustering: Silhouette: {val_results['Silhouette']:.4f} | DBI: {val_results['Davies-Bouldin']:.4f} | CHI: {val_results['Calinski-Harabasz']:.2f} | Dunn: {val_results['Dunn-Index']:.4f} | NMI: {val_results['NMI']:.4f} | Ratio: {val_results['Intra-Inter-Ratio']:.4f}\n"
+
+		if val_cross_results is not None:
+			log_msg += f"  Val Cross Metrics: R@1: {val_cross_results['Recall@1']*100:.2f}% | R@5: {val_cross_results['Recall@5']*100:.2f}% | P@1: {val_cross_results['Precision@1']*100:.2f}% | mAP: {val_cross_results['mAP']*100:.2f}% | AUC: {val_cross_results['AUC']:.4f}\n"
+
+		log_msg += f"  LR: {current_lr:.6f}"
+		print(log_msg)
 
 		scheduler.step()
 
-		# Checkpoint best model theo mAP
-		val_map = val_results["mAP"]
+		# Chọn mAP để Early Stopping theo chế độ (ưu tiên Cross nếu chạy Cross)
+		val_map = val_cross_results["mAP"] if val_cross_results is not None else val_results["mAP"]
 		if val_map > best_map:
 			best_map = val_map
 			epochs_no_improve = 0
@@ -452,68 +486,92 @@ def main() -> None:
 		raw_model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
 		print(f"\nĐã load best model từ {best_path}")
 
-	# Đánh giá Val
-	print("\n[Đánh giá cuối - Validation]")
-	val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=True)
-	val_report = format_retrieval_report(val_results, class_names, prefix="Val")
-	print(val_report)
-	print(
-		f"  [Clustering Metrics - Val]\n"
-		f"    Silhouette Score : {val_results['Silhouette']:.4f}\n"
-		f"    Davies-Bouldin   : {val_results['Davies-Bouldin']:.4f}\n"
-		f"    Calinski-Harabasz: {val_results['Calinski-Harabasz']:.2f}\n"
-		f"    Dunn Index       : {val_results['Dunn-Index']:.4f}\n"
-		f"    NMI              : {val_results['NMI']:.4f}\n"
-		f"    Intra/Inter Ratio: {val_results['Intra-Inter-Ratio']:.4f}"
-	)
-	with open(output_dir / "retrieval_report_val.txt", "w", encoding="utf-8") as f:
-		f.write(val_report)
+	# Đánh giá cuối có điều kiện theo EVAL_MODE
+	val_summary = {}
+	test_summary = {}
+	val_cross_summary = {}
+	test_cross_summary = {}
 
-	# Đánh giá Test
-	print("\n[Đánh giá cuối - Test]")
-	test_results = evaluate_retrieval(model, test_loader, device, class_names, eval_clustering=True)
-	test_report = format_retrieval_report(test_results, class_names, prefix="Test")
-	print(test_report)
-	print(
-		f"  [Clustering Metrics - Test]\n"
-		f"    Silhouette Score : {test_results['Silhouette']:.4f}\n"
-		f"    Davies-Bouldin   : {test_results['Davies-Bouldin']:.4f}\n"
-		f"    Calinski-Harabasz: {test_results['Calinski-Harabasz']:.2f}\n"
-		f"    Dunn Index       : {test_results['Dunn-Index']:.4f}\n"
-		f"    NMI              : {test_results['NMI']:.4f}\n"
-		f"    Intra/Inter Ratio: {test_results['Intra-Inter-Ratio']:.4f}"
-	)
-	with open(output_dir / "retrieval_report_test.txt", "w", encoding="utf-8") as f:
-		f.write(test_report)
+	if EVAL_MODE in ["self", "both"]:
+		# Đánh giá Val
+		print("\n[Đánh giá cuối - Validation Self]")
+		val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=True)
+		val_report = format_retrieval_report(val_results, class_names, prefix="Val")
+		print(val_report)
+		print(
+			f"  [Clustering Metrics - Val]\n"
+			f"    Silhouette Score : {val_results['Silhouette']:.4f}\n"
+			f"    Davies-Bouldin   : {val_results['Davies-Bouldin']:.4f}\n"
+			f"    Calinski-Harabasz: {val_results['Calinski-Harabasz']:.2f}\n"
+			f"    Dunn Index       : {val_results['Dunn-Index']:.4f}\n"
+			f"    NMI              : {val_results['NMI']:.4f}\n"
+			f"    Intra/Inter Ratio: {val_results['Intra-Inter-Ratio']:.4f}"
+		)
+		with open(output_dir / "retrieval_report_val.txt", "w", encoding="utf-8") as f:
+			f.write(val_report)
 
-	# Đánh giá truy vấn chéo (Cross-Retrieval): Val/Test làm Query, Train làm Gallery
-	print("\n[Đánh giá chéo - Validation Query vs Training Gallery]")
-	val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
-	val_cross_report = format_retrieval_report(val_cross_results, class_names, prefix="Val Query vs Train Gallery")
-	print(val_cross_report)
-	print(
-		f"  [Cross-Retrieval Summary - Val→Train]\n"
-		f"    mAP   : {val_cross_results['mAP']*100:.2f}%\n"
-		f"    AUC   : {val_cross_results['AUC']:.4f}\n"
-		f"    R@1   : {val_cross_results['Recall@1']*100:.2f}%\n"
-		f"    R@5   : {val_cross_results['Recall@5']*100:.2f}%"
-	)
-	with open(output_dir / "retrieval_report_val_query_train_gallery.txt", "w", encoding="utf-8") as f:
-		f.write(val_cross_report)
+		for k, v in val_results.items():
+			if isinstance(v, (int, float, np.integer, np.floating)):
+				val_summary[k] = round(float(v), 6)
 
-	print("\n[Đánh giá chéo - Test Query vs Training Gallery]")
-	test_cross_results = evaluate_cross_retrieval(model, test_loader, train_eval_loader, device, class_names)
-	test_cross_report = format_retrieval_report(test_cross_results, class_names, prefix="Test Query vs Train Gallery")
-	print(test_cross_report)
-	print(
-		f"  [Cross-Retrieval Summary - Test→Train]\n"
-		f"    mAP   : {test_cross_results['mAP']*100:.2f}%\n"
-		f"    AUC   : {test_cross_results['AUC']:.4f}\n"
-		f"    R@1   : {test_cross_results['Recall@1']*100:.2f}%\n"
-		f"    R@5   : {test_cross_results['Recall@5']*100:.2f}%"
-	)
-	with open(output_dir / "retrieval_report_test_query_train_gallery.txt", "w", encoding="utf-8") as f:
-		f.write(test_cross_report)
+		# Đánh giá Test
+		print("\n[Đánh giá cuối - Test Self]")
+		test_results = evaluate_retrieval(model, test_loader, device, class_names, eval_clustering=True)
+		test_report = format_retrieval_report(test_results, class_names, prefix="Test")
+		print(test_report)
+		print(
+			f"  [Clustering Metrics - Test]\n"
+			f"    Silhouette Score : {test_results['Silhouette']:.4f}\n"
+			f"    Davies-Bouldin   : {test_results['Davies-Bouldin']:.4f}\n"
+			f"    Calinski-Harabasz: {test_results['Calinski-Harabasz']:.2f}\n"
+			f"    Dunn Index       : {test_results['Dunn-Index']:.4f}\n"
+			f"    NMI              : {test_results['NMI']:.4f}\n"
+			f"    Intra/Inter Ratio: {test_results['Intra-Inter-Ratio']:.4f}"
+		)
+		with open(output_dir / "retrieval_report_test.txt", "w", encoding="utf-8") as f:
+			f.write(test_report)
+
+		for k, v in test_results.items():
+			if isinstance(v, (int, float, np.integer, np.floating)):
+				test_summary[k] = round(float(v), 6)
+
+	if EVAL_MODE in ["cross", "both"]:
+		# Đánh giá truy vấn chéo (Cross-Retrieval): Val/Test làm Query, Train làm Gallery
+		print("\n[Đánh giá chéo - Validation Query vs Training Gallery]")
+		val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
+		val_cross_report = format_retrieval_report(val_cross_results, class_names, prefix="Val Query vs Train Gallery")
+		print(val_cross_report)
+		print(
+			f"  [Cross-Retrieval Summary - Val→Train]\n"
+			f"    mAP   : {val_cross_results['mAP']*100:.2f}%\n"
+			f"    AUC   : {val_cross_results['AUC']:.4f}\n"
+			f"    R@1   : {val_cross_results['Recall@1']*100:.2f}%\n"
+			f"    R@5   : {val_cross_results['Recall@5']*100:.2f}%"
+		)
+		with open(output_dir / "retrieval_report_val_query_train_gallery.txt", "w", encoding="utf-8") as f:
+			f.write(val_cross_report)
+
+		for k, v in val_cross_results.items():
+			if isinstance(v, (int, float, np.integer, np.floating)):
+				val_cross_summary[k] = round(float(v), 6)
+
+		print("\n[Đánh giá chéo - Test Query vs Training Gallery]")
+		test_cross_results = evaluate_cross_retrieval(model, test_loader, train_eval_loader, device, class_names)
+		test_cross_report = format_retrieval_report(test_cross_results, class_names, prefix="Test Query vs Train Gallery")
+		print(test_cross_report)
+		print(
+			f"  [Cross-Retrieval Summary - Test→Train]\n"
+			f"    mAP   : {test_cross_results['mAP']*100:.2f}%\n"
+			f"    AUC   : {test_cross_results['AUC']:.4f}\n"
+			f"    R@1   : {test_cross_results['Recall@1']*100:.2f}%\n"
+			f"    R@5   : {test_cross_results['Recall@5']*100:.2f}%"
+		)
+		with open(output_dir / "retrieval_report_test_query_train_gallery.txt", "w", encoding="utf-8") as f:
+			f.write(test_cross_report)
+
+		for k, v in test_cross_results.items():
+			if isinstance(v, (int, float, np.integer, np.floating)):
+				test_cross_summary[k] = round(float(v), 6)
 
 	# ── 11. Trích xuất trạng thái sau training (Post-training analysis) ──
 	print("\n[Analysis] Trích xuất đặc trưng và sinh Grad-CAM sau training...")
@@ -551,27 +609,6 @@ def main() -> None:
 	# Vẽ từng metric riêng biệt theo epoch
 	plot_all_metrics_per_epoch(history, output_dir)
 
-	# Lọc các metrics kiểu số để lưu vào summary.json
-	val_summary = {}
-	for k, v in val_results.items():
-		if isinstance(v, (int, float, np.integer, np.floating)):
-			val_summary[k] = round(float(v), 6)
-
-	test_summary = {}
-	for k, v in test_results.items():
-		if isinstance(v, (int, float, np.integer, np.floating)):
-			test_summary[k] = round(float(v), 6)
-
-	val_cross_summary = {}
-	for k, v in val_cross_results.items():
-		if isinstance(v, (int, float, np.integer, np.floating)):
-			val_cross_summary[k] = round(float(v), 6)
-
-	test_cross_summary = {}
-	for k, v in test_cross_results.items():
-		if isinstance(v, (int, float, np.integer, np.floating)):
-			test_cross_summary[k] = round(float(v), 6)
-
 	summary = {
 		"method": "Contrastive Loss (Online Contrastive Loss with Hard Pair Mining)",
 		"model": MODEL_NAME,
@@ -582,14 +619,20 @@ def main() -> None:
 		"batch_size": P_CLASSES * K_SAMPLES,
 		"epochs_trained": len(history["train_loss"]),
 		"best_val_map": best_map,
-		"val_results": val_summary,
-		"test_results": test_summary,
-		"val_cross_results": val_cross_summary,
-		"test_cross_results": test_cross_summary,
 		"train_size": len(df_train),
 		"val_size": len(df_val),
 		"test_size": len(df_test),
 	}
+	if EVAL_MODE in ["self", "both"]:
+		summary.update({
+			"val_results": val_summary,
+			"test_results": test_summary
+		})
+	if EVAL_MODE in ["cross", "both"]:
+		summary.update({
+			"val_cross_results": val_cross_summary,
+			"test_cross_results": test_cross_summary
+		})
 	with open(output_dir / "summary.json", "w", encoding="utf-8") as f:
 		json.dump(summary, f, indent=2, ensure_ascii=False)
 
