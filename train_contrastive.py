@@ -40,7 +40,7 @@ TRAIN_RATIO = 0.6
 VAL_RATIO = 0.2
 SEED = 42
 P_CLASSES = 18          # Số class mỗi batch
-K_SAMPLES = 10          # Số ảnh mỗi class trong batch
+K_SAMPLES = 12          # Số ảnh mỗi class trong batch
 EPOCHS = 30
 PATIENCE = 10           # EarlyStopping patience
 LR = 1e-4
@@ -53,6 +53,7 @@ COSINE_THRESHOLD = 0.92
 EMB_BATCH_SIZE = 128
 CALCULATE_CLUSTERING_METRICS = True  # Đặt True nếu muốn tính toán clustering metrics mỗi epoch
 EVAL_MODE = "cross"                   # Chế độ đánh giá: 'self' (truy vấn chính nó), 'cross' (truy vấn lên train), hoặc 'both' (cả hai)
+NUM_WORKERS = 6
 # =====================
 
 # Import utilities từ utils.py
@@ -322,11 +323,11 @@ def main() -> None:
 
 	# Dùng PK Sampler cho tập train
 	pk_sampler = PKSampler(train_ds.labels, p=P_CLASSES, k=K_SAMPLES)
-	train_loader = DataLoader(train_ds, batch_sampler=pk_sampler, num_workers=0, pin_memory=True)
+	train_loader = DataLoader(train_ds, batch_sampler=pk_sampler, num_workers=NUM_WORKERS, pin_memory=True)
 
 	# DataLoader đánh giá (tuần tự)
-	val_loader = DataLoader(val_ds, batch_size=P_CLASSES * K_SAMPLES, shuffle=False, num_workers=0, pin_memory=True)
-	test_loader = DataLoader(test_ds, batch_size=P_CLASSES * K_SAMPLES, shuffle=False, num_workers=0, pin_memory=True)
+	val_loader = DataLoader(val_ds, batch_size=P_CLASSES * K_SAMPLES, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
+	test_loader = DataLoader(test_ds, batch_size=P_CLASSES * K_SAMPLES, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
 	print(f"Train: {len(train_ds)} ảnh | Val: {len(val_ds)} ảnh | Test: {len(test_ds)} ảnh")
 
@@ -351,7 +352,7 @@ def main() -> None:
 
 	# 8. Trích xuất trạng thái trước training (Pre-training analysis)
 	print("\n[Analysis] Trích xuất đặc trưng và Grad-CAM trước training...")
-	train_eval_loader = DataLoader(train_ds, batch_size=P_CLASSES * K_SAMPLES, shuffle=False, num_workers=0, pin_memory=True)
+	train_eval_loader = DataLoader(train_ds, batch_size=P_CLASSES * K_SAMPLES, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 	
 	# Chọn 4 ảnh đại diện cho Dalbergia và 4 ảnh cho Pterocarpus để phân tích Grad-CAM
 	representatives = select_gradcam_representatives(df_val, seed=SEED)
@@ -383,6 +384,9 @@ def main() -> None:
 			"val_recall1": [], "val_recall5": [],
 			"val_precision1": [], "val_precision5": [],
 			"val_map": [], "val_auc": [],
+		})
+	if CALCULATE_CLUSTERING_METRICS:
+		history.update({
 			"val_silhouette": [], "val_dbi": [], "val_chi": [], "val_dunn": [], "val_nmi": [], "val_ratio": []
 		})
 	if EVAL_MODE in ["cross", "both"]:
@@ -415,25 +419,29 @@ def main() -> None:
 		history["train_map"].append(train_results["mAP"])
 		history["train_auc"].append(train_results["AUC"])
 
-		# Tính toán có điều kiện theo EVAL_MODE
+		# Tính toán có điều kiện theo EVAL_MODE hoặc CALCULATE_CLUSTERING_METRICS
 		val_results = None
 		val_cross_results = None
 
-		if EVAL_MODE in ["self", "both"]:
+		if (EVAL_MODE in ["self", "both"]) or CALCULATE_CLUSTERING_METRICS:
 			val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=CALCULATE_CLUSTERING_METRICS)
-			history["val_recall1"].append(val_results["Recall@1"])
-			history["val_recall5"].append(val_results["Recall@5"])
-			history["val_precision1"].append(val_results["Precision@1"])
-			history["val_precision5"].append(val_results["Precision@5"])
-			history["val_map"].append(val_results["mAP"])
-			history["val_auc"].append(val_results["AUC"])
-			# Lưu chỉ số phân cụm tập Validation
-			history["val_silhouette"].append(val_results["Silhouette"])
-			history["val_dbi"].append(val_results["Davies-Bouldin"])
-			history["val_chi"].append(val_results["Calinski-Harabasz"])
-			history["val_dunn"].append(val_results["Dunn-Index"])
-			history["val_nmi"].append(val_results["NMI"])
-			history["val_ratio"].append(val_results["Intra-Inter-Ratio"])
+			
+			if EVAL_MODE in ["self", "both"]:
+				history["val_recall1"].append(val_results["Recall@1"])
+				history["val_recall5"].append(val_results["Recall@5"])
+				history["val_precision1"].append(val_results["Precision@1"])
+				history["val_precision5"].append(val_results["Precision@5"])
+				history["val_map"].append(val_results["mAP"])
+				history["val_auc"].append(val_results["AUC"])
+
+			if CALCULATE_CLUSTERING_METRICS:
+				# Lưu chỉ số phân cụm tập Validation
+				history["val_silhouette"].append(val_results["Silhouette"])
+				history["val_dbi"].append(val_results["Davies-Bouldin"])
+				history["val_chi"].append(val_results["Calinski-Harabasz"])
+				history["val_dunn"].append(val_results["Dunn-Index"])
+				history["val_nmi"].append(val_results["NMI"])
+				history["val_ratio"].append(val_results["Intra-Inter-Ratio"])
 
 		if EVAL_MODE in ["cross", "both"]:
 			val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
@@ -452,9 +460,10 @@ def main() -> None:
 		log_msg += f"  Train Metrics: R@1: {train_results['Recall@1']*100:.2f}% | R@5: {train_results['Recall@5']*100:.2f}% | P@1: {train_results['Precision@1']*100:.2f}% | mAP: {train_results['mAP']*100:.2f}% | AUC: {train_results['AUC']:.4f}\n"
 
 		if val_results is not None:
-			log_msg += f"  Val Self Metrics: R@1: {val_results['Recall@1']*100:.2f}% | R@5: {val_results['Recall@5']*100:.2f}% | P@1: {val_results['Precision@1']*100:.2f}% | mAP: {val_results['mAP']*100:.2f}% | AUC: {val_results['AUC']:.4f}\n"
+			if EVAL_MODE in ["self", "both"]:
+				log_msg += f"  Val Self Metrics: R@1: {val_results['Recall@1']*100:.2f}% | R@5: {val_results['Recall@5']*100:.2f}% | P@1: {val_results['Precision@1']*100:.2f}% | mAP: {val_results['mAP']*100:.2f}% | AUC: {val_results['AUC']:.4f}\n"
 			if CALCULATE_CLUSTERING_METRICS:
-				log_msg += f"    Clustering: Silhouette: {val_results['Silhouette']:.4f} | DBI: {val_results['Davies-Bouldin']:.4f} | CHI: {val_results['Calinski-Harabasz']:.2f} | Dunn: {val_results['Dunn-Index']:.4f} | NMI: {val_results['NMI']:.4f} | Ratio: {val_results['Intra-Inter-Ratio']:.4f}\n"
+				log_msg += f"  Val Clustering: Silhouette: {val_results['Silhouette']:.4f} | DBI: {val_results['Davies-Bouldin']:.4f} | CHI: {val_results['Calinski-Harabasz']:.2f} | Dunn: {val_results['Dunn-Index']:.4f} | NMI: {val_results['NMI']:.4f} | Ratio: {val_results['Intra-Inter-Ratio']:.4f}\n"
 
 		if val_cross_results is not None:
 			log_msg += f"  Val Cross Metrics: R@1: {val_cross_results['Recall@1']*100:.2f}% | R@5: {val_cross_results['Recall@5']*100:.2f}% | P@1: {val_cross_results['Precision@1']*100:.2f}% | mAP: {val_cross_results['mAP']*100:.2f}% | AUC: {val_cross_results['AUC']:.4f}\n"
