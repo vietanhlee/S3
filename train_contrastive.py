@@ -40,20 +40,21 @@ TRAIN_RATIO = 0.6
 VAL_RATIO = 0.2
 SEED = 42
 P_CLASSES = 18          # Số class mỗi batch
-K_SAMPLES = 12          # Số ảnh mỗi class trong batch
+K_SAMPLES = 20          # Số ảnh mỗi class trong batch
 EPOCHS = 30
 PATIENCE = 10           # EarlyStopping patience
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 EMBEDDING_DIM = 256     # Projection head output
-MARGIN = 0.5            # Contrastive loss margin
+CIRCLE_GAMMA = 80.0        # Siêu tham số co giãn của Circle Loss
+CIRCLE_MARGIN = 0.25       # Siêu tham số margin của Circle Loss
 FREEZE_RATIO = 0.90
 MODEL_NAME = "convnext_tiny"
 COSINE_THRESHOLD = 0.92
 EMB_BATCH_SIZE = 128
 CALCULATE_CLUSTERING_METRICS = True  # Đặt True nếu muốn tính toán clustering metrics mỗi epoch
 EVAL_MODE = "cross"                   # Chế độ đánh giá: 'self' (truy vấn chính nó), 'cross' (truy vấn lên train), hoặc 'both' (cả hai)
-NUM_WORKERS = 6
+NUM_WORKERS = 4
 # =====================
 
 # Import utilities từ utils.py
@@ -178,35 +179,58 @@ class MetricModel(nn.Module):
 # Contrastive Loss — Online Hard Pair Mining
 # ============================================================
 
-class OnlineContrastiveLoss(nn.Module):
-	"""Contrastive Loss với Online Hard Pair Mining (chọn positive xa nhất và negative gần nhất cho mỗi anchor)."""
-	def __init__(self, margin: float = 0.5) -> None:
+class CircleLoss(nn.Module):
+	"""Circle Loss (chế độ cặp - Pair-based) cho Metric Learning.
+	
+	Công thức:
+	Loss = log( 1 + sum_{n} exp(gamma * alpha_n * (s_n - delta_n)) * sum_{p} exp(-gamma * alpha_p * (s_p - delta_p)) )
+	"""
+	def __init__(self, gamma: float = 80.0, margin: float = 0.25) -> None:
 		super().__init__()
+		self.gamma = gamma
 		self.margin = margin
+		self.O_p = 1.0 + margin
+		self.O_n = -margin
+		self.Delta_p = 1.0 - margin
+		self.Delta_n = margin
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-		dist_matrix = torch.cdist(embeddings, embeddings, p=2)
-		n = embeddings.size(0)
-
+		# embeddings: (B, D), labels: (B)
+		# Tính ma trận cosine similarity: S (B, B)
+		similarity_matrix = torch.matmul(embeddings, embeddings.t())
+		
+		# Tạo mask positive và negative
 		labels_col = labels.unsqueeze(1)
-		is_positive = (labels_col == labels_col.t()).bool()
-		is_negative = ~is_positive
+		is_positive = (labels_col == labels_col.t()).float()
+		is_negative = 1.0 - is_positive
 
-		# Loại bỏ chính nó khỏi tập positive
-		is_positive.fill_diagonal_(False)
+		# Loại bỏ đường chéo chính (chính mẫu đó) khỏi tập positive
+		diag_mask = torch.eye(embeddings.size(0), device=embeddings.device)
+		is_positive = is_positive - diag_mask
+		is_positive = torch.clamp(is_positive, min=0.0)
+		
+		# Tính alpha cho positive và negative
+		alpha_p = torch.clamp(self.O_p - similarity_matrix, min=0.0)
+		alpha_n = torch.clamp(similarity_matrix - self.O_n, min=0.0)
 
-		# 1. Tìm Hardest Positive cho mỗi anchor (khoảng cách lớn nhất)
-		pos_dists = dist_matrix.clone()
-		pos_dists[is_negative] = 0.0
-		hardest_pos_dist, _ = pos_dists.max(dim=1)
+		# Tính số mũ
+		# Với positive: -gamma * alpha_p * (s_p - delta_p)
+		exp_p = -self.gamma * alpha_p * (similarity_matrix - self.Delta_p)
+		# Với negative: gamma * alpha_n * (s_n - delta_n)
+		exp_n = self.gamma * alpha_n * (similarity_matrix - self.Delta_n)
 
-		# 2. Tìm Hardest Negative cho mỗi anchor (khoảng cách nhỏ nhất)
-		neg_dists = dist_matrix.clone()
-		neg_dists[is_positive] = 1e6
-		neg_dists.fill_diagonal_(1e6)
-		hardest_neg_dist, _ = neg_dists.min(dim=1)
+		# Tạo mask lọc các vị trí không hợp lệ để tránh tính exp
+		# Thay thế các vị trí không phải positive/negative bằng giá trị âm rất lớn để exp(val) -> 0
+		exp_p = exp_p * is_positive + (1.0 - is_positive) * -1e10
+		exp_n = exp_n * is_negative + (1.0 - is_negative) * -1e10
 
-		# Chỉ tính loss cho các anchor có ít nhất 1 positive và 1 negative hợp lệ trong batch
+		# Thực hiện LogSumExp song song
+		# Dùng torch.logsumexp để tránh overflow/underflow
+		logsumexp_p = torch.logsumexp(exp_p, dim=1) # (B)
+		logsumexp_n = torch.logsumexp(exp_n, dim=1) # (B)
+
+		# Tổng hợp loss
+		# Chỉ tính cho các anchor có ít nhất 1 positive và 1 negative hợp lệ
 		has_pos = is_positive.sum(dim=1) > 0
 		has_neg = is_negative.sum(dim=1) > 0
 		valid_anchors = has_pos & has_neg
@@ -214,10 +238,9 @@ class OnlineContrastiveLoss(nn.Module):
 		if not valid_anchors.any():
 			return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
 
-		pos_loss = (hardest_pos_dist[valid_anchors] ** 2).mean()
-		neg_loss = (torch.clamp(self.margin - hardest_neg_dist[valid_anchors], min=0.0) ** 2).mean()
-
-		return pos_loss + neg_loss
+		# Tính loss: log( 1 + exp( logsumexp_p + logsumexp_n ) )
+		loss_anchors = F.softplus(logsumexp_p[valid_anchors] + logsumexp_n[valid_anchors])
+		return loss_anchors.mean()
 
 
 # ============================================================
@@ -343,7 +366,7 @@ def main() -> None:
 		f"frozen={model_info['frozen_params']:,}"
 	)
 
-	criterion = OnlineContrastiveLoss(margin=MARGIN)
+	criterion = CircleLoss(gamma=CIRCLE_GAMMA, margin=CIRCLE_MARGIN)
 	optimizer = torch.optim.AdamW(
 		filter(lambda p: p.requires_grad, model.parameters()),
 		lr=LR, weight_decay=WEIGHT_DECAY
@@ -619,10 +642,11 @@ def main() -> None:
 	plot_all_metrics_per_epoch(history, output_dir)
 
 	summary = {
-		"method": "Contrastive Loss (Online Contrastive Loss with Hard Pair Mining)",
+		"method": "Circle Loss (Pair-based)",
 		"model": MODEL_NAME,
 		"embedding_dim": EMBEDDING_DIM,
-		"margin": MARGIN,
+		"circle_gamma": CIRCLE_GAMMA,
+		"circle_margin": CIRCLE_MARGIN,
 		"p_classes": P_CLASSES,
 		"k_samples": K_SAMPLES,
 		"batch_size": P_CLASSES * K_SAMPLES,

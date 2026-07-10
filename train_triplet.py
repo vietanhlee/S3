@@ -40,19 +40,21 @@ TRAIN_RATIO = 0.6
 VAL_RATIO = 0.2
 SEED = 42
 P_CLASSES = 18          # Số class mỗi batch
-K_SAMPLES = 12         # Số ảnh mỗi class trong batch
+K_SAMPLES = 20         # Số ảnh mỗi class trong batch
 EPOCHS = 30
 PATIENCE = 10           # EarlyStopping patience
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 EMBEDDING_DIM = 256     # Projection head output
-MARGIN = 0.5            # Triplet loss margin (thông dụng với L2 normalized embeddings)
+MS_ALPHA = 2.0             # Siêu tham số alpha của MS Loss
+MS_BETA = 50.0             # Siêu tham số beta của MS Loss
+MS_MARGIN = 0.5            # Siêu tham số margin/lambda của MS Loss
 FREEZE_RATIO = 0.90
 MODEL_NAME = "convnext_tiny"
 CALCULATE_CLUSTERING_METRICS = True  # Đặt True nếu muốn tính toán clustering metrics mỗi epoch
 EVAL_MODE = "cross"                   # Chế độ đánh giá: 'self' (truy vấn chính nó), 'cross' (truy vấn lên train), hoặc 'both' (cả hai)
 EMB_BATCH_SIZE = 128
-NUM_WORKERS = 6
+NUM_WORKERS = 4
 # =====================
 
 # Import utilities từ utils.py
@@ -177,61 +179,70 @@ class MetricModel(nn.Module):
 # Triplet Loss — Batch Hard Mining
 # ============================================================
 
-class OnlineTripletLoss(nn.Module):
-	"""Triplet Loss với Semi-hard Mining (FaceNet style).
-	Với mỗi anchor và positive, tìm negative n sao cho d(a, n) > d(a, p) và d(a, n) nhỏ nhất.
-	Nếu không có negative nào thỏa mãn, chọn negative có d(a, n) lớn nhất.
+class MultiSimilarityLoss(nn.Module):
+	"""Multi-Similarity (MS) Loss cho Metric Learning.
+	
+	Tự động gán trọng số gradient động cho các cặp và áp dụng cơ chế lọc mẫu thông minh.
 	"""
-	def __init__(self, margin: float = 0.5) -> None:
+	def __init__(self, alpha: float = 2.0, beta: float = 50.0, base_margin: float = 0.5) -> None:
 		super().__init__()
-		self.margin = margin
+		self.alpha = alpha
+		self.beta = beta
+		self.base_margin = base_margin # tương đương lambda trong bài báo gốc
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-		dist_matrix = torch.cdist(embeddings, embeddings, p=2)
-		n_samples = embeddings.size(0)
+		# embeddings: (B, D), labels: (B)
+		similarity_matrix = torch.matmul(embeddings, embeddings.t())
+		batch_size = embeddings.size(0)
 
 		labels_col = labels.unsqueeze(1)
-		is_positive = (labels_col == labels_col.t()).bool()
-		is_negative = ~is_positive
+		is_positive = (labels_col == labels_col.t()).float()
+		is_negative = 1.0 - is_positive
 
-		# Loại bỏ chính nó khỏi danh sách positive
-		is_positive.fill_diagonal_(False)
+		# Loại bỏ chính nó khỏi tập positive
+		diag_mask = torch.eye(batch_size, device=embeddings.device)
+		is_positive = is_positive - diag_mask
+		is_positive = torch.clamp(is_positive, min=0.0)
 
-		triplet_losses = []
+		loss_all = []
 
-		for i in range(n_samples):
-			# Tìm các index positive và negative cho anchor i
-			pos_indices = torch.where(is_positive[i])[0]
-			neg_indices = torch.where(is_negative[i])[0]
+		for i in range(batch_size):
+			pos_idx = torch.where(is_positive[i] > 0)[0]
+			neg_idx = torch.where(is_negative[i] > 0)[0]
 
-			if len(pos_indices) == 0 or len(neg_indices) == 0:
+			if len(pos_idx) == 0 or len(neg_idx) == 0:
 				continue
 
-			# Khoảng cách từ anchor i tới tất cả các negative
-			dist_i_neg = dist_matrix[i, neg_indices]
+			sim_pos = similarity_matrix[i, pos_idx]
+			sim_neg = similarity_matrix[i, neg_idx]
 
-			for p_idx in pos_indices:
-				dist_ap = dist_matrix[i, p_idx]
+			# Mining mẫu khó (Hard pair mining)
+			max_neg_sim = sim_neg.max()
+			min_pos_sim = sim_pos.min()
 
-				# Tìm các negative n thỏa d(a, n) > d(a, p)
-				semi_hard_mask = dist_i_neg > dist_ap
+			# Lọc positive: chỉ lấy các positive có tương đồng nhỏ hơn max_neg_sim + 0.1
+			pos_mask = sim_pos < max_neg_sim + 0.1
+			# Lọc negative: chỉ lấy các negative có tương đồng lớn hơn min_pos_sim - 0.1
+			neg_mask = sim_neg > min_pos_sim - 0.1
 
-				if semi_hard_mask.any():
-					# Chọn negative có khoảng cách nhỏ nhất trong số các negative thỏa mãn
-					temp_dists = dist_i_neg.clone()
-					temp_dists[~semi_hard_mask] = 1e6
-					chosen_neg_dist = temp_dists.min()
-				else:
-					# Nếu không có negative nào thỏa mãn, chọn negative có khoảng cách lớn nhất
-					chosen_neg_dist = dist_i_neg.max()
+			sim_pos_mined = sim_pos[pos_mask]
+			sim_neg_mined = sim_neg[neg_mask]
 
-				loss = torch.clamp(dist_ap - chosen_neg_dist + self.margin, min=0.0)
-				triplet_losses.append(loss)
+			if len(sim_pos_mined) == 0:
+				sim_pos_mined = min_pos_sim.unsqueeze(0)
+			if len(sim_neg_mined) == 0:
+				sim_neg_mined = max_neg_sim.unsqueeze(0)
 
-		if len(triplet_losses) == 0:
+			# Tính phần tử chéo chính và chéo phụ
+			loss_pos = torch.log(1.0 + torch.sum(torch.exp(-self.alpha * (sim_pos_mined - self.base_margin)))) / self.alpha
+			loss_neg = torch.log(1.0 + torch.sum(torch.exp(self.beta * (sim_neg_mined - self.base_margin)))) / self.beta
+
+			loss_all.append(loss_pos + loss_neg)
+
+		if len(loss_all) == 0:
 			return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
 
-		return torch.stack(triplet_losses).mean()
+		return torch.stack(loss_all).mean()
 
 
 # ============================================================
@@ -357,7 +368,7 @@ def main() -> None:
 		f"frozen={model_info['frozen_params']:,}"
 	)
 
-	criterion = OnlineTripletLoss(margin=MARGIN)
+	criterion = MultiSimilarityLoss(alpha=MS_ALPHA, beta=MS_BETA, base_margin=MS_MARGIN)
 	optimizer = torch.optim.AdamW(
 		filter(lambda p: p.requires_grad, model.parameters()),
 		lr=LR, weight_decay=WEIGHT_DECAY
@@ -633,10 +644,12 @@ def main() -> None:
 	plot_all_metrics_per_epoch(history, output_dir)
 
 	summary = {
-		"method": "Triplet Loss (Online Batch-Hard Triplet Mining)",
+		"method": "Multi-Similarity Loss (MS Loss)",
 		"model": MODEL_NAME,
 		"embedding_dim": EMBEDDING_DIM,
-		"margin": MARGIN,
+		"ms_alpha": MS_ALPHA,
+		"ms_beta": MS_BETA,
+		"ms_margin": MS_MARGIN,
 		"p_classes": P_CLASSES,
 		"k_samples": K_SAMPLES,
 		"batch_size": P_CLASSES * K_SAMPLES,
