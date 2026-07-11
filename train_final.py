@@ -29,7 +29,7 @@ from sklearn.metrics import classification_report
 ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
 OUTPUT_BASE_DIR = "outputs_final"
 TRAIN_RATIO = 0.6
-VAL_RATIO = 0.2
+VAL_RATIO = 0.15
 # TEST_RATIO = 1.0 - TRAIN_RATIO - VAL_RATIO = 0.2
 SEED = 42
 BATCH_SIZE = 128
@@ -767,7 +767,7 @@ def end_version_split(
 		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
 		"Guibourtia coleosperma": ("PP9", "test", "swin"),
 		"Guibourtia ehie": ("PP4", "test", "swin"),
-		"Peltogyne pubescens": ("PP7", "test", "eff"),
+		"Peltogyne pubescens": ("PP2", "test", "eff"),
 		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
 		"Pterocarpus indicus": ("PP9", "test", "eff"),
 		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
