@@ -64,8 +64,8 @@ class BYOLLoss(nn.Module):
 	"""BYOL Loss: tối thiểu hóa khoảng cách cosin bình phương giữa online prediction và target projection."""
 
 	def forward(self, p: torch.Tensor, z: torch.Tensor = None) -> torch.Tensor:
-		if z is None:
-			# Chế độ validation (single-view): trả về 0 để tránh lỗi sập
+		# Nếu z là None hoặc là nhãn lớp (LongTensor/IntTensor) truyền vào từ evaluate_loss, ta ở chế độ validation
+		if z is None or (isinstance(z, torch.Tensor) and z.dtype in (torch.int64, torch.int32, torch.int16, torch.int8)):
 			return torch.tensor(0.0, device=p.device, requires_grad=True)
 
 		p = F.normalize(p, p=2, dim=1)
