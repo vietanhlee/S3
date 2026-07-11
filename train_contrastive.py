@@ -36,8 +36,8 @@ from timm.data import resolve_data_config
 # ===== CẤU HÌNH =====
 ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
 OUTPUT_DIR = "outputs_contrastive"
-TRAIN_RATIO = 0.6
-VAL_RATIO = 0.2
+TRAIN_RATIO = 0.7
+VAL_RATIO = 0.15
 SEED = 42
 P_CLASSES = 18          # Số class mỗi batch
 K_SAMPLES = 20          # Số ảnh mỗi class trong batch

@@ -67,15 +67,15 @@ from split_methods import validate_split
 # ===== CẤU HÌNH =====
 ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
 OUTPUT_DIR = "outputs_ssl"
-TRAIN_RATIO = 0.6
-VAL_RATIO = 0.2
+TRAIN_RATIO = 0.7
+VAL_RATIO = 0.15
 SEED = 42
 EPOCHS = 60
 PATIENCE = 20           # EarlyStopping patience
 LR = 5e-4
 WEIGHT_DECAY = 1e-4
-PROJECTION_DIM = 2048
-LAMBD = 0.0051          # Hệ số phạt dư thừa chéo (off-diagonal term)
+EMBEDDING_DIM = 256     # Projection head output của SupCon
+TEMPERATURE = 0.07      # SupCon Loss temperature
 FREEZE_RATIO = 0.90
 MODEL_NAME = "convnext_tiny"
 EMB_BATCH_SIZE = 128
@@ -95,7 +95,7 @@ class DoubleViewTransform:
 		return self.transform1(img), self.transform2(img)
 
 class SSLDataset(Dataset):
-	"""Dataset phục vụ huấn luyện tự giám sát có giám sát (Supervised Barlow Twins)."""
+	"""Dataset phục vụ huấn luyện tự giám sát có giám sát (Supervised Contrastive Learning - SupCon)."""
 	def __init__(self, df: pd.DataFrame, class_to_idx: dict, transform=None) -> None:
 		self.df = df.reset_index(drop=True)
 		self.transform = transform
@@ -103,41 +103,23 @@ class SSLDataset(Dataset):
 		
 		# Gán nhãn lớp dạng index cho mỗi hàng
 		self.labels = [class_to_idx[lbl] for lbl in self.df["label"]]
-		
-		# Gom nhóm indices theo nhãn lớp để chọn mẫu ngẫu nhiên cùng lớp
-		self.label_to_indices = {}
-		for idx, lbl in enumerate(self.labels):
-			self.label_to_indices.setdefault(lbl, []).append(idx)
 
 	def __len__(self) -> int:
 		return len(self.df)
 
 	def __getitem__(self, idx: int):
 		row = self.df.iloc[idx]
-		label = self.labels[idx]
+		with Image.open(row["path"]) as img:
+			img = img.convert("RGB")
 		
-		# Lấy mẫu ngẫu nhiên khác cùng lớp làm view 2
-		same_class_indices = self.label_to_indices[label]
-		idx2 = random.choice(same_class_indices)
-		row2 = self.df.iloc[idx2]
-
-		# Đọc ảnh gốc của view 1
-		with Image.open(row["path"]) as img1:
-			img1 = img1.convert("RGB")
-		
-		# Đọc ảnh gốc của view 2 (ảnh khác cùng lớp)
-		with Image.open(row2["path"]) as img2:
-			img2 = img2.convert("RGB")
-
 		if self.transform:
-			# Biến đổi độc lập view 1 trên ảnh 1, view 2 trên ảnh 2
-			img1_augmented = self.transform.transform1(img1)
-			img2_augmented = self.transform.transform2(img2)
+			# Sinh 2 views từ cùng một ảnh
+			img1, img2 = self.transform(img)
 		else:
-			img1_augmented = transforms.ToTensor()(img1)
-			img2_augmented = transforms.ToTensor()(img2)
+			img1 = transforms.ToTensor()(img)
+			img2 = transforms.ToTensor()(img)
 
-		return img1_augmented, img2_augmented
+		return img1, img2, self.labels[idx]
 
 class MetricImageDataset(Dataset):
 	"""Dataset cho metric learning / evaluation, trả về (image, label_idx)."""
@@ -162,65 +144,82 @@ class MetricImageDataset(Dataset):
 # Mô Hình Barlow Twins
 # ============================================================
 
-class BarlowTwins(nn.Module):
-	"""Kiến trúc Barlow Twins: Backbone + MLP Projector Head."""
-	def __init__(self, backbone_name: str = "convnext_tiny", projection_dim: int = 2048, freeze_ratio: float = 0.90) -> None:
+class SupConModel(nn.Module):
+	"""Kiến trúc SupCon: Backbone + 2-layer Projection Head -> L2 Normalized embeddings."""
+	def __init__(self, backbone_name: str = "convnext_tiny", embedding_dim: int = 256, freeze_ratio: float = 0.90) -> None:
 		super().__init__()
 		self.backbone = timm.create_model(backbone_name, pretrained=True, num_classes=0)
 		freeze_model_layers(self.backbone, freeze_ratio)
 
 		backbone_dim = self.backbone.num_features  # 768 với convnext_tiny
 
-		# 3-layer Projection Head MLP
+		# Projection Head
 		self.projector = nn.Sequential(
-			nn.Linear(backbone_dim, projection_dim),
-			nn.BatchNorm1d(projection_dim),
+			nn.Linear(backbone_dim, backbone_dim),
+			nn.BatchNorm1d(backbone_dim),
 			nn.ReLU(inplace=True),
-			nn.Linear(projection_dim, projection_dim),
-			nn.BatchNorm1d(projection_dim),
-			nn.ReLU(inplace=True),
-			nn.Linear(projection_dim, projection_dim),
+			nn.Linear(backbone_dim, embedding_dim),
 		)
-		self.model_name = f"{backbone_name}_barlow_twins"
+		self.model_name = f"{backbone_name}_supcon"
 
-	def forward(self, x1: torch.Tensor, x2: torch.Tensor = None) -> torch.Tensor:
-		if x2 is None:
-			# Chế độ đánh giá (trích xuất đặc trưng L2-normalized)
-			features = self.backbone(x1)
-			return F.normalize(features, p=2, dim=1)
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		features = self.backbone(x)
+		embeddings = self.projector(features)
+		return F.normalize(embeddings, p=2, dim=1)
 
-		# Chế độ huấn luyện (dùng projection head)
-		z1 = self.projector(self.backbone(x1))
-		z2 = self.projector(self.backbone(x2))
-		return z1, z2
 
 # ============================================================
-# Barlow Twins Loss
+# Supervised Contrastive Loss (SupCon Loss)
 # ============================================================
 
-class BarlowTwinsLoss(nn.Module):
-	"""Hàm Loss của Barlow Twins tối ưu hóa ma trận tương quan chéo."""
-	def __init__(self, lambd: float = 0.0051) -> None:
+class SupConLoss(nn.Module):
+	"""Supervised Contrastive Learning Loss (NeurIPS 2020)."""
+	def __init__(self, temperature: float = 0.07) -> None:
 		super().__init__()
-		self.lambd = lambd
+		self.temperature = temperature
 
-	def forward(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-		# Batch normalization cho đặc trưng dọc theo chiều batch
-		z1_norm = (z1 - z1.mean(dim=0)) / (z1.std(dim=0) + 1e-9)
-		z2_norm = (z2 - z2.mean(dim=0)) / (z2.std(dim=0) + 1e-9)
-
-		batch_size = z1.size(0)
-		# Tích vô hướng tính ma trận tương quan chéo C (D x D)
-		c = torch.mm(z1_norm.t(), z2_norm) / batch_size
-
-		# Ép các phần tử chéo chính tiến về 1
-		on_diag = torch.diagonal(c).add_(-1).pow_(2).sum()
-
-		# Ép các phần tử chéo phụ (off-diagonal) về 0 để triệt tiêu dư thừa đặc trưng
-		diag_mask = torch.eye(c.size(0), device=c.device).bool()
-		off_diag = c[~diag_mask].pow_(2).sum()
-
-		loss = on_diag + self.lambd * off_diag
+	def forward(self, features: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+		# features: shape (B, N_views, D)
+		# labels: shape (B)
+		device = features.device
+		batch_size = features.shape[0]
+		n_views = features.shape[1]
+		
+		# Flatten views: shape (B * V, D)
+		features = features.view(batch_size * n_views, -1)
+		features = F.normalize(features, p=2, dim=1)
+		
+		# Tính ma trận cosine similarity chéo (B * V, B * V)
+		similarity_matrix = torch.matmul(features, features.t()) / self.temperature
+		
+		# Trừ max để ổn định số mũ (numerical stability)
+		logits_max, _ = torch.max(similarity_matrix, dim=1, keepdim=True)
+		logits = similarity_matrix - logits_max.detach()
+		
+		# Nhân bản labels tương ứng với số views
+		labels = labels.view(-1, 1)
+		mask = torch.eq(labels, labels.t()).float().to(device) # (B, B)
+		mask = mask.repeat(n_views, n_views) # (B * V, B * V)
+		
+		# Tạo mask loại bỏ chính nó (self-contrast mask)
+		logits_mask = torch.scatter(
+			torch.ones_like(mask),
+			1,
+			torch.arange(batch_size * n_views, device=device).view(-1, 1),
+			0
+		)
+		mask = mask * logits_mask
+		
+		# Tính log_prob
+		exp_logits = torch.exp(logits) * logits_mask
+		log_prob = logits - torch.log(exp_logits.sum(dim=1, keepdim=True) + 1e-9)
+		
+		# Tính mean log-likelihood over positive
+		mean_log_prob_pos = (mask * log_prob).sum(dim=1) / (mask.sum(dim=1) + 1e-9)
+		
+		# Loss
+		loss = - mean_log_prob_pos
+		loss = loss.view(n_views, batch_size).mean()
 		return loss
 
 # ============================================================
@@ -241,13 +240,21 @@ def train_one_epoch(
 	n_batches = 0
 
 	pbar = tqdm(loader, desc=f"SSL Train {epoch}/{total_epochs}")
-	for x1, x2 in pbar:
+	for x1, x2, labels in pbar:
 		x1 = x1.to(device, non_blocking=True)
 		x2 = x2.to(device, non_blocking=True)
+		labels = labels.to(device, non_blocking=True)
 
 		optimizer.zero_grad()
-		z1, z2 = model(x1, x2)
-		loss = criterion(z1, z2)
+		
+		# Trích xuất embeddings của 2 views
+		emb1 = model(x1)
+		emb2 = model(x2)
+		
+		# Stack views thành tensor shape (B, 2, D)
+		features = torch.stack([emb1, emb2], dim=1)
+		
+		loss = criterion(features, labels)
 		loss.backward()
 		optimizer.step()
 
@@ -359,17 +366,17 @@ def main() -> None:
 
 	# 5. Khởi tạo Model, Loss, Optimizer
 	print("\n[Step 5] Khởi tạo model và optimizer...")
-	model = BarlowTwins(backbone_name=MODEL_NAME, projection_dim=PROJECTION_DIM, freeze_ratio=FREEZE_RATIO).to(device)
+	model = SupConModel(backbone_name=MODEL_NAME, embedding_dim=EMBEDDING_DIM, freeze_ratio=FREEZE_RATIO).to(device)
 
 	model_info = summarize_model(model)
 	print(
-		f"Model: {MODEL_NAME}_barlow_twins, "
+		f"Model: {MODEL_NAME}_supcon, "
 		f"total={model_info['total_params']:,}, "
 		f"trainable={model_info['trainable_params']:,}, "
 		f"frozen={model_info['frozen_params']:,}"
 	)
 
-	criterion = BarlowTwinsLoss(lambd=LAMBD)
+	criterion = SupConLoss(temperature=TEMPERATURE)
 	optimizer = torch.optim.AdamW(
 		filter(lambda p: p.requires_grad, model.parameters()),
 		lr=LR, weight_decay=WEIGHT_DECAY
@@ -397,7 +404,7 @@ def main() -> None:
 	before_test_embs = before_test_embs.numpy()
 
 	# 9. Vòng lặp huấn luyện chính
-	print("\n[Step 9] Bắt đầu huấn luyện Supervised Barlow Twins SSL...")
+	print("\n[Step 9] Bắt đầu huấn luyện Supervised Contrastive Learning (SupCon) SSL...")
 	history = {
 		"train_loss": [],
 	}
@@ -629,10 +636,10 @@ def main() -> None:
 	plot_all_metrics_per_epoch(history, output_dir)
 
 	summary = {
-		"method": "Supervised Barlow Twins SSL",
+		"method": "Supervised Contrastive Learning (SupCon) SSL",
 		"model": MODEL_NAME,
-		"projection_dim": PROJECTION_DIM,
-		"lambd": LAMBD,
+		"embedding_dim": EMBEDDING_DIM,
+		"temperature": TEMPERATURE,
 		"batch_size": BATCH_SIZE,
 		"epochs_trained": len(history["train_loss"]),
 		"best_val_map": best_map,
