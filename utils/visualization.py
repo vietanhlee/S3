@@ -126,6 +126,17 @@ class MetricGradCAM:
 
 
 def find_last_conv_layer(model: nn.Module) -> nn.Module | None:
+	# Giải nén các wrapper phổ biến để đảm bảo Grad-CAM hook vào mô hình đang chạy forward
+	while True:
+		if hasattr(model, "online_model"):
+			model = getattr(model, "online_model")
+		elif hasattr(model, "base_model"):
+			model = getattr(model, "base_model")
+		elif hasattr(model, "backbone"):
+			model = getattr(model, "backbone")
+		else:
+			break
+
 	last_conv = None
 	for module in model.modules():
 		if isinstance(module, nn.Conv2d):
