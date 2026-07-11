@@ -15,7 +15,7 @@ CONFIG = {
 	"OUTPUT_DIR": "outputs_circle",
 	"CIRCLE_GAMMA": 80.0,
 	"CIRCLE_MARGIN": 0.25,
-	"EPOCHS": 30,
+	"EPOCHS": 50,
 	"PATIENCE": 10,
 	"LR": 1e-4,
 	"P_CLASSES": 19,

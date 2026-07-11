@@ -16,7 +16,7 @@ CONFIG = {
 	"OUTPUT_DIR": "outputs_arcface",
 	"ARCFACE_SCALE": 30.0,
 	"ARCFACE_MARGIN": 0.50,
-	"EPOCHS": 30,
+	"EPOCHS": 50,
 	"PATIENCE": 10,
 	"LR": 1e-4,
 	"WEIGHT_DECAY": 1e-4,
