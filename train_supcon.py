@@ -20,8 +20,8 @@ CONFIG = {
 	"OUTPUT_DIR": "outputs_supcon",
 	"TEMPERATURE": 0.07,
 	"BATCH_SIZE": 128,   # Batch size lớn hơn cho SupCon
-	"EPOCHS": 50,
-	"PATIENCE": 10,
+	"EPOCHS": 100,
+	"PATIENCE": 25,
 	"LR": 1e-4,
 }
 # =====================
