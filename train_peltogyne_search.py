@@ -70,6 +70,17 @@ FOCAL_ALPHA = 0.25
 MODEL_NAME = "convnext_tiny"
 FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Dùng cho PP5 Cosine Graph
+
+# ===== CHẾ ĐỘ CHẠY (RUN MODES) =====
+# Chế độ chạy: "search" (mặc định - huấn luyện 10 epochs để tìm PP tốt nhất)
+#              "infer"  (chỉ load checkpoint đã có và chạy đánh giá, không huấn luyện)
+RUN_MODE = "infer"
+
+# Đường dẫn checkpoint để load ở chế độ "infer":
+# - Nếu là đường dẫn tới 1 file .pth cụ thể: Dùng chung file này cho tất cả các PP cần đánh giá.
+# - Nếu là một thư mục (ví dụ: outputs_peltogyne_search): Tự động tìm model tương ứng trong thư mục con của từng PP.
+#   Ví dụ: {INFER_MODEL_PATH}/{pp}/best_model_{MODEL_NAME}.pth
+INFER_MODEL_PATH = "/kaggle/input/models/huecute/model-end/pytorch/default/1/best_model_convnext_tiny.pth"
 # =====================
 
 
@@ -244,44 +255,71 @@ def main():
 		# Validate split
 		validate_split(df_filtered, df_train, df_val, df_test, f"End_Version_with_Peltogyne_{pp}")
 
-		# Xây dựng Dataset & Loader
+		# Xây dựng model
 		model = build_model(num_classes=len(class_names))
 		model = model.to(device)
 
+		checkpoint_loaded = True
+		if RUN_MODE == "infer":
+			checkpoint_path = None
+			if INFER_MODEL_PATH is not None:
+				p_path = Path(INFER_MODEL_PATH)
+				if p_path.is_file():
+					checkpoint_path = p_path
+				elif p_path.is_dir():
+					# Tìm model cụ thể cho PP này trong thư mục con
+					candidate_path = p_path / pp / f"best_model_{MODEL_NAME}.pth"
+					if candidate_path.exists():
+						checkpoint_path = candidate_path
+
+			if checkpoint_path and checkpoint_path.exists():
+				print(f"  [Infer Mode] Loading weights from: {checkpoint_path}")
+				model.load_state_dict(torch.load(checkpoint_path, map_location=device, weights_only=True))
+			else:
+				print(f"  [Infer Mode Warning] Không tìm thấy checkpoint tại {checkpoint_path or INFER_MODEL_PATH}! Bỏ qua PP này.")
+				checkpoint_loaded = False
+				
+		if not checkpoint_loaded:
+			continue
+
+		# Xây dựng Dataset & Loader
 		cfg_model = resolve_data_config({}, model=model)
 		img_size = cfg_model.get("input_size", (3, 224, 224))[-1]
 		mean = cfg_model.get("mean", (0.485, 0.456, 0.406))
 		std = cfg_model.get("std", (0.229, 0.224, 0.225))
 		train_tf, eval_tf = build_transforms(img_size, mean, std)
 
-		train_ds = ImageListDataset(df_train, class_to_idx, transform=train_tf)
-		val_ds = ImageListDataset(df_val, class_to_idx, transform=eval_tf)
 		test_ds = ImageListDataset(df_test, class_to_idx, transform=eval_tf)
-
-		train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
-		val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
 		test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
 
-		criterion = FocalLoss(gamma=FOCAL_GAMMA, alpha=FOCAL_ALPHA)
-		optimizer = torch.optim.AdamW(
-			filter(lambda p: p.requires_grad, model.parameters()),
-			lr=LR,
-			weight_decay=WEIGHT_DECAY,
-		)
-		scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
+		if RUN_MODE == "search":
+			train_ds = ImageListDataset(df_train, class_to_idx, transform=train_tf)
+			val_ds = ImageListDataset(df_val, class_to_idx, transform=eval_tf)
+			train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
+			val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
 
-		# Huấn luyện
-		history = train_model(
-			model, train_loader, val_loader, optimizer, criterion,
-			device, epochs=EPOCHS, patience=PATIENCE, output_dir=pp_output_dir,
-			scheduler=scheduler,
-		)
-		plot_training_curves(history, pp_output_dir)
+			criterion = FocalLoss(gamma=FOCAL_GAMMA, alpha=FOCAL_ALPHA)
+			optimizer = torch.optim.AdamW(
+				filter(lambda p: p.requires_grad, model.parameters()),
+				lr=LR,
+				weight_decay=WEIGHT_DECAY,
+			)
+			scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
 
-		# Load checkpoint tốt nhất
-		best_path = pp_output_dir / f"best_model_{MODEL_NAME}.pth"
-		if best_path.exists():
-			model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
+			# Huấn luyện
+			history = train_model(
+				model, train_loader, val_loader, optimizer, criterion,
+				device, epochs=EPOCHS, patience=PATIENCE, output_dir=pp_output_dir,
+				scheduler=scheduler,
+			)
+			plot_training_curves(history, pp_output_dir)
+
+			# Load checkpoint tốt nhất
+			best_path = pp_output_dir / f"best_model_{MODEL_NAME}.pth"
+			if best_path.exists():
+				model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
+		else:
+			val_loader = test_loader  # Dự phòng nếu len(df_test) == 0
 
 		# Đánh giá trên tập Test
 		y_true, y_pred = collect_predictions(model, val_loader if len(df_test) == 0 else test_loader, device)
@@ -318,7 +356,9 @@ def main():
 		})
 
 		# Giải phóng VRAM
-		del model, optimizer, scheduler, train_loader, val_loader, test_loader
+		if RUN_MODE == "search":
+			del optimizer, scheduler, train_loader, val_loader
+		del model, test_loader
 		if device.type == "cuda":
 			torch.cuda.empty_cache()
 		gc.collect()
