@@ -89,8 +89,10 @@ def customized_end_version_split(
 	embs_eff: np.ndarray,
 	embs_swin: np.ndarray,
 	peltogyne_pp_key: str,
-	train_ratio: float = 0.60,
-	val_ratio: float = 0.20,
+	train_ratio: float = 0.70,
+	val_ratio: float = 0.15,
+	peltogyne_train_ratio: float = 0.70,
+	peltogyne_val_ratio: float = 0.15,
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""Chia dữ liệu End Version, trong đó chỉ riêng Peltogyne pubescens dùng pp_key tùy chọn."""
@@ -145,6 +147,14 @@ def customized_end_version_split(
 
 		pp_key, mode, model_type = split_config[label]
 
+		# Xác định ratio cho từng class
+		if label == "Peltogyne pubescens":
+			tr_ratio = peltogyne_train_ratio
+			va_ratio = peltogyne_val_ratio
+		else:
+			tr_ratio = train_ratio
+			va_ratio = val_ratio
+
 		# Lấy embedding tương ứng
 		if model_type == "eff":
 			sub_emb = emb_eff_filtered[indices]
@@ -158,24 +168,24 @@ def customized_end_version_split(
 			if pp_key == "PP5":
 				tr_df, val_df, te_df = split_fn(
 					sub_df_reset, sub_emb,
-					train_ratio=train_ratio,
-					val_ratio=val_ratio,
+					train_ratio=tr_ratio,
+					val_ratio=va_ratio,
 					seed=seed,
 					cosine_threshold=COSINE_THRESHOLD,
 				)
 			else:
 				tr_df, val_df, te_df = split_fn(
 					sub_df_reset, sub_emb,
-					train_ratio=train_ratio,
-					val_ratio=val_ratio,
+					train_ratio=tr_ratio,
+					val_ratio=va_ratio,
 					seed=seed,
 				)
 		except Exception as e:
 			from split_methods import stratified_random_split
 			tr_df, val_df, te_df = stratified_random_split(
 				sub_df_reset, sub_emb,
-				train_ratio=train_ratio,
-				val_ratio=val_ratio,
+				train_ratio=tr_ratio,
+				val_ratio=va_ratio,
 				seed=seed,
 			)
 
@@ -231,137 +241,152 @@ def main():
 	if device.type == "cuda":
 		torch.cuda.empty_cache()
 
-	# 3. Lặp qua các phương pháp chia dữ liệu
+	# 3. Lặp qua các tỉ lệ training và các phương pháp chia dữ liệu
+	train_ratios = [0.4, 0.5, 0.6, 0.7]
 	candidate_pps = ["PP2", "PP4", "PP5", "PP7", "PP8", "PP9"]
 	search_results = []
 
-	for pp in candidate_pps:
-		print(f"\n======================================================================")
-		print(f" Đang huấn luyện mô hình với cấu hình chia {pp} cho Peltogyne pubescens...")
-		print(f"======================================================================")
+	for ratio in train_ratios:
+		# Tính val_ratio tỉ lệ thuận để test_ratio và val_ratio cân bằng nhau
+		p_val_ratio = (1.0 - ratio) / 2.0
+		
+		for pp in candidate_pps:
+			print(f"\n======================================================================")
+			print(f" Đang huấn luyện với Ratio={ratio} và PP={pp} cho Peltogyne pubescens...")
+			print(f"======================================================================")
 
-		pp_output_dir = output_base / pp
-		pp_output_dir.mkdir(parents=True, exist_ok=True)
+			pp_output_dir = output_base / f"ratio_{ratio}" / pp
+			pp_output_dir.mkdir(parents=True, exist_ok=True)
 
-		# Chia dữ liệu theo PP đang xét
-		df_train, df_val, df_test = customized_end_version_split(
-			df_filtered, embs_eff, embs_swin,
-			peltogyne_pp_key=pp,
-			train_ratio=TRAIN_RATIO,
-			val_ratio=VAL_RATIO,
-			seed=SEED,
-		)
+			# Chia dữ liệu theo PP đang xét và ratio đang xét
+			df_train, df_val, df_test = customized_end_version_split(
+				df_filtered, embs_eff, embs_swin,
+				peltogyne_pp_key=pp,
+				train_ratio=TRAIN_RATIO, # giữ nguyên train_ratio mặc định cho các lớp khác
+				val_ratio=VAL_RATIO,     # giữ nguyên val_ratio mặc định cho các lớp khác
+				peltogyne_train_ratio=ratio,
+				peltogyne_val_ratio=p_val_ratio,
+				seed=SEED,
+			)
 
-		# Validate split
-		validate_split(df_filtered, df_train, df_val, df_test, f"End_Version_with_Peltogyne_{pp}")
+			# Validate split
+			validate_split(df_filtered, df_train, df_val, df_test, f"End_Version_with_Peltogyne_Ratio_{ratio}_{pp}")
 
-		# Xây dựng model
-		model = build_model(num_classes=len(class_names))
-		model = model.to(device)
+			# Xây dựng model
+			model = build_model(num_classes=len(class_names))
+			model = model.to(device)
 
-		checkpoint_loaded = True
-		if RUN_MODE == "infer":
-			checkpoint_path = None
-			if INFER_MODEL_PATH is not None:
-				p_path = Path(INFER_MODEL_PATH)
-				if p_path.is_file():
-					checkpoint_path = p_path
-				elif p_path.is_dir():
-					# Tìm model cụ thể cho PP này trong thư mục con
-					candidate_path = p_path / pp / f"best_model_{MODEL_NAME}.pth"
-					if candidate_path.exists():
-						checkpoint_path = candidate_path
+			checkpoint_loaded = True
+			if RUN_MODE == "infer":
+				checkpoint_path = None
+				if INFER_MODEL_PATH is not None:
+					p_path = Path(INFER_MODEL_PATH)
+					if p_path.is_file():
+						checkpoint_path = p_path
+					elif p_path.is_dir():
+						# Tìm model cụ thể cho Ratio và PP này trong thư mục con
+						candidate_path = p_path / f"ratio_{ratio}" / pp / f"best_model_{MODEL_NAME}.pth"
+						if not candidate_path.exists():
+							# Dự phòng nếu checkpoint cũ đặt phẳng
+							candidate_path = p_path / pp / f"best_model_{MODEL_NAME}.pth"
+						if candidate_path.exists():
+							checkpoint_path = candidate_path
 
-			if checkpoint_path and checkpoint_path.exists():
-				print(f"  [Infer Mode] Loading weights from: {checkpoint_path}")
-				model.load_state_dict(torch.load(checkpoint_path, map_location=device, weights_only=True))
+				if checkpoint_path and checkpoint_path.exists():
+					print(f"  [Infer Mode] Loading weights from: {checkpoint_path}")
+					model.load_state_dict(torch.load(checkpoint_path, map_location=device, weights_only=True))
+				else:
+					print(f"  [Infer Mode Warning] Không tìm thấy checkpoint tại {checkpoint_path or INFER_MODEL_PATH}! Bỏ qua cấu hình này.")
+					checkpoint_loaded = False
+					
+			if not checkpoint_loaded:
+				continue
+
+			# Xây dựng Dataset & Loader
+			cfg_model = resolve_data_config({}, model=model)
+			img_size = cfg_model.get("input_size", (3, 224, 224))[-1]
+			mean = cfg_model.get("mean", (0.485, 0.456, 0.406))
+			std = cfg_model.get("std", (0.229, 0.224, 0.225))
+			train_tf, eval_tf = build_transforms(img_size, mean, std)
+
+			test_ds = ImageListDataset(df_test, class_to_idx, transform=eval_tf)
+			test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
+
+			if RUN_MODE == "search":
+				train_ds = ImageListDataset(df_train, class_to_idx, transform=train_tf)
+				val_ds = ImageListDataset(df_val, class_to_idx, transform=eval_tf)
+				train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
+				val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
+
+				criterion = FocalLoss(gamma=FOCAL_GAMMA, alpha=FOCAL_ALPHA)
+				optimizer = torch.optim.AdamW(
+					filter(lambda p: p.requires_grad, model.parameters()),
+					lr=LR,
+					weight_decay=WEIGHT_DECAY,
+				)
+				scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
+
+				# Huấn luyện
+				history = train_model(
+					model, train_loader, val_loader, optimizer, criterion,
+					device, epochs=EPOCHS, patience=PATIENCE, output_dir=pp_output_dir,
+					scheduler=scheduler,
+				)
+				plot_training_curves(history, pp_output_dir)
+
+				# Load checkpoint tốt nhất
+				best_path = pp_output_dir / f"best_model_{MODEL_NAME}.pth"
+				if best_path.exists():
+					model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
 			else:
-				print(f"  [Infer Mode Warning] Không tìm thấy checkpoint tại {checkpoint_path or INFER_MODEL_PATH}! Bỏ qua PP này.")
-				checkpoint_loaded = False
-				
-		if not checkpoint_loaded:
-			continue
+				val_loader = test_loader  # Dự phòng nếu len(df_test) == 0
 
-		# Xây dựng Dataset & Loader
-		cfg_model = resolve_data_config({}, model=model)
-		img_size = cfg_model.get("input_size", (3, 224, 224))[-1]
-		mean = cfg_model.get("mean", (0.485, 0.456, 0.406))
-		std = cfg_model.get("std", (0.229, 0.224, 0.225))
-		train_tf, eval_tf = build_transforms(img_size, mean, std)
-
-		test_ds = ImageListDataset(df_test, class_to_idx, transform=eval_tf)
-		test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
-
-		if RUN_MODE == "search":
-			train_ds = ImageListDataset(df_train, class_to_idx, transform=train_tf)
-			val_ds = ImageListDataset(df_val, class_to_idx, transform=eval_tf)
-			train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
-			val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=True)
-
-			criterion = FocalLoss(gamma=FOCAL_GAMMA, alpha=FOCAL_ALPHA)
-			optimizer = torch.optim.AdamW(
-				filter(lambda p: p.requires_grad, model.parameters()),
-				lr=LR,
-				weight_decay=WEIGHT_DECAY,
+			# Đánh giá trên tập Test
+			y_true, y_pred = collect_predictions(model, val_loader if len(df_test) == 0 else test_loader, device)
+			
+			# Tính classification report
+			target_names = class_names
+			report_dict = classification_report(
+				y_true, y_pred, target_names=target_names, output_dict=True, zero_division=0
 			)
-			scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
-
-			# Huấn luyện
-			history = train_model(
-				model, train_loader, val_loader, optimizer, criterion,
-				device, epochs=EPOCHS, patience=PATIENCE, output_dir=pp_output_dir,
-				scheduler=scheduler,
+			report_str = classification_report(
+				y_true, y_pred, target_names=target_names, digits=4, zero_division=0
 			)
-			plot_training_curves(history, pp_output_dir)
+			
+			print(f"\n[Test Report for Ratio {ratio} - {pp}]:")
+			print(report_str)
 
-			# Load checkpoint tốt nhất
-			best_path = pp_output_dir / f"best_model_{MODEL_NAME}.pth"
-			if best_path.exists():
-				model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
-		else:
-			val_loader = test_loader  # Dự phòng nếu len(df_test) == 0
+			# Lưu báo cáo dạng text
+			save_report(report_str, pp_output_dir / "report_test.txt")
 
-		# Đánh giá trên tập Test
-		y_true, y_pred = collect_predictions(model, val_loader if len(df_test) == 0 else test_loader, device)
-		
-		# Tính classification report
-		target_names = class_names
-		report_dict = classification_report(
-			y_true, y_pred, target_names=target_names, output_dict=True, zero_division=0
-		)
-		report_str = classification_report(
-			y_true, y_pred, target_names=target_names, digits=4, zero_division=0
-		)
-		
-		print(f"\n[Test Report for {pp}]:")
-		print(report_str)
+			# Trích xuất F1-Score của class Peltogyne pubescens
+			peltogyne_metrics = report_dict.get(target_class, {"precision": 0.0, "recall": 0.0, "f1-score": 0.0})
+			f1 = peltogyne_metrics["f1-score"]
+			prec = peltogyne_metrics["precision"]
+			rec = peltogyne_metrics["recall"]
 
-		# Lưu báo cáo dạng text
-		save_report(report_str, pp_output_dir / "report_test.txt")
+			print(f"\n>> {target_class} (Ratio: {ratio}, PP: {pp}) -> Precision: {prec:.4f}, Recall: {rec:.4f}, F1-Score: {f1:.4f}")
 
-		# Trích xuất F1-Score của class Peltogyne pubescens
-		peltogyne_metrics = report_dict.get(target_class, {"precision": 0.0, "recall": 0.0, "f1-score": 0.0})
-		f1 = peltogyne_metrics["f1-score"]
-		prec = peltogyne_metrics["precision"]
-		rec = peltogyne_metrics["recall"]
+			search_results.append({
+				"ratio": ratio,
+				"pp": pp,
+				"precision": prec,
+				"recall": rec,
+				"f1": f1,
+				"report_str": report_str
+			})
 
-		print(f"\n>> {target_class} ({pp}) -> Precision: {prec:.4f}, Recall: {rec:.4f}, F1-Score: {f1:.4f}")
+			# Giải phóng VRAM
+			if RUN_MODE == "search":
+				del optimizer, scheduler, train_loader, val_loader
+			del model, test_loader
+			if device.type == "cuda":
+				torch.cuda.empty_cache()
+			gc.collect()
 
-		search_results.append({
-			"pp": pp,
-			"precision": prec,
-			"recall": rec,
-			"f1": f1,
-			"report_str": report_str
-		})
-
-		# Giải phóng VRAM
-		if RUN_MODE == "search":
-			del optimizer, scheduler, train_loader, val_loader
-		del model, test_loader
-		if device.type == "cuda":
-			torch.cuda.empty_cache()
-		gc.collect()
+	if not search_results:
+		print("\n[Warning] Không có kết quả tìm kiếm nào được thu thập!")
+		return
 
 	# 4. Tìm phương pháp tối ưu nhất (đạt F1-score nhỏ nhất)
 	best_pp_info = min(search_results, key=lambda x: x["f1"])
@@ -369,13 +394,13 @@ def main():
 	print("\n" + "="*80)
 	print(" BẢNG TỔNG HỢP KẾT QUẢ TÌM KIẾM CHO PELTOGYNE PUBESCENS")
 	print("="*80)
-	print(f"{'PP Key':<10} | {'Precision':<12} | {'Recall':<12} | {'F1-Score':<12}")
-	print("-" * 55)
+	print(f"{'Ratio':<8} | {'PP Key':<10} | {'Precision':<12} | {'Recall':<12} | {'F1-Score':<12}")
+	print("-" * 65)
 	for res in search_results:
-		print(f"{res['pp']:<10} | {res['precision']:<12.4f} | {res['recall']:<12.4f} | {res['f1']:<12.4f}")
+		print(f"{res['ratio']:<8} | {res['pp']:<10} | {res['precision']:<12.4f} | {res['recall']:<12.4f} | {res['f1']:<12.4f}")
 	print("="*80)
 
-	print(f"\n🏆 PHƯƠNG PHÁP TỐI ƯU NHẤT (F1-score nhỏ nhất cho {target_class}): {best_pp_info['pp']}")
+	print(f"\n🏆 CẤU HÌNH TỐI ƯU NHẤT (F1-score nhỏ nhất cho {target_class}): Ratio={best_pp_info['ratio']}, PP={best_pp_info['pp']}")
 	print(f" -> Precision: {best_pp_info['precision']:.4f}")
 	print(f" -> Recall: {best_pp_info['recall']:.4f}")
 	print(f" -> F1-Score: {best_pp_info['f1']:.4f}")
@@ -386,12 +411,12 @@ def main():
 		f.write("="*80 + "\n")
 		f.write(" BẢNG TỔNG HỢP KẾT QUẢ TÌM KIẾM CHO PELTOGYNE PUBESCENS\n")
 		f.write("="*80 + "\n")
-		f.write(f"{'PP Key':<10} | {'Precision':<12} | {'Recall':<12} | {'F1-Score':<12}\n")
-		f.write("-" * 55 + "\n")
+		f.write(f"{'Ratio':<8} | {'PP Key':<10} | {'Precision':<12} | {'Recall':<12} | {'F1-Score':<12}\n")
+		f.write("-" * 65 + "\n")
 		for res in search_results:
-			f.write(f"{res['pp']:<10} | {res['precision']:<12.4f} | {res['recall']:<12.4f} | {res['f1']:<12.4f}\n")
+			f.write(f"{res['ratio']:<8} | {res['pp']:<10} | {res['precision']:<12.4f} | {res['recall']:<12.4f} | {res['f1']:<12.4f}\n")
 		f.write("="*80 + "\n")
-		f.write(f"\n🏆 PHƯƠNG PHÁP TỐI ƯU NHẤT (F1-score nhỏ nhất): {best_pp_info['pp']}\n")
+		f.write(f"\n🏆 CẤU HÌNH TỐI ƯU NHẤT (F1-score nhỏ nhất): Ratio={best_pp_info['ratio']}, PP={best_pp_info['pp']}\n")
 		f.write(f" -> Precision: {best_pp_info['precision']:.4f}\n")
 		f.write(f" -> Recall: {best_pp_info['recall']:.4f}\n")
 		f.write(f" -> F1-Score: {best_pp_info['f1']:.4f}\n")

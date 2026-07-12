@@ -245,28 +245,25 @@ def _split_by_groups(
 	elif K == 2:
 		# Có đúng 2 nhóm (cụm):
 		if sorted_descending:
-			# Cụm gần nhất (index 1) làm Train, cụm xa nhất (index 0) làm Test tạm thời
-			train_group = groups[1]
-			test_group = groups[0]
+			# Cụm gần nhất (index 1) làm Train, cụm xa nhất (index 0) làm Test
+			train_group = groups[1].copy()
+			test_group = groups[0].copy()
 		else:
-			# Gần nhất (index 0) làm Train, xa nhất (index 1) làm Test tạm thời
-			train_group = groups[0]
-			test_group = groups[1]
+			# Gần nhất (index 0) làm Train, xa nhất (index 1) làm Test
+			train_group = groups[0].copy()
+			test_group = groups[1].copy()
 
-		train_idx = train_group.copy()
-		temp_test_idx = test_group.copy()
+		# Xáo trộn train_group để chọn ngẫu nhiên
+		rng.shuffle(train_group)
+		
+		# Val có số lượng bằng Test và lấy ảnh từ Train (giới hạn tối đa một nửa train_group để tránh làm trống Train)
+		val_len = min(len(test_group), len(train_group) // 2)
+		if val_len == 0 and len(train_group) > 1:
+			val_len = 1
 
-		# Chia đôi Temp-Test của cụm Test vào Val và Test
-		rng.shuffle(temp_test_idx)
-		mid = len(temp_test_idx) // 2
-		val_idx = temp_test_idx[:mid]
-		test_idx = temp_test_idx[mid:]
-
-		# Đảm bảo các tập không bị trống
-		if len(val_idx) == 0 and len(temp_test_idx) > 0:
-			val_idx = temp_test_idx
-		if len(test_idx) == 0 and len(val_idx) > 1:
-			test_idx = [val_idx.pop(0)]
+		val_idx = train_group[:val_len]
+		train_idx = train_group[val_len:]
+		test_idx = test_group.copy()
 
 	else:
 		# Có >= 3 nhóm (cụm): Chia theo khoảng cách phân cấp
