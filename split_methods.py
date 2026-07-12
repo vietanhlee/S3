@@ -201,6 +201,97 @@ def find_optimal_clusters_elbow(embeddings: np.ndarray, max_k: int = 30, seed: i
 	return max(3, optimal_k)
 
 
+def _split_by_groups(
+	groups: list[list[int]],
+	train_ratio: float,
+	val_ratio: float,
+	seed: int,
+	sorted_descending: bool = True,
+) -> tuple[list[int], list[int], list[int]]:
+	"""
+	Phân chia các nhóm chỉ số (các cụm/components/subfolders) tránh data leakage ở mức nhóm:
+	- groups: Danh sách các list chứa chỉ số ảnh của từng nhóm.
+	- sorted_descending: Nếu True, groups được sắp xếp giảm dần theo khoảng cách (xa centroid nhất đứng đầu).
+	                     Nếu False, groups được sắp xếp tăng dần theo khoảng cách (gần centroid nhất đứng đầu).
+	"""
+	rng = random.Random(seed)
+	train_idx, val_idx, test_idx = [], [], []
+	K = len(groups)
+
+	if K == 0:
+		return [], [], []
+
+	if K == 1:
+		# Chỉ có 1 nhóm: buộc phải chia ở mức ảnh
+		indices = groups[0].copy()
+		rng.shuffle(indices)
+		n_total = len(indices)
+		train_count = max(1, int(n_total * train_ratio))
+		train_idx = indices[:train_count]
+		temp_test_idx = indices[train_count:]
+		
+		# Chia đôi Temp-Test vào Val và Test
+		mid = len(temp_test_idx) // 2
+		val_idx = temp_test_idx[:mid]
+		test_idx = temp_test_idx[mid:]
+		
+		# Đảm bảo các tập không bị trống
+		if n_total >= 3:
+			if len(val_idx) == 0:
+				val_idx = [test_idx.pop(0)]
+			if len(test_idx) == 0:
+				test_idx = [val_idx.pop(0)]
+
+	elif K == 2:
+		# Có đúng 2 nhóm (cụm):
+		if sorted_descending:
+			# Cụm gần nhất (index 1) làm Train, cụm xa nhất (index 0) làm Test tạm thời
+			train_group = groups[1]
+			test_group = groups[0]
+		else:
+			# Gần nhất (index 0) làm Train, xa nhất (index 1) làm Test tạm thời
+			train_group = groups[0]
+			test_group = groups[1]
+
+		train_idx = train_group.copy()
+		temp_test_idx = test_group.copy()
+
+		# Chia đôi Temp-Test của cụm Test vào Val và Test
+		rng.shuffle(temp_test_idx)
+		mid = len(temp_test_idx) // 2
+		val_idx = temp_test_idx[:mid]
+		test_idx = temp_test_idx[mid:]
+
+		# Đảm bảo các tập không bị trống
+		if len(val_idx) == 0 and len(temp_test_idx) > 0:
+			val_idx = temp_test_idx
+		if len(test_idx) == 0 and len(val_idx) > 1:
+			test_idx = [val_idx.pop(0)]
+
+	else:
+		# Có >= 3 nhóm (cụm): Chia theo khoảng cách phân cấp
+		if sorted_descending:
+			# Sắp xếp giảm dần (xa nhất đứng đầu):
+			# groups[0] xa nhất -> Test
+			# groups[1] xa nhì -> Val
+			# groups[2:] còn lại -> Train
+			test_idx = groups[0].copy()
+			val_idx = groups[1].copy()
+			for g in groups[2:]:
+				train_idx.extend(g)
+		else:
+			# Sắp xếp tăng dần (gần nhất đứng đầu):
+			# groups[-1] xa nhất -> Test
+			# groups[-2] xa nhì -> Val
+			# Còn lại -> Train
+			test_idx = groups[-1].copy()
+			val_idx = groups[-2].copy()
+			for g in groups[:-2]:
+				train_idx.extend(g)
+
+	return train_idx, val_idx, test_idx
+
+
 def _split_by_mahalanobis_image_level(
 	indices: list[int],
 	subset_emb: np.ndarray,
@@ -330,10 +421,18 @@ def mahalanobis_iterative_split(
 
 		# Trường hợp đặc biệt: < 3 subfolders
 		if n_subfolders < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			# Tính khoảng cách Mahalanobis để biết cái nào gần/xa hơn
+			cov = np.cov(subfolder_embs, rowvar=False)
+			cov = np.atleast_2d(cov)
+			cov += np.eye(cov.shape[0]) * eps
+			cov_inv = np.linalg.pinv(cov)
+			global_centroid = subfolder_embs.mean(axis=0)
+			
+			dists = [_mahalanobis_dist_to_centroid(emb, global_centroid, cov_inv)[0] for emb in subfolder_embs]
+			sorted_idx = np.argsort(-np.array(dists)) # giảm dần: xa nhất lên đầu
+			
+			groups = [subfolder_groups.get_group(subfolder_names[i]).index.tolist() for i in sorted_idx]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -414,10 +513,8 @@ def group_based_split(
 
 		# Phân bổ nguyên vẹn các subfolders
 		if len(subfolder_names) < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed
-			)
+			groups = [subfolder_groups.get_group(sf_name).index.tolist() for sf_name in subfolder_names]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -487,10 +584,8 @@ def hierarchical_clustering_split(
 			continue
 
 		if n_subfolders < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			groups = [subfolder_groups.get_group(sf_name).index.tolist() for sf_name in subfolder_names]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -548,10 +643,8 @@ def hierarchical_clustering_split(
 
 		# Đảm bảo tập Train không bao giờ trống và xử lý số lượng cụm < 3
 		if len(cluster_info) < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			groups = [info[2] for info in cluster_info]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -620,10 +713,8 @@ def cosine_graph_split(
 			continue
 
 		if n_subfolders < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			groups = [subfolder_groups.get_group(sf_name).index.tolist() for sf_name in subfolder_names]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -685,10 +776,8 @@ def cosine_graph_split(
 
 		# Đảm bảo tập Train không bao giờ trống và xử lý số lượng components < 3
 		if len(components) < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			groups = [comp[2] for comp in components]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -789,10 +878,8 @@ def agglom_stratified_split(
 			continue
 
 		if n_subfolders < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			groups = [subfolder_groups.get_group(sf_name).index.tolist() for sf_name in subfolder_names]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -846,10 +933,13 @@ def agglom_stratified_split(
 
 		# Đảm bảo tập Train không bao giờ trống và xử lý số lượng cụm < 3
 		if K < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			groups = []
+			for _, sf_list in clusters_info:
+				g_indices = []
+				for sf_name in sf_list:
+					g_indices.extend(subfolder_groups.get_group(sf_name).index.tolist())
+				groups.append(g_indices)
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=False)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -864,8 +954,33 @@ def agglom_stratified_split(
 		mid_clusters = clusters_info[near_num:near_num + mid_num]
 		far_clusters = clusters_info[near_num + mid_num:]
 
-		# Biến theo dõi số lượng ảnh đã phân bổ
-		curr_train, curr_val, curr_test = 0, 0, 0
+		# Phân bổ an toàn: Đảm bảo mỗi tập nhận ít nhất 1 cụm từ mỗi dải tương ứng trước
+		train_clusters = [near_clusters[0]]
+		val_clusters = [mid_clusters[0]]
+		test_clusters = [far_clusters[0]]
+
+		# Các cụm còn lại để phân bổ động
+		remaining_near = near_clusters[1:]
+		remaining_mid = mid_clusters[1:]
+		remaining_far = far_clusters[1:]
+
+		train_idx_label = []
+		val_idx_label = []
+		test_idx_label = []
+
+		for _, sf_list in train_clusters:
+			for sf_name in sf_list:
+				train_idx_label.extend(subfolder_groups.get_group(sf_name).index.tolist())
+		for _, sf_list in val_clusters:
+			for sf_name in sf_list:
+				val_idx_label.extend(subfolder_groups.get_group(sf_name).index.tolist())
+		for _, sf_list in test_clusters:
+			for sf_name in sf_list:
+				test_idx_label.extend(subfolder_groups.get_group(sf_name).index.tolist())
+
+		curr_train = len(train_idx_label)
+		curr_val = len(val_idx_label)
+		curr_test = len(test_idx_label)
 		n_total = len(group)
 		target_train = int(n_total * train_ratio)
 		target_val = int(n_total * val_ratio)
@@ -873,7 +988,9 @@ def agglom_stratified_split(
 		# Hàm phụ phân bổ các cụm subfolders trong một dải khoảng cách
 		def allocate_band_clusters(band_clusters):
 			nonlocal curr_train, curr_val, curr_test
-			rng_local = random.Random(seed + hash(label))
+			# Sử dụng tổng giá trị ASCII của ký tự nhãn thay cho hash() để đảm bảo tính nhất quán qua các session python khác nhau
+			label_seed = sum(ord(c) for c in label)
+			rng_local = random.Random(seed + label_seed)
 			shuffled_band = band_clusters.copy()
 			rng_local.shuffle(shuffled_band)
 
@@ -893,31 +1010,35 @@ def agglom_stratified_split(
 				if total_diff == 0:
 					min_split = min(curr_train, curr_val, curr_test)
 					if min_split == curr_train:
-						train_idx.extend(c_indices)
+						train_idx_label.extend(c_indices)
 						curr_train += c_count
 					elif min_split == curr_val:
-						val_idx.extend(c_indices)
+						val_idx_label.extend(c_indices)
 						curr_val += c_count
 					else:
-						test_idx.extend(c_indices)
+						test_idx_label.extend(c_indices)
 						curr_test += c_count
 					continue
 
 				max_diff = max(diff_tr, diff_va, diff_te)
 				if max_diff == diff_tr:
-					train_idx.extend(c_indices)
+					train_idx_label.extend(c_indices)
 					curr_train += c_count
 				elif max_diff == diff_va:
-					val_idx.extend(c_indices)
+					val_idx_label.extend(c_indices)
 					curr_val += c_count
 				else:
-					test_idx.extend(c_indices)
+					test_idx_label.extend(c_indices)
 					curr_test += c_count
 
-		# Phân bổ cho từng dải
-		allocate_band_clusters(near_clusters)
-		allocate_band_clusters(mid_clusters)
-		allocate_band_clusters(far_clusters)
+		# Phân bổ cho các phần dư của từng dải
+		allocate_band_clusters(remaining_near)
+		allocate_band_clusters(remaining_mid)
+		allocate_band_clusters(remaining_far)
+
+		train_idx.extend(train_idx_label)
+		val_idx.extend(val_idx_label)
+		test_idx.extend(test_idx_label)
 
 	df_train = _shuffle_df(df.loc[train_idx], seed)
 	df_val = _shuffle_df(df.loc[val_idx], seed)
@@ -958,10 +1079,8 @@ def adversarial_validation_split(
 			continue
 
 		if n_subfolders < 3:
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed
-			)
+			groups = [subfolder_groups.get_group(sf_name).index.tolist() for sf_name in subfolder_names]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)
@@ -1067,11 +1186,9 @@ def stratified_group_kfold_split(
 		n_subfolders = len(subfolder_names)
 		
 		if n_subfolders < 3:
-			# Class nhỏ: phân rã ảnh và chia theo Mahalanobis mức ảnh
-			indices = group.index.tolist()
-			tr, va, te = _split_by_mahalanobis_image_level(
-				indices, embeddings[np.array(indices)], train_ratio, val_ratio, seed, eps
-			)
+			# Class nhỏ: phân chia tránh data leakage bằng _split_by_groups
+			groups = [group[group["subfolder"] == sf].index.tolist() for sf in subfolder_names]
+			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)
 			test_idx.extend(te)

@@ -57,8 +57,8 @@ from split_methods import (
 # ===== CẤU HÌNH =====
 ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
 OUTPUT_BASE_DIR = "outputs_peltogyne_search"
-TRAIN_RATIO = 0.60
-VAL_RATIO = 0.20
+TRAIN_RATIO = 0.7
+VAL_RATIO = 0.15
 SEED = 42
 BATCH_SIZE = 128
 EPOCHS = 10              # Đặt 10 epochs giống train_split_comparison.py để tìm nhanh

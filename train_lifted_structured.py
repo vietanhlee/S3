@@ -12,7 +12,7 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_lifted_structured",
-	"LIFTED_MARGIN": 1.5,
+	"LIFTED_MARGIN": 1.0,
 	"EPOCHS": 100,
 	"PATIENCE": 25,
 	"LR": 1e-4,

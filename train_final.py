@@ -28,8 +28,8 @@ from sklearn.metrics import classification_report
 # ===== CẤU HÌNH =====
 ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
 OUTPUT_BASE_DIR = "outputs_final"
-TRAIN_RATIO = 0.6
-VAL_RATIO = 0.2
+TRAIN_RATIO = 0.7
+VAL_RATIO = 0.15
 # TEST_RATIO = 1.0 - TRAIN_RATIO - VAL_RATIO = 0.2
 SEED = 42
 BATCH_SIZE = 128

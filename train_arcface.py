@@ -15,7 +15,7 @@ from train_base import BaseMetricTrainer
 CONFIG = {
 	"OUTPUT_DIR": "outputs_arcface",
 	"ARCFACE_SCALE": 30.0,
-	"ARCFACE_MARGIN": 0.75,
+	"ARCFACE_MARGIN": 0.50,
 	"FOCAL_GAMMA": 2.0,      # Siêu tham số gamma cho Focal Loss
 	"EPOCHS": 100,
 	"PATIENCE": 25,
