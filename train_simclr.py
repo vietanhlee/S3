@@ -19,7 +19,7 @@ CONFIG = {
 	"OUTPUT_DIR": "outputs_simclr",
 	"TEMPERATURE": 0.5,     # Nhiệt độ mặc định cho SimCLR
 	"BATCH_SIZE": 128,
-	"EPOCHS": 100,
+	"EPOCHS": 80,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 }

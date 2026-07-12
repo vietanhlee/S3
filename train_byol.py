@@ -21,7 +21,7 @@ CONFIG = {
 	"PREDICTOR_DIM": 64,   # Chiều ẩn cho online predictor MLP
 	"BYOL_DECAY": 0.99,    # Hệ số suy giảm EMA để cập nhật target network (tau)
 	"BATCH_SIZE": 128,
-	"EPOCHS": 100,
+	"EPOCHS": 80,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 }

@@ -13,7 +13,7 @@ from train_base import BaseMetricTrainer
 CONFIG = {
 	"OUTPUT_DIR": "outputs_lifted_structured",
 	"LIFTED_MARGIN": 1.0,
-	"EPOCHS": 100,
+	"EPOCHS": 80,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"P_CLASSES": 19,
