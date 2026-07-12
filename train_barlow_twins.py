@@ -422,10 +422,43 @@ def main() -> None:
 	# 8. Trích xuất trạng thái trước training (Pre-training analysis)
 	print("\n[Analysis] Trích xuất đặc trưng và Grad-CAM trước training...")
 	
-	# Chọn 4 ảnh đại diện cho Dalbergia và 4 ảnh cho Pterocarpus để phân tích Grad-CAM
-	representatives = select_gradcam_representatives(df_val, seed=SEED)
-	reps_dict = representatives
-	reps_flat = representatives['Dalbergia'] + representatives['Pterocarpus']
+	# Chọn 5 ảnh không trùng lặp cho mỗi loài trong số 4 loài Afzelia để phân tích Grad-CAM
+	afzelia_classes = ["Afzelia africana", "Afzelia bella", "Afzelia pachyloba", "Afzelia quanzensis"]
+	reps_by_class = {cls: [] for cls in afzelia_classes}
+	for cls in afzelia_classes:
+		cls_df_val = df_val[df_val["label"] == cls]
+		val_paths = cls_df_val["path"].tolist()
+		sampled_paths = []
+		if len(val_paths) >= 5:
+			sampled_paths = random.sample(val_paths, 5)
+		else:
+			sampled_paths = list(val_paths)
+			cls_df_test = df_test[df_test["label"] == cls]
+			test_paths = [p for p in cls_df_test["path"].tolist() if p not in sampled_paths]
+			needed = 5 - len(sampled_paths)
+			if len(test_paths) >= needed:
+				sampled_paths.extend(random.sample(test_paths, needed))
+			else:
+				sampled_paths.extend(test_paths)
+				cls_df_train = df_train[df_train["label"] == cls]
+				train_paths = [p for p in cls_df_train["path"].tolist() if p not in sampled_paths]
+				needed = 5 - len(sampled_paths)
+				if len(train_paths) >= needed:
+					sampled_paths.extend(random.sample(train_paths, needed))
+				else:
+					sampled_paths.extend(train_paths)
+		for path in sampled_paths:
+			reps_by_class[cls].append({
+				"path": path,
+				"label": cls,
+				"species": cls.replace("Afzelia ", "")
+			})
+	
+	reps_flat = []
+	for i in range(5):
+		for cls in afzelia_classes:
+			if i < len(reps_by_class[cls]):
+				reps_flat.append(reps_by_class[cls][i])
 
 	before_protos = compute_class_prototypes(model, train_eval_loader, device, len(class_names))
 	before_cams_dict = {}
@@ -587,33 +620,10 @@ def main() -> None:
 		print(f"\nĐã load best model từ {best_path}")
 
 	# Đánh giá cuối có điều kiện theo EVAL_MODE
-	val_summary = {}
 	test_summary = {}
-	val_cross_summary = {}
 	test_cross_summary = {}
 
 	if EVAL_MODE in ["self", "both"]:
-		# Đánh giá Val
-		print("\n[Đánh giá cuối - Validation Self]")
-		val_results = evaluate_retrieval(model, val_loader, device, class_names, eval_clustering=True)
-		val_report = format_retrieval_report(val_results, class_names, prefix="Val")
-		print(val_report)
-		print(
-			f"  [Clustering Metrics - Val]\n"
-			f"    Silhouette Score : {val_results['Silhouette']:.4f}\n"
-			f"    Davies-Bouldin   : {val_results['Davies-Bouldin']:.4f}\n"
-			f"    Calinski-Harabasz: {val_results['Calinski-Harabasz']:.2f}\n"
-			f"    Dunn Index       : {val_results['Dunn-Index']:.4f}\n"
-			f"    NMI              : {val_results['NMI']:.4f}\n"
-			f"    Intra/Inter Ratio: {val_results['Intra-Inter-Ratio']:.4f}"
-		)
-		with open(output_dir / "retrieval_report_val.txt", "w", encoding="utf-8") as f:
-			f.write(val_report)
-
-		for k, v in val_results.items():
-			if isinstance(v, (int, float, np.integer, np.floating)):
-				val_summary[k] = round(float(v), 6)
-
 		# Đánh giá Test
 		print("\n[Đánh giá cuối - Test Self]")
 		test_results = evaluate_retrieval(model, test_loader, device, class_names, eval_clustering=True)
@@ -636,25 +646,7 @@ def main() -> None:
 				test_summary[k] = round(float(v), 6)
 
 	if EVAL_MODE in ["cross", "both"]:
-		# Đánh giá truy vấn chéo (Cross-Retrieval): Val/Test làm Query, Train làm Gallery
-		print("\n[Đánh giá chéo - Validation Query vs Training Gallery]")
-		val_cross_results = evaluate_cross_retrieval(model, val_loader, train_eval_loader, device, class_names)
-		val_cross_report = format_retrieval_report(val_cross_results, class_names, prefix="Val Query vs Train Gallery")
-		print(val_cross_report)
-		print(
-			f"  [Cross-Retrieval Summary - Val→Train]\n"
-			f"    mAP   : {val_cross_results['mAP']*100:.2f}%\n"
-			f"    AUC   : {val_cross_results['AUC']:.4f}\n"
-			f"    R@1   : {val_cross_results['Recall@1']*100:.2f}%\n"
-			f"    R@5   : {val_cross_results['Recall@5']*100:.2f}%"
-		)
-		with open(output_dir / "retrieval_report_val_query_train_gallery.txt", "w", encoding="utf-8") as f:
-			f.write(val_cross_report)
-
-		for k, v in val_cross_results.items():
-			if isinstance(v, (int, float, np.integer, np.floating)):
-				val_cross_summary[k] = round(float(v), 6)
-
+		# Đánh giá truy vấn chéo (Cross-Retrieval): Test làm Query, Train làm Gallery
 		print("\n[Đánh giá chéo - Test Query vs Training Gallery]")
 		test_cross_results = evaluate_cross_retrieval(model, test_loader, train_eval_loader, device, class_names)
 		test_cross_report = format_retrieval_report(test_cross_results, class_names, prefix="Test Query vs Train Gallery")
@@ -673,24 +665,60 @@ def main() -> None:
 			if isinstance(v, (int, float, np.integer, np.floating)):
 				test_cross_summary[k] = round(float(v), 6)
 
+	# Log to WandB Summary
+	if use_wandb:
+		try:
+			import wandb
+			if wandb.run is not None:
+				if EVAL_MODE in ["self", "both"]:
+					for k, v in test_results.items():
+						if k in ["Recall@1", "Recall@5", "Precision@1", "Precision@5", "mAP", "AUC"]:
+							wandb.run.summary[f"final_test_self/{k}"] = v
+						else:
+							wandb.run.summary[f"final_test_clustering/{k}"] = v
+				if EVAL_MODE in ["cross", "both"]:
+					for k, v in test_cross_results.items():
+						wandb.run.summary[f"final_test_cross/{k}"] = v
+		except Exception:
+			pass
+
 	# ── 11. Trích xuất trạng thái sau training (Post-training analysis) ──
 	print("\n[Analysis] Trích xuất đặc trưng và sinh Grad-CAM sau training...")
 	after_protos = compute_class_prototypes(model, train_eval_loader, device, len(class_names))
 	
-	n_dal = len(reps_dict['Dalbergia'])
+	afzelia_classes = ["Afzelia africana", "Afzelia bella", "Afzelia pachyloba", "Afzelia quanzensis"]
 	for method in CAM_METHODS:
 		after_cams = generate_gradcam_maps(
 			model, reps_flat, after_protos, class_to_idx, eval_tf, device, method=method
 		)
 		before_cams = before_cams_dict[method]
-		plot_gradcam_comparison(
-			reps_dict['Dalbergia'], before_cams[:n_dal], after_cams[:n_dal], 
-			f"Dalbergia ({method})", output_dir / f"gradcam_dalbergia_{method}.png"
-		)
-		plot_gradcam_comparison(
-			reps_dict['Pterocarpus'], before_cams[n_dal:], after_cams[n_dal:], 
-			f"Pterocarpus ({method})", output_dir / f"gradcam_pterocarpus_{method}.png"
-		)
+		
+		# Vẽ 5 bức hình, mỗi bức hình gồm 4 loài Afzelia
+		for i in range(5):
+			fig_reps = []
+			fig_before_cams = []
+			fig_after_cams = []
+			for cls_idx, cls in enumerate(afzelia_classes):
+				flat_idx = i * len(afzelia_classes) + cls_idx
+				if flat_idx < len(reps_flat):
+					fig_reps.append(reps_flat[flat_idx])
+					fig_before_cams.append(before_cams[flat_idx])
+					fig_after_cams.append(after_cams[flat_idx])
+			
+			if len(fig_reps) > 0:
+				out_path = output_dir / f"gradcam_afzelia_pic_{i+1}_{method}.png"
+				plot_gradcam_comparison(
+					fig_reps, fig_before_cams, fig_after_cams,
+					f"Afzelia Group {i+1} ({method})",
+					out_path,
+				)
+				if use_wandb:
+					try:
+						import wandb
+						if wandb.run is not None:
+							wandb.log({f"Analysis/GradCAM_Group_{i+1}_{method}": wandb.Image(str(out_path))})
+					except Exception:
+						pass
 	
 	# Tính embeddings sau training cho tập Test
 	print("  Trích xuất đặc trưng của tập Test sau training...")
@@ -698,10 +726,49 @@ def main() -> None:
 	after_test_embs = after_test_embs.numpy()
 	
 	# Vẽ t-SNE so sánh trên tập Test
-	plot_tsne_comparison(before_test_embs, after_test_embs, test_labels, class_names, output_dir / "tsne_comparison.png")
+	tsne_path = output_dir / "tsne_comparison.png"
+	plot_tsne_comparison(before_test_embs, after_test_embs, test_labels, class_names, tsne_path)
+	if use_wandb:
+		try:
+			import wandb
+			if wandb.run is not None:
+				wandb.log({"Analysis/t-SNE_Comparison": wandb.Image(str(tsne_path))})
+		except Exception:
+			pass
+
+	# Vẽ t-SNE cho từng Chi (Genus) trên tập Test
+	genera = sorted(list(set(cls_name.split()[0] for cls_name in class_names)))
+	for genus in genera:
+		genus_class_indices = [idx for idx, name in enumerate(class_names) if name.startswith(genus)]
+		mask = np.isin(test_labels, genus_class_indices)
+		if np.sum(mask) >= 5:
+			genus_before = before_test_embs[mask]
+			genus_after = after_test_embs[mask]
+			genus_labels = test_labels[mask]
+			
+			genus_tsne_path = output_dir / f"tsne_{genus.lower()}.png"
+			plot_tsne_comparison(
+				genus_before, genus_after, genus_labels, class_names,
+				genus_tsne_path,
+			)
+			if use_wandb:
+				try:
+					import wandb
+					if wandb.run is not None:
+						wandb.log({f"Analysis/t-SNE_{genus}": wandb.Image(str(genus_tsne_path))})
+				except Exception:
+					pass
 	
 	# Phân tích khoảng cách trên tập Test
-	plot_distance_analysis(before_test_embs, after_test_embs, test_labels, output_dir / "distance_distribution.png")
+	dist_path = output_dir / "distance_distribution.png"
+	plot_distance_analysis(before_test_embs, after_test_embs, test_labels, dist_path)
+	if use_wandb:
+		try:
+			import wandb
+			if wandb.run is not None:
+				wandb.log({"Analysis/Distance_Distribution": wandb.Image(str(dist_path))})
+		except Exception:
+			pass
 
 	# Vẽ biểu đồ tổng hợp metrics (Tách val_loss bằng cách xấp xỉ do SSL không có val classification loss thực tế)
 	# Để hàm plot_metrics_summary không lỗi do thiếu trường val_loss trong history:

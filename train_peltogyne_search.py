@@ -21,6 +21,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report
+from timm.data import resolve_data_config
 
 # Import các helper dùng chung từ utils
 from utils import (

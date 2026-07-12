@@ -522,6 +522,26 @@ def evaluate_and_report(
 			output_dir / f"confusion_matrix_{prefix}_species_{genus}.png",
 		)
 
+	# Log confusion matrices to WandB if active
+	try:
+		import wandb
+		if wandb.run is not None:
+			# Log main confusion matrix
+			cm_path = output_dir / f"confusion_matrix_{prefix}.png"
+			if cm_path.exists():
+				wandb.log({f"Evaluation/CM_{prefix}": wandb.Image(str(cm_path))})
+			# Log genus confusion matrix
+			cm_genus_path = output_dir / f"confusion_matrix_{prefix}_genus.png"
+			if cm_genus_path.exists():
+				wandb.log({f"Evaluation/CM_{prefix}_genus": wandb.Image(str(cm_genus_path))})
+			# Log species confusion matrix per genus
+			for genus in genus_names:
+				cm_spec_path = output_dir / f"confusion_matrix_{prefix}_species_{genus}.png"
+				if cm_spec_path.exists():
+					wandb.log({f"Evaluation/CM_{prefix}_species_{genus}": wandb.Image(str(cm_spec_path))})
+	except Exception:
+		pass
+
 
 class GradCAM:
 	def __init__(self, model: nn.Module, target_layer: nn.Module, method: str = "gradcam") -> None:
@@ -1019,6 +1039,15 @@ def main() -> None:
 		scheduler=scheduler,
 	)
 	plot_training_curves(history, output_dir)
+	if use_wandb:
+		try:
+			import wandb
+			if wandb.run is not None:
+				curves_path = output_dir / "training_curves.png"
+				if curves_path.exists():
+					wandb.log({"Evaluation/Training_Curves": wandb.Image(str(curves_path))})
+		except Exception:
+			pass
 
 	# Load best model checkpoint để đánh giá
 	best_path = output_dir / f"best_model_{MODEL_NAME}.pth"
@@ -1027,10 +1056,7 @@ def main() -> None:
 		raw_model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
 		print(f"\nĐã load checkpoint tốt nhất từ {best_path}")
 
-	# Đánh giá trên tập Val và tập Test
-	print("\nĐánh giá trên tập Validation...")
-	evaluate_and_report(model, val_loader, device, class_names, output_dir, prefix="val")
-
+	# Đánh giá trên tập Test
 	print("\nĐánh giá trên tập Test...")
 	evaluate_and_report(model, test_loader, device, class_names, output_dir, prefix="test")
 

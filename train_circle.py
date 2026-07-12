@@ -14,7 +14,7 @@ from train_base import BaseMetricTrainer
 CONFIG = {
 	"OUTPUT_DIR": "outputs_circle",
 	"CIRCLE_GAMMA": 80.0,
-	"CIRCLE_MARGIN": 0.25,
+	"CIRCLE_MARGIN": 0.5,
 	"EPOCHS": 100,
 	"PATIENCE": 25,
 	"LR": 1e-4,

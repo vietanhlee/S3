@@ -279,7 +279,7 @@ def plot_tsne_comparison(
 	print("Running t-SNE dimensionality reduction...")
 	n_samples = len(labels)
 	perp = min(30, max(5, n_samples // 4))
-	tsne = TSNE(n_components=2, perplexity=perp, random_state=42, n_iter=1000)
+	tsne = TSNE(n_components=2, perplexity=perp, random_state=42, max_iter=1000)
 	embs_2d_before = tsne.fit_transform(before_embs)
 	embs_2d_after = tsne.fit_transform(after_embs)
 

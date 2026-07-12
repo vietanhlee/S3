@@ -441,9 +441,44 @@ class BaseMetricTrainer(ABC):
 
 		# ── Pre-training Analysis ────────────────────────────
 		print("\n[Analysis] Trích xuất đặc trưng và Grad-CAM trước training...")
-		representatives = select_gradcam_representatives(df_val, seed=cfg["SEED"])
-		reps_dict = representatives
-		reps_flat = representatives["Dalbergia"] + representatives["Pterocarpus"]
+		
+		# 1. Chọn 5 ảnh không trùng lặp cho mỗi loài trong số 4 loài Afzelia
+		afzelia_classes = ["Afzelia africana", "Afzelia bella", "Afzelia pachyloba", "Afzelia quanzensis"]
+		reps_by_class = {cls: [] for cls in afzelia_classes}
+		for cls in afzelia_classes:
+			cls_df_val = df_val[df_val["label"] == cls]
+			val_paths = cls_df_val["path"].tolist()
+			sampled_paths = []
+			if len(val_paths) >= 5:
+				sampled_paths = random.sample(val_paths, 5)
+			else:
+				sampled_paths = list(val_paths)
+				cls_df_test = df_test[df_test["label"] == cls]
+				test_paths = [p for p in cls_df_test["path"].tolist() if p not in sampled_paths]
+				needed = 5 - len(sampled_paths)
+				if len(test_paths) >= needed:
+					sampled_paths.extend(random.sample(test_paths, needed))
+				else:
+					sampled_paths.extend(test_paths)
+					cls_df_train = df_train[df_train["label"] == cls]
+					train_paths = [p for p in cls_df_train["path"].tolist() if p not in sampled_paths]
+					needed = 5 - len(sampled_paths)
+					if len(train_paths) >= needed:
+						sampled_paths.extend(random.sample(train_paths, needed))
+					else:
+						sampled_paths.extend(train_paths)
+			for path in sampled_paths:
+				reps_by_class[cls].append({
+					"path": path,
+					"label": cls,
+					"species": cls.replace("Afzelia ", "")
+				})
+		
+		reps_flat = []
+		for i in range(5):
+			for cls in afzelia_classes:
+				if i < len(reps_by_class[cls]):
+					reps_flat.append(reps_by_class[cls][i])
 
 		before_protos = compute_class_prototypes(model, train_eval_loader, device, num_classes)
 		before_cams_dict = {}
@@ -556,7 +591,7 @@ class BaseMetricTrainer(ABC):
 		self._run_post_training_analysis(
 			model, train_eval_loader, test_loader, val_loader,
 			device, class_names, num_classes, class_to_idx,
-			reps_dict, reps_flat, before_cams_dict,
+			reps_by_class, reps_flat, before_cams_dict,
 			before_test_embs, test_labels, eval_tf, history, output_dir,
 		)
 
@@ -729,72 +764,153 @@ class BaseMetricTrainer(ABC):
 		eval_mode = self.config["EVAL_MODE"]
 
 		if eval_mode in ("self", "both"):
-			for name, loader in [("Val", val_loader), ("Test", test_loader)]:
-				print(f"\n[Đánh giá cuối - {name} Self]")
-				results = evaluate_retrieval(model, loader, device, class_names, eval_clustering=True)
-				report = format_retrieval_report(results, class_names, prefix=name)
-				print(report)
-				print(
-					f"  [Clustering - {name}] Sil: {results['Silhouette']:.4f} | "
-					f"DBI: {results['Davies-Bouldin']:.4f} | "
-					f"CHI: {results['Calinski-Harabasz']:.2f} | "
-					f"Dunn: {results['Dunn-Index']:.4f} | "
-					f"NMI: {results['NMI']:.4f} | "
-					f"Ratio: {results['Intra-Inter-Ratio']:.4f}"
-				)
-				with open(output_dir / f"retrieval_report_{name.lower()}.txt", "w", encoding="utf-8") as f:
-					f.write(report)
+			print(f"\n[Đánh giá cuối - Test Self]")
+			results = evaluate_retrieval(model, test_loader, device, class_names, eval_clustering=True)
+			report = format_retrieval_report(results, class_names, prefix="Test")
+			print(report)
+			print(
+				f"  [Clustering - Test] Sil: {results['Silhouette']:.4f} | "
+				f"DBI: {results['Davies-Bouldin']:.4f} | "
+				f"CHI: {results['Calinski-Harabasz']:.2f} | "
+				f"Dunn: {results['Dunn-Index']:.4f} | "
+				f"NMI: {results['NMI']:.4f} | "
+				f"Ratio: {results['Intra-Inter-Ratio']:.4f}"
+			)
+			with open(output_dir / "retrieval_report_test.txt", "w", encoding="utf-8") as f:
+				f.write(report)
+
+			# Log to WandB Summary
+			if getattr(self, "use_wandb", False):
+				try:
+					import wandb
+					if wandb.run is not None:
+						for k, v in results.items():
+							if k in ["Recall@1", "Recall@5", "Precision@1", "Precision@5", "mAP", "AUC"]:
+								wandb.run.summary[f"final_test_self/{k}"] = v
+							else:
+								wandb.run.summary[f"final_test_clustering/{k}"] = v
+				except Exception:
+					pass
 
 		if eval_mode in ("cross", "both"):
-			for name, loader in [("Val", val_loader), ("Test", test_loader)]:
-				print(f"\n[Đánh giá chéo - {name} Query vs Train Gallery]")
-				results = evaluate_cross_retrieval(model, loader, train_eval_loader, device, class_names)
-				report = format_retrieval_report(results, class_names, prefix=f"{name} Query vs Train Gallery")
-				print(report)
-				print(
-					f"  [Cross - {name}→Train] mAP: {results['mAP'] * 100:.2f}% | "
-					f"AUC: {results['AUC']:.4f} | "
-					f"R@1: {results['Recall@1'] * 100:.2f}% | "
-					f"R@5: {results['Recall@5'] * 100:.2f}%"
-				)
-				with open(output_dir / f"retrieval_report_{name.lower()}_cross.txt", "w", encoding="utf-8") as f:
-					f.write(report)
+			print(f"\n[Đánh giá chéo - Test Query vs Train Gallery]")
+			results = evaluate_cross_retrieval(model, test_loader, train_eval_loader, device, class_names)
+			report = format_retrieval_report(results, class_names, prefix="Test Query vs Train Gallery")
+			print(report)
+			print(
+				f"  [Cross - Test→Train] mAP: {results['mAP'] * 100:.2f}% | "
+				f"AUC: {results['AUC']:.4f} | "
+				f"R@1: {results['Recall@1'] * 100:.2f}% | "
+				f"R@5: {results['Recall@5'] * 100:.2f}%"
+			)
+			with open(output_dir / "retrieval_report_test_cross.txt", "w", encoding="utf-8") as f:
+				f.write(report)
+
+			# Log to WandB Summary
+			if getattr(self, "use_wandb", False):
+				try:
+					import wandb
+					if wandb.run is not None:
+						for k, v in results.items():
+							wandb.run.summary[f"final_test_cross/{k}"] = v
+				except Exception:
+					pass
 
 	def _run_post_training_analysis(self, model, train_eval_loader, test_loader,
 	                                val_loader, device, class_names, num_classes,
-	                                class_to_idx, reps_dict, reps_flat,
+	                                class_to_idx, reps_by_class, reps_flat,
 	                                before_cams_dict, before_test_embs, test_labels,
 	                                eval_tf, history, output_dir):
 		"""Sinh trực quan hóa sau training: Grad-CAM, t-SNE, Distance, Metrics."""
 		print("\n[Analysis] Trích xuất đặc trưng và sinh Grad-CAM sau training...")
 		after_protos = compute_class_prototypes(model, train_eval_loader, device, num_classes)
 
-		n_dal = len(reps_dict["Dalbergia"])
+		afzelia_classes = ["Afzelia africana", "Afzelia bella", "Afzelia pachyloba", "Afzelia quanzensis"]
 		for cam_method in CAM_METHODS:
 			after_cams = generate_gradcam_maps(
 				model, reps_flat, after_protos, class_to_idx, eval_tf, device, method=cam_method,
 			)
 			before_cams = before_cams_dict[cam_method]
-			plot_gradcam_comparison(
-				reps_dict["Dalbergia"], before_cams[:n_dal], after_cams[:n_dal],
-				f"Dalbergia ({cam_method})", output_dir / f"gradcam_dalbergia_{cam_method}.png",
-			)
-			plot_gradcam_comparison(
-				reps_dict["Pterocarpus"], before_cams[n_dal:], after_cams[n_dal:],
-				f"Pterocarpus ({cam_method})", output_dir / f"gradcam_pterocarpus_{cam_method}.png",
-			)
+			
+			# Vẽ 5 bức hình, mỗi bức hình gồm 4 loài Afzelia
+			for i in range(5):
+				fig_reps = []
+				fig_before_cams = []
+				fig_after_cams = []
+				for cls_idx, cls in enumerate(afzelia_classes):
+					flat_idx = i * len(afzelia_classes) + cls_idx
+					if flat_idx < len(reps_flat):
+						fig_reps.append(reps_flat[flat_idx])
+						fig_before_cams.append(before_cams[flat_idx])
+						fig_after_cams.append(after_cams[flat_idx])
+				
+				if len(fig_reps) > 0:
+					out_path = output_dir / f"gradcam_afzelia_pic_{i+1}_{cam_method}.png"
+					plot_gradcam_comparison(
+						fig_reps, fig_before_cams, fig_after_cams,
+						f"Afzelia Group {i+1} ({cam_method})",
+						out_path,
+					)
+					if getattr(self, "use_wandb", False):
+						try:
+							import wandb
+							if wandb.run is not None:
+								wandb.log({f"Analysis/GradCAM_Group_{i+1}_{cam_method}": wandb.Image(str(out_path))})
+						except Exception:
+							pass
 
 		print("  Trích xuất đặc trưng của tập Test sau training...")
 		after_test_embs, _ = extract_all_embeddings(model, test_loader, device)
 		after_test_embs = after_test_embs.numpy()
 
+		tsne_path = output_dir / "tsne_comparison.png"
 		plot_tsne_comparison(
 			before_test_embs, after_test_embs, test_labels, class_names,
-			output_dir / "tsne_comparison.png",
+			tsne_path,
 		)
+		if getattr(self, "use_wandb", False):
+			try:
+				import wandb
+				if wandb.run is not None:
+					wandb.log({"Analysis/t-SNE_Comparison": wandb.Image(str(tsne_path))})
+			except Exception:
+				pass
+
+		# Vẽ t-SNE cho từng Chi (Genus) trên tập Test
+		genera = sorted(list(set(cls_name.split()[0] for cls_name in class_names)))
+		for genus in genera:
+			genus_class_indices = [idx for idx, name in enumerate(class_names) if name.startswith(genus)]
+			mask = np.isin(test_labels, genus_class_indices)
+			if np.sum(mask) >= 5:
+				genus_before = before_test_embs[mask]
+				genus_after = after_test_embs[mask]
+				genus_labels = test_labels[mask]
+				
+				genus_tsne_path = output_dir / f"tsne_{genus.lower()}.png"
+				plot_tsne_comparison(
+					genus_before, genus_after, genus_labels, class_names,
+					genus_tsne_path,
+				)
+				if getattr(self, "use_wandb", False):
+					try:
+						import wandb
+						if wandb.run is not None:
+							wandb.log({f"Analysis/t-SNE_{genus}": wandb.Image(str(genus_tsne_path))})
+					except Exception:
+						pass
+
+		dist_path = output_dir / "distance_distribution.png"
 		plot_distance_analysis(
 			before_test_embs, after_test_embs, test_labels,
-			output_dir / "distance_distribution.png",
+			dist_path,
 		)
+		if getattr(self, "use_wandb", False):
+			try:
+				import wandb
+				if wandb.run is not None:
+					wandb.log({"Analysis/Distance_Distribution": wandb.Image(str(dist_path))})
+			except Exception:
+				pass
+
 		plot_metrics_summary(history, model, val_loader, test_loader, device, output_dir)
 		plot_all_metrics_per_epoch(history, output_dir)
