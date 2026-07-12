@@ -17,6 +17,7 @@ CONFIG = {
 	"ARCFACE_SCALE": 30.0,
 	"ARCFACE_MARGIN": 0.50,
 	"NUM_SUBCENTERS": 3,    # Số sub-center mỗi lớp
+	"FOCAL_GAMMA": 2.0,      # Siêu tham số gamma cho Focal Loss
 	"EPOCHS": 50,
 	"PATIENCE": 10,
 	"LR": 1e-4,
@@ -71,20 +72,40 @@ class SubCenterArcMarginProduct(nn.Module):
 		return output * self.scale
 
 
+class FocalLoss(nn.Module):
+	"""Focal Loss có gán trọng số cân bằng lớp alpha (class_weights)."""
+
+	def __init__(self, gamma: float = 2.0, alpha: torch.Tensor = None) -> None:
+		super().__init__()
+		self.gamma = gamma
+		self.alpha = alpha
+
+	def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+		ce = F.cross_entropy(logits, targets, reduction="none")
+		pt = torch.exp(-ce)
+		if self.alpha is not None:
+			alpha_t = self.alpha[targets]
+		else:
+			alpha_t = 1.0
+		loss = alpha_t * (1.0 - pt) ** self.gamma * ce
+		return loss.mean()
+
+
 class SubCenterArcFaceLoss(nn.Module):
-	"""SubCenter ArcFace = SubCenterArcMarginProduct + CrossEntropyLoss."""
+	"""SubCenter ArcFace = SubCenterArcMarginProduct + FocalLoss."""
 
 	def __init__(self, embedding_dim: int, num_classes: int, num_subcenters: int = 3,
-	             scale: float = 30.0, margin: float = 0.50, class_weights: torch.Tensor = None) -> None:
+	             scale: float = 30.0, margin: float = 0.50,
+	             gamma: float = 2.0, class_weights: torch.Tensor = None) -> None:
 		super().__init__()
 		self.arc_margin = SubCenterArcMarginProduct(
 			embedding_dim, num_classes, num_subcenters, scale, margin,
 		)
-		self.ce = nn.CrossEntropyLoss(weight=class_weights)
+		self.focal = FocalLoss(gamma=gamma, alpha=class_weights)
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 		logits = self.arc_margin(embeddings, labels)
-		return self.ce(logits, labels)
+		return self.focal(logits, labels)
 
 
 class SubCenterArcFaceTrainer(BaseMetricTrainer):
@@ -97,6 +118,7 @@ class SubCenterArcFaceTrainer(BaseMetricTrainer):
 			"arcface_scale": self.config["ARCFACE_SCALE"],
 			"arcface_margin": self.config["ARCFACE_MARGIN"],
 			"num_subcenters": self.config["NUM_SUBCENTERS"],
+			"focal_gamma": self.config["FOCAL_GAMMA"],
 		}
 
 	def build_loss(self, num_classes: int) -> nn.Module:
@@ -107,6 +129,7 @@ class SubCenterArcFaceTrainer(BaseMetricTrainer):
 			num_subcenters=self.config["NUM_SUBCENTERS"],
 			scale=self.config["ARCFACE_SCALE"],
 			margin=self.config["ARCFACE_MARGIN"],
+			gamma=self.config["FOCAL_GAMMA"],
 			class_weights=class_weights,
 		)
 
