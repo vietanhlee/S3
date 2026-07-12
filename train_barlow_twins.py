@@ -285,7 +285,8 @@ def main() -> None:
 		api_key = os.getenv("WANDB_API_KEY")
 		if api_key:
 			wandb.login(key=api_key)
-			run_name = "barlow_twins"
+			model_prefix = MODEL_NAME.lower().replace("_", "-")
+			run_name = f"{model_prefix}-barlow_twins"
 			config_dict = {
 				"model_name": MODEL_NAME,
 				"epochs": EPOCHS,

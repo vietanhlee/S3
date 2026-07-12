@@ -226,10 +226,12 @@ class BaseMetricTrainer(ABC):
 				return
 
 			wandb.login(key=api_key)
-			run_name = method_name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("-", "_")
+			model_prefix = self.config["MODEL_NAME"].lower().replace("_", "-")
+			method_slug = method_name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("-", "_")
+			run_name = f"{model_prefix}-{method_slug}"
 			# Khởi tạo project chung và đặt tên run theo phương pháp
 			wandb.init(
-				project="S3-Wood-Recognition",
+				project="S3-Wood-Metric-Learning",
 				name=run_name,
 				config=self.config
 			)

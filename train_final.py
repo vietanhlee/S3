@@ -44,6 +44,29 @@ FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5
 # ====================
 
+
+SPLIT_CONFIG = {
+		"Afzelia africana": ("PP8", "val", "eff"),
+		"Afzelia bella": ("PP4", "val", "swin"),
+		"Afzelia pachyloba": ("PP9", "test", "swin"),
+		"Afzelia quanzensis": ("PP2", "val", "eff"),
+		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
+		"Dalbergia melanoxylon": ("PP2", "test", "eff"),
+		"Dalbergia oliveri": ("PP8", "val", "eff"),
+		"Dalbergia rimosa": ("PP4", "test", "eff"),
+		"Dalbergia tonkinensis": ("PP4", "test", "swin"),
+		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
+		"Guibourtia coleosperma": ("PP9", "test", "swin"),
+		"Guibourtia ehie": ("PP4", "test", "swin"),
+		"Peltogyne pubescens": ("PP2", "test", "eff"),
+		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
+		"Pterocarpus indicus": ("PP9", "test", "eff"),
+		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
+		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
+		"Sindora cochinchinensis": ("PP2", "test", "swin"),
+		"Sindora tonkinensis": ("PP9", "val", "eff"),
+	}
+	
 from utils import (
 	set_seed,
 	get_device,
@@ -769,27 +792,7 @@ def end_version_split(
 
 	# 2. Định nghĩa cấu hình chia cho từng class theo todo1.md
 	# (PP_Key, Swap_Mode, Embedding_Model)
-	split_config = {
-		"Afzelia africana": ("PP8", "val", "eff"),
-		"Afzelia bella": ("PP4", "val", "swin"),
-		"Afzelia pachyloba": ("PP9", "test", "swin"),
-		"Afzelia quanzensis": ("PP2", "val", "eff"),
-		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
-		"Dalbergia melanoxylon": ("PP2", "test", "eff"),
-		"Dalbergia oliveri": ("PP8", "val", "eff"),
-		"Dalbergia rimosa": ("PP4", "test", "eff"),
-		"Dalbergia tonkinensis": ("PP4", "test", "swin"),
-		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
-		"Guibourtia coleosperma": ("PP9", "test", "swin"),
-		"Guibourtia ehie": ("PP4", "test", "swin"),
-		"Peltogyne pubescens": ("PP2", "test", "eff"),
-		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
-		"Pterocarpus indicus": ("PP9", "test", "eff"),
-		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
-		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
-		"Sindora cochinchinensis": ("PP2", "test", "swin"),
-		"Sindora tonkinensis": ("PP9", "val", "eff"),
-	}
+	split_config = SPLIT_CONFIG
 
 	pp_map = {
 		"PP2": "PP2_Mahalanobis_Iterative",
@@ -894,7 +897,8 @@ def main() -> None:
 		api_key = os.getenv("WANDB_API_KEY")
 		if api_key:
 			wandb.login(key=api_key)
-			run_name = "classification"
+			model_prefix = MODEL_NAME.lower().replace("_", "-")
+			run_name = f"{model_prefix}-classification"
 			config_dict = {
 				"model_name": MODEL_NAME,
 				"epochs": EPOCHS,
@@ -907,9 +911,10 @@ def main() -> None:
 				"val_ratio": VAL_RATIO,
 				"batch_size": BATCH_SIZE,
 				"seed": SEED,
+				"split_config": SPLIT_CONFIG,
 			}
 			wandb.init(
-				project="S3-Wood-Recognition",
+				project="S3-Wood-Classification-Base",
 				name=run_name,
 				config=config_dict
 			)
