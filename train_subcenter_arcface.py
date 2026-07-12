@@ -18,7 +18,7 @@ CONFIG = {
 	"ARCFACE_MARGIN": 0.50,
 	"NUM_SUBCENTERS": 3,    # Số sub-center mỗi lớp
 	"FOCAL_GAMMA": 2.0,      # Siêu tham số gamma cho Focal Loss
-	"EPOCHS": 80,
+	"EPOCHS": 60,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"WEIGHT_DECAY": 1e-4,

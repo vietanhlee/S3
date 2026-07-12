@@ -15,7 +15,7 @@ CONFIG = {
 	"MS_ALPHA": 2.0,       # Siêu tham số alpha
 	"MS_BETA": 50.0,       # Siêu tham số beta
 	"MS_MARGIN": 0.5,      # Siêu tham số lambda/margin
-	"EPOCHS": 80,
+	"EPOCHS": 60,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"P_CLASSES": 19,

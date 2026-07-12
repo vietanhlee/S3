@@ -13,7 +13,7 @@ from train_base import BaseMetricTrainer
 CONFIG = {
 	"OUTPUT_DIR": "outputs_triplet",
 	"TRIPLET_MARGIN": 0.3,
-	"EPOCHS": 80,
+	"EPOCHS": 60,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"P_CLASSES": 19,

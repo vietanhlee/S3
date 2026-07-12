@@ -21,7 +21,7 @@ CONFIG = {
 	"OUTPUT_DIR": "outputs_simsiam",
 	"PREDICTOR_DIM": 64,   # Chiều ẩn của predictor MLP
 	"BATCH_SIZE": 128,
-	"EPOCHS": 80,
+	"EPOCHS": 60,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 }

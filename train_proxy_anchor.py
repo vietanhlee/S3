@@ -15,7 +15,7 @@ CONFIG = {
 	"OUTPUT_DIR": "outputs_proxy_anchor",
 	"PROXY_ALPHA": 32.0,
 	"PROXY_MARGIN": 0.1,
-	"EPOCHS": 80,
+	"EPOCHS": 60,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"WEIGHT_DECAY": 1e-4,
