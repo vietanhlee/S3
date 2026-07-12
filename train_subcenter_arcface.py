@@ -75,12 +75,12 @@ class SubCenterArcFaceLoss(nn.Module):
 	"""SubCenter ArcFace = SubCenterArcMarginProduct + CrossEntropyLoss."""
 
 	def __init__(self, embedding_dim: int, num_classes: int, num_subcenters: int = 3,
-	             scale: float = 30.0, margin: float = 0.50) -> None:
+	             scale: float = 30.0, margin: float = 0.50, class_weights: torch.Tensor = None) -> None:
 		super().__init__()
 		self.arc_margin = SubCenterArcMarginProduct(
 			embedding_dim, num_classes, num_subcenters, scale, margin,
 		)
-		self.ce = nn.CrossEntropyLoss()
+		self.ce = nn.CrossEntropyLoss(weight=class_weights)
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 		logits = self.arc_margin(embeddings, labels)
@@ -100,12 +100,14 @@ class SubCenterArcFaceTrainer(BaseMetricTrainer):
 		}
 
 	def build_loss(self, num_classes: int) -> nn.Module:
+		class_weights = getattr(self, "class_weights", None)
 		return SubCenterArcFaceLoss(
 			embedding_dim=self.config["EMBEDDING_DIM"],
 			num_classes=num_classes,
 			num_subcenters=self.config["NUM_SUBCENTERS"],
 			scale=self.config["ARCFACE_SCALE"],
 			margin=self.config["ARCFACE_MARGIN"],
+			class_weights=class_weights,
 		)
 
 	def build_train_sampler(self, labels: list):

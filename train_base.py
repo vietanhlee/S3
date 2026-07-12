@@ -311,6 +311,15 @@ class BaseMetricTrainer(ABC):
 			output_dir / "eda_split_end_version.png",
 		)
 
+		# Tính toán class weights nghịch đảo tần suất để xử lý mất cân bằng dữ liệu
+		class_counts = df_train["label"].value_counts()
+		weights = []
+		for name in class_names:
+			count = class_counts.get(name, 1)
+			weights.append(1.0 / count)
+		weights = torch.tensor(weights, dtype=torch.float32)
+		self.class_weights = (weights / weights.sum() * num_classes).to(device)
+
 		# ── 4. Transforms & DataLoaders ──────────────────────
 		print("\n[Step 4] Chuẩn bị Dataset và DataLoader...")
 		cfg_model = timm.create_model(cfg["MODEL_NAME"], pretrained=False, num_classes=0)

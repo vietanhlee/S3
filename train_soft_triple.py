@@ -33,13 +33,14 @@ class SoftTripleLoss(nn.Module):
 
 	def __init__(self, num_classes: int, embedding_dim: int = 256,
 	             num_centers: int = 10, la: float = 20.0,
-	             gamma: float = 0.1, margin: float = 0.2) -> None:
+	             gamma: float = 0.1, margin: float = 0.2, class_weights: torch.Tensor = None) -> None:
 		super().__init__()
 		self.num_classes = num_classes
 		self.num_centers = num_centers
 		self.la = la
 		self.gamma = gamma
 		self.margin = margin
+		self.weight = class_weights
 
 		# Trọng số đại diện các centers: (C, K, D)
 		self.fc = nn.Parameter(torch.Tensor(num_classes, num_centers, embedding_dim))
@@ -71,7 +72,7 @@ class SoftTripleLoss(nn.Module):
 		S_margin = S - one_hot * self.margin
 
 		# Tính loss dựa trên Cross Entropy có tỷ lệ scale lambda (la)
-		loss = F.cross_entropy(self.la * S_margin, labels)
+		loss = F.cross_entropy(self.la * S_margin, labels, weight=self.weight)
 		return loss
 
 
@@ -89,6 +90,7 @@ class SoftTripleTrainer(BaseMetricTrainer):
 		}
 
 	def build_loss(self, num_classes: int) -> nn.Module:
+		class_weights = getattr(self, "class_weights", None)
 		return SoftTripleLoss(
 			num_classes=num_classes,
 			embedding_dim=self.config["EMBEDDING_DIM"],
@@ -96,6 +98,7 @@ class SoftTripleTrainer(BaseMetricTrainer):
 			la=self.config["SOFTTRIPLE_LAMBDA"],
 			gamma=self.config["SOFTTRIPLE_GAMMA"],
 			margin=self.config["SOFTTRIPLE_TAU"],
+			class_weights=class_weights,
 		)
 
 	def build_train_sampler(self, labels: list) -> Sampler | None:
