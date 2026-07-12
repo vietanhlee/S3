@@ -498,6 +498,7 @@ class BaseMetricTrainer(ABC):
 
 		history = self._init_history(eval_mode, calc_clustering)
 		best_map = 0.0
+		best_stopping_metric = 0.0
 		epochs_no_improve = 0
 
 		for epoch in range(1, cfg["EPOCHS"] + 1):
@@ -544,31 +545,75 @@ class BaseMetricTrainer(ABC):
 					}
 					for k, v in train_results.items():
 						metrics_to_log[f"train/{k}"] = v
+					
+					def _calc_h_mean(vals, eps=0.01):
+						if not vals:
+							return 0.0
+						return len(vals) / sum(1.0 / (val + eps) for val in vals)
+
 					if val_results is not None:
 						for k, v in val_results.items():
 							if k in ["Recall@1", "Recall@5", "Precision@1", "Precision@5", "mAP", "AUC"]:
 								metrics_to_log[f"val_self/{k}"] = v
-							else:
+							elif k not in ["per_class_recall1", "per_class_recall5", "per_class_precision1", "per_class_precision5", "per_class_map", "per_class_auc"]:
 								metrics_to_log[f"val_clustering/{k}"] = v
+						
+						# Log Harmonic metrics cho val self
+						for k, class_key in [
+							("Recall@1", "per_class_recall1"),
+							("Recall@5", "per_class_recall5"),
+							("Precision@1", "per_class_precision1"),
+							("Precision@5", "per_class_precision5"),
+							("mAP", "per_class_map"),
+							("AUC", "per_class_auc")
+						]:
+							if class_key in val_results:
+								metrics_to_log[f"val_self_harmonic/{k}"] = _calc_h_mean(val_results[class_key])
+
 					if val_cross_results is not None:
 						for k, v in val_cross_results.items():
-							metrics_to_log[f"val_cross/{k}"] = v
+							if k in ["Recall@1", "Recall@5", "Precision@1", "Precision@5", "mAP", "AUC"]:
+								metrics_to_log[f"val_cross/{k}"] = v
+						
+						# Log Harmonic metrics cho val cross
+						for k, class_key in [
+							("Recall@1", "per_class_recall1"),
+							("Recall@5", "per_class_recall5"),
+							("Precision@1", "per_class_precision1"),
+							("Precision@5", "per_class_precision5"),
+							("mAP", "per_class_map"),
+							("AUC", "per_class_auc")
+						]:
+							if class_key in val_cross_results:
+								metrics_to_log[f"val_cross_harmonic/{k}"] = _calc_h_mean(val_cross_results[class_key])
+
 					wandb.log(metrics_to_log, step=epoch)
 				except Exception as e:
 					print(f"[Wandb Warning] Lỗi khi log metrics: {e}")
 
 			scheduler.step()
 
-			# Early Stopping
-			val_map = (
-				val_cross_results["mAP"] if val_cross_results is not None
-				else (val_results["mAP"] if val_results is not None else 0.0)
-			)
-			if val_map > best_map:
-				best_map = val_map
+			# Early Stopping dựa trên Harmonic Mean của mAP các lớp để tối ưu hóa lớp khó
+			val_results_dict = val_cross_results if val_cross_results is not None else val_results
+			if val_results_dict is not None and "per_class_map" in val_results_dict:
+				per_class_map = val_results_dict["per_class_map"]
+				eps = 0.01
+				inv_sum = sum(1.0 / (m + eps) for m in per_class_map)
+				val_stopping_metric = len(per_class_map) / inv_sum
+				macro_map = val_results_dict["mAP"]
+			else:
+				val_stopping_metric = (
+					val_cross_results["mAP"] if val_cross_results is not None
+					else (val_results["mAP"] if val_results is not None else 0.0)
+				)
+				macro_map = val_stopping_metric
+
+			if val_stopping_metric > best_stopping_metric:
+				best_stopping_metric = val_stopping_metric
+				best_map = macro_map
 				epochs_no_improve = 0
 				torch.save(model.state_dict(), output_dir / "best_model.pth")
-				print(f"  → Saved best model (mAP={best_map * 100:.2f}%)")
+				print(f"  → Saved best model (Harmonic mAP={val_stopping_metric * 100:.2f}%, Macro mAP={macro_map * 100:.2f}%)")
 			else:
 				epochs_no_improve += 1
 

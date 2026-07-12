@@ -71,6 +71,8 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 
 	sample_recall1 = []
 	sample_recall5 = []
+	sample_precision1 = []
+	sample_precision5 = []
 	sample_map = []
 
 	for i in range(n):
@@ -85,6 +87,8 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 		if n_positives == 0:
 			sample_recall1.append(0.0)
 			sample_recall5.append(0.0)
+			sample_precision1.append(0.0)
+			sample_precision5.append(0.0)
 			sample_map.append(0.0)
 			continue
 
@@ -95,6 +99,8 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 
 		sample_recall1.append(float(is_relevant[:1].any()))
 		sample_recall5.append(float(is_relevant[:5].any()))
+		sample_precision1.append(float(is_relevant[:1].sum()) / 1.0)
+		sample_precision5.append(float(is_relevant[:5].sum()) / 5.0)
 
 		cumsum = np.cumsum(is_relevant).astype(np.float64)
 		precision_curve = cumsum / np.arange(1, n, dtype=np.float64)
@@ -176,6 +182,8 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 	# Per class metrics
 	per_class_recall1 = []
 	per_class_recall5 = []
+	per_class_precision1 = []
+	per_class_precision5 = []
 	per_class_map = []
 	per_class_auc = []
 
@@ -184,12 +192,16 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 		if len(class_indices) == 0:
 			per_class_recall1.append(0.0)
 			per_class_recall5.append(0.0)
+			per_class_precision1.append(0.0)
+			per_class_precision5.append(0.0)
 			per_class_map.append(0.0)
 			per_class_auc.append(0.0)
 			continue
 
 		c_recall1 = np.mean([sample_recall1[idx] for idx in class_indices])
 		c_recall5 = np.mean([sample_recall5[idx] for idx in class_indices])
+		c_precision1 = np.mean([sample_precision1[idx] for idx in class_indices])
+		c_precision5 = np.mean([sample_precision5[idx] for idx in class_indices])
 		c_map = np.mean([sample_map[idx] for idx in class_indices])
 
 		c_auc = 0.0
@@ -212,6 +224,8 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 
 		per_class_recall1.append(c_recall1)
 		per_class_recall5.append(c_recall5)
+		per_class_precision1.append(c_precision1)
+		per_class_precision5.append(c_precision5)
 		per_class_map.append(c_map)
 		per_class_auc.append(c_auc)
 
@@ -226,6 +240,8 @@ def evaluate_retrieval(model: nn.Module, loader: DataLoader, device: torch.devic
 		"Intra-Inter-Ratio": intra_inter_ratio,
 		"per_class_recall1": per_class_recall1,
 		"per_class_recall5": per_class_recall5,
+		"per_class_precision1": per_class_precision1,
+		"per_class_precision5": per_class_precision5,
 		"per_class_map": per_class_map,
 		"per_class_auc": per_class_auc,
 	}
@@ -243,12 +259,46 @@ def format_retrieval_report(results: dict, class_names: list[str], prefix: str =
 	lines.append(f"  BÁO CÁO TRUY VẤN CHI TIẾT (RETRIEVAL REPORT) - {prefix.upper()}")
 	lines.append(f"=======================================================================")
 
-	lines.append("Chỉ số toàn cục (Global Metrics):")
-	global_keys = ["mAP", "AUC", "Recall@1", "Recall@5", "Recall@10", "Precision@1", "Precision@5", "Precision@10"]
-	for k in global_keys:
-		if k in results:
-			val = results[k]
-			lines.append(f"  {k:<15}: {val*100:.2f}%" if k != "AUC" else f"  {k:<15}: {val:.4f}")
+	per_class_recall1 = results.get("per_class_recall1", [])
+	per_class_recall5 = results.get("per_class_recall5", [])
+	per_class_precision1 = results.get("per_class_precision1", [])
+	per_class_precision5 = results.get("per_class_precision5", [])
+	per_class_map = results.get("per_class_map", [])
+	per_class_auc = results.get("per_class_auc", [])
+
+	def _harmonic_mean(vals, eps=0.01):
+		if not vals:
+			return 0.0
+		return len(vals) / sum(1.0 / (v + eps) for v in vals)
+
+	eps = 0.01
+	macro_map = np.mean(per_class_map) if per_class_map else 0.0
+	harmonic_map = _harmonic_mean(per_class_map, eps)
+
+	macro_r1 = np.mean(per_class_recall1) if per_class_recall1 else 0.0
+	harmonic_r1 = _harmonic_mean(per_class_recall1, eps)
+
+	macro_r5 = np.mean(per_class_recall5) if per_class_recall5 else 0.0
+	harmonic_r5 = _harmonic_mean(per_class_recall5, eps)
+
+	macro_p1 = np.mean(per_class_precision1) if per_class_precision1 else 0.0
+	harmonic_p1 = _harmonic_mean(per_class_precision1, eps)
+
+	macro_p5 = np.mean(per_class_precision5) if per_class_precision5 else 0.0
+	harmonic_p5 = _harmonic_mean(per_class_precision5, eps)
+
+	macro_auc = np.mean(per_class_auc) if per_class_auc else 0.0
+	harmonic_auc = _harmonic_mean(per_class_auc, eps)
+
+	lines.append("Chỉ số tổng hợp (Aggregated Metrics):")
+	lines.append(f"  {'Metric':<15} | {'Macro Average':<15} | {'Harmonic Mean (eps=0.01)':<25}")
+	lines.append("-" * 65)
+	lines.append(f"  {'Recall@1':<15} | {macro_r1*100:>12.2f}% | {harmonic_r1*100:>22.2f}%")
+	lines.append(f"  {'Recall@5':<15} | {macro_r5*100:>12.2f}% | {harmonic_r5*100:>22.2f}%")
+	lines.append(f"  {'Precision@1':<15} | {macro_p1*100:>12.2f}% | {harmonic_p1*100:>22.2f}%")
+	lines.append(f"  {'Precision@5':<15} | {macro_p5*100:>12.2f}% | {harmonic_p5*100:>22.2f}%")
+	lines.append(f"  {'mAP':<15} | {macro_map*100:>12.2f}% | {harmonic_map*100:>22.2f}%")
+	lines.append(f"  {'AUC':<15} | {macro_auc:>13.4f} | {harmonic_auc:>23.4f}")
 
 	lines.append("\nChỉ số phân cụm không gian nhúng (Clustering Metrics):")
 	clustering_keys = ["Silhouette", "Davies-Bouldin", "Calinski-Harabasz", "Dunn-Index", "NMI", "Intra-Inter-Ratio"]
@@ -258,21 +308,18 @@ def format_retrieval_report(results: dict, class_names: list[str], prefix: str =
 			lines.append(f"  {k:<20}: {val:.4f}")
 
 	lines.append("\nChi tiết cho từng loài gỗ (Class-wise Metrics):")
-	header = f"{'Loài gỗ (Class)':<35} | {'Recall@1':<10} | {'Recall@5':<10} | {'mAP':<10} | {'AUC':<10}"
+	header = f"{'Loài gỗ (Class)':<35} | {'Recall@1':<10} | {'Recall@5':<10} | {'Pre@1':<10} | {'Pre@5':<10} | {'mAP':<10} | {'AUC':<10}"
 	lines.append(header)
 	lines.append("-" * len(header))
-
-	per_class_recall1 = results.get("per_class_recall1", [])
-	per_class_recall5 = results.get("per_class_recall5", [])
-	per_class_map = results.get("per_class_map", [])
-	per_class_auc = results.get("per_class_auc", [])
 
 	for idx, name in enumerate(class_names):
 		r1 = per_class_recall1[idx] * 100 if idx < len(per_class_recall1) else 0.0
 		r5 = per_class_recall5[idx] * 100 if idx < len(per_class_recall5) else 0.0
+		p1 = per_class_precision1[idx] * 100 if idx < len(per_class_precision1) else 0.0
+		p5 = per_class_precision5[idx] * 100 if idx < len(per_class_precision5) else 0.0
 		m = per_class_map[idx] * 100 if idx < len(per_class_map) else 0.0
 		a = per_class_auc[idx] if idx < len(per_class_auc) else 0.0
-		lines.append(f"{name:<35} | {r1:>8.2f}% | {r5:>8.2f}% | {m:>8.2f}% | {a:>10.4f}")
+		lines.append(f"{name:<35} | {r1:>8.2f}% | {r5:>8.2f}% | {p1:>8.2f}% | {p5:>8.2f}% | {m:>8.2f}% | {a:>10.4f}")
 
 	lines.append("=======================================================================")
 	return "\n".join(lines)
