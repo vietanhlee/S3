@@ -20,6 +20,7 @@ CONFIG = {
 	"SOFTTRIPLE_LAMBDA": 20.0,     # Hệ số scale lambda (la)
 	"SOFTTRIPLE_GAMMA": 0.1,       # Tham số entropy gamma điều tiết độ tương đồng
 	"SOFTTRIPLE_TAU": 0.2,         # Margin delta (tau / margin)
+	"FOCAL_GAMMA": 2.0,            # Siêu tham số gamma cho Focal Loss
 	"EPOCHS": 50,
 	"PATIENCE": 10,
 	"LR": 1e-4,
@@ -28,19 +29,39 @@ CONFIG = {
 # =====================
 
 
+class FocalLoss(nn.Module):
+	"""Focal Loss có gán trọng số cân bằng lớp alpha (class_weights)."""
+
+	def __init__(self, gamma: float = 2.0, alpha: torch.Tensor = None) -> None:
+		super().__init__()
+		self.gamma = gamma
+		self.alpha = alpha
+
+	def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+		ce = F.cross_entropy(logits, targets, reduction="none")
+		pt = torch.exp(-ce)
+		if self.alpha is not None:
+			alpha_t = self.alpha[targets]
+		else:
+			alpha_t = 1.0
+		loss = alpha_t * (1.0 - pt) ** self.gamma * ce
+		return loss.mean()
+
+
 class SoftTripleLoss(nn.Module):
-	"""SoftTriple Loss — Tích hợp nhiều centers trên một lớp với soft assignment."""
+	"""SoftTriple Loss — Tích hợp nhiều centers trên một lớp với soft assignment kết hợp Focal Loss."""
 
 	def __init__(self, num_classes: int, embedding_dim: int = 256,
 	             num_centers: int = 10, la: float = 20.0,
-	             gamma: float = 0.1, margin: float = 0.2, class_weights: torch.Tensor = None) -> None:
+	             gamma: float = 0.1, margin: float = 0.2,
+	             focal_gamma: float = 2.0, class_weights: torch.Tensor = None) -> None:
 		super().__init__()
 		self.num_classes = num_classes
 		self.num_centers = num_centers
 		self.la = la
 		self.gamma = gamma
 		self.margin = margin
-		self.weight = class_weights
+		self.focal = FocalLoss(gamma=focal_gamma, alpha=class_weights)
 
 		# Trọng số đại diện các centers: (C, K, D)
 		self.fc = nn.Parameter(torch.Tensor(num_classes, num_centers, embedding_dim))
@@ -71,8 +92,8 @@ class SoftTripleLoss(nn.Module):
 		one_hot = F.one_hot(labels, num_classes=self.num_classes).float()
 		S_margin = S - one_hot * self.margin
 
-		# Tính loss dựa trên Cross Entropy có tỷ lệ scale lambda (la)
-		loss = F.cross_entropy(self.la * S_margin, labels, weight=self.weight)
+		# Tính loss dựa trên Focal Loss thay vì Cross Entropy
+		loss = self.focal(self.la * S_margin, labels)
 		return loss
 
 
@@ -87,6 +108,7 @@ class SoftTripleTrainer(BaseMetricTrainer):
 			"softtriple_lambda": self.config["SOFTTRIPLE_LAMBDA"],
 			"softtriple_gamma": self.config["SOFTTRIPLE_GAMMA"],
 			"softtriple_margin": self.config["SOFTTRIPLE_TAU"],
+			"focal_gamma": self.config["FOCAL_GAMMA"],
 		}
 
 	def build_loss(self, num_classes: int) -> nn.Module:
@@ -98,6 +120,7 @@ class SoftTripleTrainer(BaseMetricTrainer):
 			la=self.config["SOFTTRIPLE_LAMBDA"],
 			gamma=self.config["SOFTTRIPLE_GAMMA"],
 			margin=self.config["SOFTTRIPLE_TAU"],
+			focal_gamma=self.config["FOCAL_GAMMA"],
 			class_weights=class_weights,
 		)
 

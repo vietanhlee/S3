@@ -85,7 +85,10 @@ class MetricImageDataset(Dataset):
 
 
 class PKSampler(Sampler):
-	"""PK Batch Sampler: mỗi batch chứa P classes × K samples/class."""
+	"""PK Batch Sampler: mỗi batch chứa P classes × K samples/class.
+	Đảm bảo duyệt qua toàn bộ ảnh trong tập dữ liệu không trùng lặp trong cùng một epoch,
+	chỉ thực hiện lặp lại/tăng cường ảnh khi đã quét qua hết tất cả ảnh gốc của lớp đó.
+	"""
 
 	def __init__(self, labels: list, p: int, k: int) -> None:
 		self.labels = labels
@@ -98,16 +101,35 @@ class PKSampler(Sampler):
 		self.n_batches = max(1, len(labels) // (p * k))
 
 	def __iter__(self):
+		# Khởi tạo danh sách chỉ số được trộn ngẫu nhiên và con trỏ tương ứng cho mỗi lớp gỗ ở đầu mỗi epoch
+		shuffled_indices = {
+			lbl: random.sample(self.label_to_indices[lbl], len(self.label_to_indices[lbl]))
+			for lbl in self.unique_labels
+		}
+		pointers = {lbl: 0 for lbl in self.unique_labels}
+
 		for _ in range(self.n_batches):
 			p_actual = min(self.p, len(self.unique_labels))
 			selected_labels = random.sample(self.unique_labels, p_actual)
 			batch = []
 			for lbl in selected_labels:
-				indices = self.label_to_indices[lbl]
-				if len(indices) >= self.k:
-					sampled = random.sample(indices, self.k)
+				indices = shuffled_indices[lbl]
+				ptr = pointers[lbl]
+
+				# Nếu số ảnh chưa học của lớp này còn đủ để lấy K ảnh
+				if len(indices) - ptr >= self.k:
+					sampled = indices[ptr : ptr + self.k]
+					pointers[lbl] += self.k
 				else:
-					sampled = random.choices(indices, k=self.k)
+					# Lấy nốt số ảnh gốc còn lại chưa học của lớp đó
+					sampled = indices[ptr:]
+					# Trộn và lặp lại lấy ảnh cho đến khi đủ K mẫu
+					while len(sampled) < self.k:
+						random.shuffle(indices)
+						take = min(self.k - len(sampled), len(indices))
+						sampled.extend(indices[:take])
+					pointers[lbl] = take
+				
 				batch.extend(sampled)
 			yield batch
 
