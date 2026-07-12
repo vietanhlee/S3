@@ -213,6 +213,33 @@ class BaseMetricTrainer(ABC):
 		if config:
 			self.config.update(config)
 
+	def init_wandb(self, method_name: str) -> None:
+		"""Khởi tạo Weights & Biases bằng cách đọc WANDB_API_KEY từ file .env."""
+		try:
+			from dotenv import load_dotenv
+			import wandb
+			load_dotenv()
+			api_key = os.getenv("WANDB_API_KEY")
+			if not api_key:
+				print("[Wandb Warning] WANDB_API_KEY không tồn tại trong .env. Chạy không có WandB.")
+				self.use_wandb = False
+				return
+
+			wandb.login(key=api_key)
+			run_name = method_name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("-", "_")
+			# Khởi tạo project chung và đặt tên run theo phương pháp
+			wandb.init(
+				project="S3-Wood-Recognition",
+				name=run_name,
+				config=self.config
+			)
+			self.use_wandb = True
+			self.run_name = run_name
+			print(f"[Wandb Info] Khởi tạo thành công: project='S3-Wood-Recognition', run='{run_name}'")
+		except Exception as e:
+			print(f"[Wandb Warning] Lỗi khởi tạo WandB: {e}. Chạy không có WandB.")
+			self.use_wandb = False
+
 	# ── Abstract Methods (BẮT BUỘC implement) ────────────────
 
 	@abstractmethod
@@ -285,6 +312,9 @@ class BaseMetricTrainer(ABC):
 		method_name = self.get_method_name()
 		print(f"Device: {device}")
 		print(f"Method: {method_name}")
+
+		# Khởi tạo WandB
+		self.init_wandb(method_name)
 
 		output_dir = Path(cfg["OUTPUT_DIR"])
 		output_dir.mkdir(parents=True, exist_ok=True)
@@ -465,6 +495,31 @@ class BaseMetricTrainer(ABC):
 				optimizer.param_groups[0]["lr"],
 			)
 
+			# Log to WandB
+			if getattr(self, "use_wandb", False):
+				try:
+					import wandb
+					metrics_to_log = {
+						"epoch": epoch,
+						"train/loss": loss,
+						"val/loss": val_loss,
+						"lr": optimizer.param_groups[0]["lr"],
+					}
+					for k, v in train_results.items():
+						metrics_to_log[f"train/{k}"] = v
+					if val_results is not None:
+						for k, v in val_results.items():
+							if k in ["Recall@1", "Recall@5", "Precision@1", "Precision@5", "mAP", "AUC"]:
+								metrics_to_log[f"val_self/{k}"] = v
+							else:
+								metrics_to_log[f"val_clustering/{k}"] = v
+					if val_cross_results is not None:
+						for k, v in val_cross_results.items():
+							metrics_to_log[f"val_cross/{k}"] = v
+					wandb.log(metrics_to_log, step=epoch)
+				except Exception as e:
+					print(f"[Wandb Warning] Lỗi khi log metrics: {e}")
+
 			scheduler.step()
 
 			# Early Stopping
@@ -520,6 +575,33 @@ class BaseMetricTrainer(ABC):
 		}
 		with open(output_dir / "summary.json", "w", encoding="utf-8") as f:
 			json.dump(summary, f, indent=2, ensure_ascii=False)
+
+		# ── Upload artifacts lên WandB ───────────────────────
+		if getattr(self, "use_wandb", False):
+			try:
+				import wandb
+				artifact_name = f"{self.run_name.replace('_', '-')}-artifacts"
+				artifact = wandb.Artifact(name=artifact_name, type="model_and_reports")
+				
+				# Log best model nếu có
+				best_path = output_dir / "best_model.pth"
+				if best_path.exists():
+					artifact.add_file(str(best_path), name="best_model.pth")
+					
+				# Log các file report text
+				for txt_file in output_dir.glob("*.txt"):
+					artifact.add_file(str(txt_file), name=txt_file.name)
+				# Log file summary JSON
+				summary_json = output_dir / "summary.json"
+				if summary_json.exists():
+					artifact.add_file(str(summary_json), name="summary.json")
+					
+				wandb.log_artifact(artifact)
+				print(f"[Wandb Info] Đã upload artifact '{artifact_name}' thành công.")
+			except Exception as e:
+				print(f"[Wandb Warning] Lỗi khi upload artifacts: {e}")
+			finally:
+				wandb.finish()
 
 		# ── Cleanup ──────────────────────────────────────────
 		del model, optimizer, criterion

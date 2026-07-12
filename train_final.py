@@ -212,6 +212,21 @@ def train_model(
 			f"lr={current_lr:.6f}"
 		)
 
+		# Log to WandB if active
+		try:
+			import wandb
+			if wandb.run is not None:
+				wandb.log({
+					"epoch": epoch,
+					"train/loss": train_loss,
+					"train/acc": train_acc,
+					"val/loss": val_loss,
+					"val/acc": val_acc,
+					"lr": current_lr
+				}, step=epoch)
+		except Exception as e:
+			pass
+
 		if scheduler is not None:
 			scheduler.step()
 
@@ -870,6 +885,41 @@ def main() -> None:
 	output_dir = Path(OUTPUT_BASE_DIR)
 	output_dir.mkdir(parents=True, exist_ok=True)
 
+	# Khởi tạo WandB
+	use_wandb = False
+	try:
+		from dotenv import load_dotenv
+		import wandb
+		load_dotenv()
+		api_key = os.getenv("WANDB_API_KEY")
+		if api_key:
+			wandb.login(key=api_key)
+			run_name = "classification"
+			config_dict = {
+				"model_name": MODEL_NAME,
+				"epochs": EPOCHS,
+				"lr": LR,
+				"weight_decay": WEIGHT_DECAY,
+				"focal_gamma": FOCAL_GAMMA,
+				"focal_alpha": FOCAL_ALPHA,
+				"freeze_ratio": FREEZE_RATIO,
+				"train_ratio": TRAIN_RATIO,
+				"val_ratio": VAL_RATIO,
+				"batch_size": BATCH_SIZE,
+				"seed": SEED,
+			}
+			wandb.init(
+				project="S3-Wood-Recognition",
+				name=run_name,
+				config=config_dict
+			)
+			use_wandb = True
+			print(f"[Wandb Info] Khởi tạo thành công: project='S3-Wood-Recognition', run='{run_name}'")
+		else:
+			print("[Wandb Warning] WANDB_API_KEY không tồn tại trong .env. Chạy không có WandB.")
+	except Exception as e:
+		print(f"[Wandb Warning] Lỗi khởi tạo WandB: {e}. Chạy không có WandB.")
+
 	# 1. Thu thập ảnh, build dataframe
 	print("\n[Step 1] Thu thập ảnh...")
 	samples = collect_image_samples(ROOT_DIR)
@@ -990,6 +1040,33 @@ def main() -> None:
 	}
 	with open(output_dir / "final_summary.json", "w", encoding="utf-8") as f:
 		json.dump(result, f, indent=2, ensure_ascii=False)
+
+	# ── Upload artifacts lên WandB ───────────────────────
+	if use_wandb:
+		try:
+			import wandb
+			artifact_name = "classification-artifacts"
+			artifact = wandb.Artifact(name=artifact_name, type="model_and_reports")
+			
+			# Log best model
+			best_path = output_dir / f"best_model_{MODEL_NAME}.pth"
+			if best_path.exists():
+				artifact.add_file(str(best_path), name=f"best_model_{MODEL_NAME}.pth")
+				
+			# Log các file report text
+			for txt_file in output_dir.glob("*.txt"):
+				artifact.add_file(str(txt_file), name=txt_file.name)
+			# Log final summary JSON
+			final_summary = output_dir / "final_summary.json"
+			if final_summary.exists():
+				artifact.add_file(str(final_summary), name="final_summary.json")
+				
+			wandb.log_artifact(artifact)
+			print(f"[Wandb Info] Đã upload artifact '{artifact_name}' thành công.")
+		except Exception as e:
+			print(f"[Wandb Warning] Lỗi khi upload artifacts: {e}")
+		finally:
+			wandb.finish()
 
 	print(f"\n[Hoàn tất] Tất cả kết quả huấn luyện đã lưu tại thư mục: {output_dir}")
 

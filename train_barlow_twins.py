@@ -276,6 +276,41 @@ def main() -> None:
 	output_dir = Path(OUTPUT_DIR)
 	output_dir.mkdir(parents=True, exist_ok=True)
 
+	# Khởi tạo WandB
+	use_wandb = False
+	try:
+		from dotenv import load_dotenv
+		import wandb
+		load_dotenv()
+		api_key = os.getenv("WANDB_API_KEY")
+		if api_key:
+			wandb.login(key=api_key)
+			run_name = "barlow_twins"
+			config_dict = {
+				"model_name": MODEL_NAME,
+				"epochs": EPOCHS,
+				"lr": LR,
+				"weight_decay": WEIGHT_DECAY,
+				"temperature": TEMPERATURE,
+				"embedding_dim": EMBEDDING_DIM,
+				"freeze_ratio": FREEZE_RATIO,
+				"train_ratio": TRAIN_RATIO,
+				"val_ratio": VAL_RATIO,
+				"batch_size": BATCH_SIZE,
+				"seed": SEED,
+			}
+			wandb.init(
+				project="S3-Wood-Recognition",
+				name=run_name,
+				config=config_dict
+			)
+			use_wandb = True
+			print(f"[Wandb Info] Khởi tạo thành công: project='S3-Wood-Recognition', run='{run_name}'")
+		else:
+			print("[Wandb Warning] WANDB_API_KEY không tồn tại trong .env. Chạy không có WandB.")
+	except Exception as e:
+		print(f"[Wandb Warning] Lỗi khởi tạo WandB: {e}. Chạy không có WandB.")
+
 	# 1. Thu thập ảnh, build dataframe
 	print("\n[Step 1] Thu thập ảnh...")
 	samples = collect_image_samples(ROOT_DIR)
@@ -485,6 +520,47 @@ def main() -> None:
 		log_msg += f"  LR: {current_lr:.6f}"
 		print(log_msg)
 
+		# Log to WandB
+		if use_wandb:
+			try:
+				import wandb
+				metrics_to_log = {
+					"epoch": epoch,
+					"train/loss": loss,
+					"lr": current_lr,
+				}
+				if val_results is not None:
+					if EVAL_MODE in ["self", "both"]:
+						metrics_to_log.update({
+							"val_self/Recall@1": val_results["Recall@1"],
+							"val_self/Recall@5": val_results["Recall@5"],
+							"val_self/Precision@1": val_results["Precision@1"],
+							"val_self/Precision@5": val_results["Precision@5"],
+							"val_self/mAP": val_results["mAP"],
+							"val_self/AUC": val_results["AUC"]
+						})
+					if CALCULATE_CLUSTERING_METRICS:
+						metrics_to_log.update({
+							"val_clustering/Silhouette": val_results["Silhouette"],
+							"val_clustering/Davies-Bouldin": val_results["Davies-Bouldin"],
+							"val_clustering/Calinski-Harabasz": val_results["Calinski-Harabasz"],
+							"val_clustering/Dunn-Index": val_results["Dunn-Index"],
+							"val_clustering/NMI": val_results["NMI"],
+							"val_clustering/Intra-Inter-Ratio": val_results["Intra-Inter-Ratio"]
+						})
+				if val_cross_results is not None:
+					metrics_to_log.update({
+						"val_cross/Recall@1": val_cross_results["Recall@1"],
+						"val_cross/Recall@5": val_cross_results["Recall@5"],
+						"val_cross/Precision@1": val_cross_results["Precision@1"],
+						"val_cross/Precision@5": val_cross_results["Precision@5"],
+						"val_cross/mAP": val_cross_results["mAP"],
+						"val_cross/AUC": val_cross_results["AUC"]
+					})
+				wandb.log(metrics_to_log, step=epoch)
+			except Exception as e:
+				print(f"[Wandb Warning] Lỗi khi log metrics: {e}")
+
 		scheduler.step()
 
 		# Chọn mAP để Early Stopping theo chế độ (Cross làm chuẩn nếu có)
@@ -659,6 +735,33 @@ def main() -> None:
 		})
 	with open(output_dir / "summary.json", "w", encoding="utf-8") as f:
 		json.dump(summary, f, indent=2, ensure_ascii=False)
+
+	# ── Upload artifacts lên WandB ───────────────────────
+	if use_wandb:
+		try:
+			import wandb
+			artifact_name = "barlow-twins-artifacts"
+			artifact = wandb.Artifact(name=artifact_name, type="model_and_reports")
+			
+			# Log best model nếu có
+			best_path = output_dir / "best_model.pth"
+			if best_path.exists():
+				artifact.add_file(str(best_path), name="best_model.pth")
+				
+			# Log các file report text
+			for txt_file in output_dir.glob("*.txt"):
+				artifact.add_file(str(txt_file), name=txt_file.name)
+			# Log file summary JSON
+			summary_json = output_dir / "summary.json"
+			if summary_json.exists():
+				artifact.add_file(str(summary_json), name="summary.json")
+				
+			wandb.log_artifact(artifact)
+			print(f"[Wandb Info] Đã upload artifact '{artifact_name}' thành công.")
+		except Exception as e:
+			print(f"[Wandb Warning] Lỗi khi upload artifacts: {e}")
+		finally:
+			wandb.finish()
 
 	# Giải phóng bộ nhớ
 	del model, optimizer, criterion
