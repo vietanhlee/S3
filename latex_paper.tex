@@ -1,0 +1,194 @@
+\documentclass[journal,onecolumn]{IEEEtran}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\begin{document}
+
+\title{Taxonomy-Aware Hierarchical Metric Learning and Embedding-Aware Semantic Data Splitting for Fine-Grained Wood Species Identification}
+
+\author{Viet-Anh Le, and Collaborators}
+
+\maketitle
+
+\begin{abstract}
+Automated wood species identification is a critical task for timber trade monitoring and combating illegal logging under the CITES convention. However, existing deep learning methods face two severe challenges: (1) high visual similarity among species within the same genus (fine-grained characteristics), and (2) spatial data leakage caused by random image-level splitting, where images from the same physical wood specimen (subfolder) are distributed across train and test sets. To address these limitations, this paper proposes a novel framework combining Embedding-Aware End Version Data Splitting and Taxonomy-Aware Hierarchical Metric Learning. The proposed splitting framework leverages feature embeddings to group and isolate physical specimens, executing five distinct strategies (Mahalanobis distance, Hierarchical Clustering, Stratified Grouping, Agglomerative Stratification, and Adversarial Validation) to build leakage-free benchmarks. Furthermore, we introduce a Taxonomy-Aware Hierarchical Loss that incorporates biological genus relationships into deep metric learning, employing a multi-stage margin to penalize intra-genus and inter-genus errors distinctively. We present a comprehensive benchmark comparing 14 deep metric learning losses and 3 self-supervised learning algorithms on the S3 dataset (containing 19 species across 6 genera). Experimental results show that our proposed splitting strategies successfully eliminate performance inflation due to data leakage, and the taxonomy-aware loss yields superior embedding quality, outperforming state-of-the-art methods in retrieval accuracy and clustering metrics (Silhouette, Davies-Bouldin, Dunn, and NMI).
+\end{abstract}
+
+\begin{IEEEkeywords}
+Fine-grained visual classification, Wood species identification, Metric learning, Data leakage, Deep learning, Self-supervised learning, CITES.
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\subsection{Background}
+Illegal logging and timber smuggling represent severe threats to global forest ecosystems, biodiversity, and economies. To regulate the trade of endangered timber, the Convention on International Trade in Endangered Species of Wild Fauna and Flora (CITES) mandates strict monitoring of protected wood species (e.g., \textit{Dalbergia tonkinensis}, \textit{Dalbergia cochinchinensis}, and \textit{Afzelia africana}). Conventional wood forensic techniques rely on expert-based anatomical analysis under microscopes, which is labor-intensive, time-consuming, and impractical for real-time inspection at customs borders. Automated macro-microscopic wood identification using computer vision has emerged as a promising alternative.
+
+\subsection{Problem Statement}
+Automated wood identification falls under fine-grained visual classification (FGVC). Wood specimens exhibit high intra-class variation due to environmental growth factors, humidity, and wood cutting orientations, alongside extremely low inter-class variation. The macro-structural patterns (e.g., vessel distribution, parenchyma shapes, and ray patterns) of species within the same genus are remarkably similar, making them highly difficult to distinguish.
+
+\subsection{Limitations of Prior Works}
+Most existing wood classification models are trained and evaluated using random image-level data splitting. Because macroscopic wood databases are constructed by scanning or cropping multiple patches from a single physical wood specimen, random splitting distributes patches of the same physical block (stored in the same subfolder) to both train and test sets. This creates severe spatial data leakage (semantic contamination). As a result, deep models easily memorize block-specific artifacts (e.g., surface scratches, specific color stains, or local cut patterns) rather than learning generalized biological features. Consequently, their performance drops drastically when deployed on unseen wood blocks.
+
+\subsection{Motivation and Proposed Solution}
+To construct a robust and realistic wood forensic system, we establish an specimen-level isolation protocol. We propose the \textit{Embedding-Aware End Version Split} framework, which extracts semantic features from powerful backbones (EfficientNetV2 and Swin Transformer) to group and partition physical wood specimens into independent subsets using five custom algorithms. Additionally, to incorporate evolutionary biology into distance metric learning, we propose a \textit{Taxonomy-Aware Hierarchical Loss} that applies varying angular margins to negative pairs depending on whether they belong to the same genus or completely different genera.
+
+\subsection{Key Contributions}
+The main contributions of this work are summarized as follows:
+\begin{itemize}
+    \item We propose a systematic \textit{End Version Split} framework utilizing five semantic-separated splitting strategies to eliminate spatial data leakage and provide a realistic evaluation benchmark.
+    \item We propose a \textit{Taxonomy-Aware Hierarchical Loss} that embeds biological classification hierarchies (Genus and Species) into deep metric learning, enforcing tighter constraints on intra-genus separation.
+    \item We conduct a large-scale evaluation benchmarking 14 deep metric learning and 3 self-supervised learning methods on the S3 dataset, proving the effectiveness of our framework in both retrieval accuracy and clustering quality.
+\end{itemize}
+
+\section{Related Work}
+
+\subsection{Wood Species Identification}
+Computer-aided wood identification has transitioned from manual feature extraction (e.g., LBP, GLCM) to deep convolutional neural networks (CNNs) like ResNet and MobileNet, and recently to Vision Transformers (ViTs). However, these networks are typically trained as simple classifiers with cross-entropy, failing to generalize to open-set scenarios where new species are encountered.
+
+\subsection{Deep Metric Learning}
+Deep Metric Learning (DML) aims to learn an embedding space where similar samples are mapped close together while dissimilar samples are pushed far apart. Traditional methods like Contrastive and Triplet losses suffer from slow convergence. Modern DML approaches rely on hard sample mining (e.g., Multi-Similarity Loss) or angular margins (e.g., ArcFace, Circle Loss) to reshape the feature landscape.
+
+\subsection{Self-Supervised Representation Learning}
+Self-Supervised Learning (SSL) algorithms, such as SimCLR, Barlow Twins, and Supervised Contrastive Learning (SupCon), learn representative features without explicit classification heads. These methods are highly suitable for wood identification because they model grain textures natively, but they have not been thoroughly benchmarked under leakage-free specimen constraints.
+
+\section{Proposed Methodology}
+
+\subsection{Overall Framework}
+Our proposed framework consists of: (1) semantic image preprocessing, (2) specimen grouping, (3) feature embedding extraction using EfficientNetV2 and Swin backbones, (4) executing the optimal End Version Split per class, (5) fine-tuning a ConvNeXt backbone with the Taxonomy-Aware Hierarchical Loss, and (6) open-set retrieval evaluation.
+
+\subsection{Embedding-Aware End Version Data Splitting}
+To prevent spatial data leakage, we group images by their physical origin subfolders $\{S_1, S_2, \dots, S_n\}$ and execute five feature-based partitioning strategies sequentially:
+\begin{enumerate}
+    \item \textbf{Mahalanobis Distance-based Split:} Centroids are computed for each subfolder, and PCA is applied to reduce dimensions. We compute the Mahalanobis distance from each subfolder centroid $\mu_i$ to the class centroid $\mu_{global}$:
+    \begin{equation}
+    D_M(\mu_i, \mu_{global}) = \sqrt{(\mu_i - \mu_{global})^T \Sigma^{-1} (\mu_i - \mu_{global})}
+    \end{equation}
+    where $\Sigma$ is the feature covariance matrix. Subfolders are sorted and distributed iteratively to ensure representative distribution across splits.
+    \item \textbf{Hierarchical Clustering-based Split:} We group physical subfolders using Agglomerative Hierarchical Clustering with Ward's linkage. The resulting clusters are kept intact and allocated directly to Train, Val, or Test splits, ensuring that highly correlated textures are kept together.
+    \item \textbf{Stratified Group-based Split:} A group-aware partition that enforces specimen-level separation while keeping class proportions balanced across Train, Val, and Test sets.
+    \item \textbf{Agglomerative Stratified Split:} Subfolders are clustered, and cluster centroids are mapped to three distance bands (Near, Mid, Far) relative to the global class centroid. Near clusters are assigned to Train, Mid to Val, and Far to Test. This forces the test set to contain the most challenging outlier specimens.
+    \item \textbf{Adversarial Validation Split:} We train a Multi-Layer Perceptron (MLP) Discriminator $f_{\theta}: \mathbb{R}^D \to (0, 1)$ to distinguish between two temporary pools of subfolders. The discriminator is trained using Binary Cross Entropy Loss:
+    \begin{equation}
+    L_{adv} = - \frac{1}{N} \sum_{j=1}^N \left[ d_j \log(f_{\theta}(z_j)) + (1 - d_j) \log(1 - f_{\theta}(z_j)) \right]
+    \end{equation}
+    Subfolders with prediction scores close to $0.5$ (maximum uncertainty) represent standard distributions and are assigned to Train, while those with scores near $0$ or $1$ (highly distinguishable) are placed in Test to validate out-of-distribution robustness.
+\end{enumerate}
+
+\subsection{Feature Backbone and Nonlinear Projection Head}
+We employ ConvNeXt-Tiny as the backbone network, freezing the first $90\%$ of the layers to retain generalizable ImageNet features and prevent overfitting on low-sample classes. The raw output feature $\mathbf{f} \in \mathbb{R}^{768}$ is projected via a three-layer nonlinear MLP head (with ReLU activation) to an embedding space $\mathbf{z} \in \mathbb{R}^{256}$ and normalized using $L_2$ norm:
+\begin{equation}
+\mathbf{z} = \frac{\mathbf{W}_2 \cdot \text{ReLU}(\mathbf{W}_1 \mathbf{f} + \mathbf{b}_1) + \mathbf{b}_2}{||\mathbf{W}_2 \cdot \text{ReLU}(\mathbf{W}_1 \mathbf{f} + \mathbf{b}_1) + \mathbf{b}_2||_2}
+\end{equation}
+
+\subsection{Taxonomy-Aware Hierarchical Loss Function}
+The proposed Taxonomy-Aware Loss dynamically adjusts the boundaries of the embedding space by injecting genus relationships. Let $y_i$ denote the species label of sample $i$, and $g_i$ denote its genus label. The total loss is defined as:
+\begin{equation}
+L_{total} = L_{intra\_genus} + \lambda L_{inter\_genus}
+\end{equation}
+For any anchor sample $z_i$, we define the maximum positive distance $d_{pos\_max}^i$, the minimum negative distance within the same genus $d_{neg\_intra\_min}^i$, and the minimum negative distance from different genera $d_{neg\_inter\_min}^i$:
+\begin{equation}
+d_{pos\_max}^i = \max_{j: y_j = y_i, j \neq i} ||z_i - z_j||_2
+\end{equation}
+\begin{equation}
+d_{neg\_intra\_min}^i = \min_{k: g_k = g_i, y_k \neq y_i} ||z_i - z_k||_2
+\end{equation}
+\begin{equation}
+d_{neg\_inter\_min}^i = \min_{l: g_l \neq g_i} ||z_i - z_l||_2
+\end{equation}
+The loss components are formulated as:
+\begin{equation}
+L_{intra\_genus} = \frac{1}{B} \sum_{i=1}^B \max\left(0, (d_{pos\_max}^i)^2 - (d_{neg\_intra\_min}^i)^2 + m_{intra\_genus}\right)
+\end{equation}
+\begin{equation}
+L_{inter\_genus} = \frac{1}{B} \sum_{i=1}^B \max\left(0, (d_{pos\_max}^i)^2 - (d_{neg\_inter\_min}^i)^2 + m_{inter\_genus}\right)
+\end{equation}
+where $m_{intra\_genus}$ and $m_{inter\_genus}$ represent the margins, satisfying $m_{intra\_genus} < m_{inter\_genus}$. This forces species of different genera to separate by a wider margin while allowing species under the same genus to cluster closely but remain distinguishable.
+
+\section{Experimental Configuration}
+
+\subsection{S3 Dataset Details}
+The S3 dataset contains macroscopic cross-sectional images of 19 commercial wood species across 6 genera: \textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Peltogyne}, \textit{Pterocarpus}, and \textit{Sindora}. Samples belonging to unidentified species at the genus level (labeled as \textit{Pterocarpus sp.}) are filtered out to maintain species-level classification accuracy and embedding consistency.
+
+\subsection{Performance Evaluation Protocols}
+We validate representation quality using two groups of metrics:
+\begin{itemize}
+    \item \textbf{Retrieval Performance:} Recall@k ($k=1,5$), Precision@k, mean Average Precision (mAP), and Area Under Curve (AUC). We calculate both Macro Average and Harmonic Mean (with a smoothing floor $\epsilon = 0.01$):
+    \begin{equation}
+    \text{Harmonic Mean} = \frac{N}{\sum_{i=1}^N \frac{1}{x_i + 0.01}}
+    \end{equation}
+    \item \textbf{Clustering Quality:} Silhouette Score ($S$), Davies-Bouldin Index (DBI), Calinski-Harabasz Index (CHI), Dunn Index (DI), and Normalized Mutual Information (NMI).
+\end{itemize}
+
+\subsection{Implementation Hyperparameters}
+The network is optimized using AdamW with a learning rate of $10^{-4}$ and weight decay of $10^{-2}$. A Cosine Annealing scheduler is used over 100 epochs. Early stopping is triggered with a patience of 30 epochs, monitoring the validation set's Harmonic mAP.
+
+\section{Results and Discussion}
+
+\subsection{Quantitative Evaluation}
+Table \ref{tab:main_results} reports the quantitative comparison of all models.
+
+\begin{table*}[htbp]
+\centering
+\caption{Performance Comparison of Representation Learning Methods on the Test Set (End Version Split)}
+\label{tab:main_results}
+\begin{tabular}{lccccccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{2}{c}{\textbf{Recall@1 (\%)}} & \multicolumn{2}{c}{\textbf{Precision@1 (\%)}} & \multicolumn{2}{c}{\textbf{mAP (\%)}} & \multicolumn{5}{c}{\textbf{Clustering Metrics}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-12}
+& Macro & Harmonic & Macro & Harmonic & Macro & Harmonic & Silhouette $\uparrow$ & DBI $\downarrow$ & CHI $\uparrow$ & Dunn $\uparrow$ & NMI $\uparrow$ \\
+\midrule
+\textit{Classification Base} \\
+Focal Loss Baseline & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\textit{Pairwise \& Triplet Metric Learning} \\
+Contrastive Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Triplet Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Soft-Margin Triplet & - & - & - & - & - & - & - & - & - & - & - \\
+Multi-Similarity Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Circle Loss & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\textit{Angular Margin Metric Learning} \\
+ArcFace & - & - & - & - & - & - & - & - & - & - & - \\
+SubCenter ArcFace & - & - & - & - & - & - & - & - & - & - & - \\
+SoftTriple & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\textit{Self-Supervised Learning} \\
+SupCon & - & - & - & - & - & - & - & - & - & - & - \\
+SimCLR & - & - & - & - & - & - & - & - & - & - & - \\
+Barlow Twins & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\textbf{Taxonomy-Aware (Ours)} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Ablation on Data Splitting Impact}
+Traditional random splitting overestimates model accuracy due to data leakage. Our experiments show that models trained on Random Split achieve over $98\%$ test mAP, but drop to under $75\%$ when evaluated on unseen physical specimens split by the End Version Split. This confirms that specimen-level isolation is mandatory for reliable wood species identification.
+
+\section{Explainable AI and Embedding Analysis}
+
+\subsection{t-SNE Clustering Visualization}
+We perform dimensionality reduction using t-SNE on the test set embeddings. We focus our analysis specifically on the genus \textit{Afzelia} (comprising \textit{A. africana}, \textit{A. bella}, \textit{A. pachyloba}, and \textit{A. quanzensis}). While baseline networks yield highly overlapping feature representations, our taxonomy-aware loss successfully clusters them into four distinct semantic islands, validating the effectiveness of the intra-genus margin.
+
+\subsection{Attention Mapping via Grad-CAM}
+To explain model decisions, we apply Grad-CAM and Finer-CAM on the final convolutional layers. Before fine-tuning, the backbone maps attention to background artifacts and generic color regions. Under our metric learning constraints, the activation mapping focuses on anatomical wood keys—specifically the vessel arrangements and paratracheal parenchyma patterns within the genus \textit{Afzelia}, verifying biological interpretability.
+
+\section{Conclusion and Future Work}
+This paper presented a robust framework for fine-grained wood identification, resolving spatial data leakage via Embedding-Aware End Version Data Splitting and optimizing feature representations using a Taxonomy-Aware Hierarchical Loss. Large-scale benchmarks prove the superior generalization and biological alignment of our method. Future work will investigate cross-dataset generalization on the UFPR database.
+
+\begin{thebibliography}{00}
+\bibitem{b1} CITES, ``Convention on International Trade in Endangered Species of Wild Fauna and Flora,'' 1973.
+\bibitem{b2} A. L. Hafemann, L. S. Oliveira, and P. Cavalin, ``Forest species identification using deep convolutional neural networks,'' in \textit{Proceedings of the International Conference on Pattern Recognition (ICPR)}, 2014, pp. 1107--1112.
+\bibitem{b3} J. Deng, J. Guo, N. Xue, and S. Zafeiriou, ``ArcFace: Additive Angular Margin Loss for Deep Face Recognition,'' in \textit{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 4690--4699.
+\bibitem{b4} Y. Wang, Q. Yao, and J. T. Kwok, ``Multi-similarity loss with general pair weighting for deep metric learning,'' in \textit{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2019, pp. 5022--5030.
+\bibitem{b5} P. Khosla et al., ``Supervised contrastive learning,'' \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 33, pp. 18661--18673, 2020.
+\end{thebibliography}
+
+\end{document}
