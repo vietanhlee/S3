@@ -168,43 +168,64 @@ def main():
 				"test_samples": len(te_df) if 'te_df' in locals() else 0,
 			})
 
-	# 4. Phân tích tìm phương pháp tốt nhất cho từng lớp gỗ
+	# 4. Phân tích tìm phương pháp tốt nhất cho từng lớp gỗ (Phương hướng 1: Cục bộ / Class-wise)
 	df_results = pd.DataFrame(search_records)
 	
-	best_splits = {}
+	best_splits_classwise = {}
 	summary_lines = []
 	summary_lines.append("=" * 90)
-	summary_lines.append(f" BẢNG TỔNG HỢP PHƯƠNG PHÁP CHIA TỐI ƯU NHẤT CHO TỪNG CLASS GỖ")
-	summary_lines.append(f" (Tiêu chí: Nearest-Neighbor Similarity nhỏ nhất)")
+	summary_lines.append(" PHƯƠNG HƯỚNG 1: TỐI ƯU HÓA CỤC BỘ (CLASS-WISE OPTIMIZATION)")
+	summary_lines.append(" (Mỗi class chọn phương pháp chia tối ưu nhất có NN-Similarity nhỏ nhất)")
 	summary_lines.append("=" * 90)
 	summary_lines.append(f"{'Class Name':<30} | {'Best PP':<30} | {'Min NN-Similarity':<20}")
 	summary_lines.append("-" * 90)
 
-	best_split_config = {}
-
+	best_split_config_classwise = {}
 	for label in class_names:
 		class_results = df_results[df_results["class_name"] == label]
-		# Tìm hàng có nearest_neighbor_similarity nhỏ nhất
 		best_row = class_results.loc[class_results["nearest_neighbor_similarity"].idxmin()]
-		
 		best_pp = best_row["pp_name"]
 		min_sim = best_row["nearest_neighbor_similarity"]
 		
-		best_splits[label] = {
-			"pp": best_pp,
-			"similarity": min_sim,
-			"train_samples": int(best_row["train_samples"]),
-			"test_samples": int(best_row["test_samples"]),
-		}
-		
-		# Tạo mapping rút gọn để người dùng dễ copy vào code train_final.py
-		# Ví dụ: "PP2" từ "PP2_Mahalanobis_Iterative"
 		short_pp = best_pp.split("_")[0]
-		best_split_config[label] = short_pp
-
+		best_split_config_classwise[label] = (short_pp, "test", "swin")
 		summary_lines.append(f"{label:<30} | {best_pp:<30} | {min_sim:<20.4f}")
 
 	summary_lines.append("=" * 90)
+	summary_lines.append("\n")
+
+	# 5. Phân tích tìm phương pháp tốt nhất chung cho toàn bộ (Phương hướng 2: Toàn cục / Global Unified)
+	summary_lines.append("=" * 90)
+	summary_lines.append(" PHƯƠNG HƯỚNG 2: TỐI ƯU HÓA TOÀN CỤC (GLOBAL UNIFIED OPTIMIZATION)")
+	summary_lines.append(" (Chọn 1 phương pháp chia duy nhất cho toàn bộ các class để đạt mean NN-Similarity nhỏ nhất)")
+	summary_lines.append("=" * 90)
+	summary_lines.append(f"{'PP Method':<30} | {'Mean NN-Similarity Across All Classes':<45}")
+	summary_lines.append("-" * 90)
+
+	global_pp_results = []
+	for pp_name in PP_METHODS.keys():
+		pp_rows = df_results[df_results["pp_name"] == pp_name]
+		mean_similarity = pp_rows["nearest_neighbor_similarity"].mean()
+		global_pp_results.append({
+			"pp_name": pp_name,
+			"mean_similarity": mean_similarity
+		})
+		summary_lines.append(f"{pp_name:<30} | {mean_similarity:<45.4f}")
+
+	df_global_pp = pd.DataFrame(global_pp_results)
+	best_global_row = df_global_pp.loc[df_global_pp["mean_similarity"].idxmin()]
+	best_global_pp = best_global_row["pp_name"]
+	min_global_similarity = best_global_row["mean_similarity"]
+
+	summary_lines.append("-" * 90)
+	summary_lines.append(f"-> PHƯƠNG PHÁP TOÀN CỤC TỐT NHẤT: {best_global_pp} (Mean Similarity: {min_global_similarity:.4f})")
+	summary_lines.append("=" * 90)
+
+	best_split_config_global = {}
+	short_global_pp = best_global_pp.split("_")[0]
+	for label in class_names:
+		best_split_config_global[label] = (short_global_pp, "test", "swin")
+
 	summary_str = "\n".join(summary_lines)
 	print("\n" + summary_str)
 
@@ -212,16 +233,27 @@ def main():
 	with open(output_base / "best_splits_search_report.txt", "w", encoding="utf-8") as f:
 		f.write(summary_str)
 	
-	# Lưu cấu hình dạng JSON rút gọn phục vụ tích hợp thẳng vào code
-	with open(output_base / "optimal_split_config.json", "w", encoding="utf-8") as f:
-		json.dump(best_split_config, f, indent=4, ensure_ascii=False)
+	# Lưu cấu hình Class-wise dạng Dict rút gọn
+	with open(output_base / "optimal_split_config_classwise.json", "w", encoding="utf-8") as f:
+		f.write("{\n")
+		for k, v in best_split_config_classwise.items():
+			f.write(f'\t\t"{k}": ("{v[0]}", "{v[1]}", "{v[2]}"),\n')
+		f.write("\t}\n")
+
+	# Lưu cấu hình Global dạng Dict rút gọn
+	with open(output_base / "optimal_split_config_global.json", "w", encoding="utf-8") as f:
+		f.write("{\n")
+		for k, v in best_split_config_global.items():
+			f.write(f'\t\t"{k}": ("{v[0]}", "{v[1]}", "{v[2]}"),\n')
+		f.write("\t}\n")
 		
 	# Lưu kết quả toàn bộ 171 tổ hợp để vẽ biểu đồ hoặc phân tích thêm
 	df_results.to_csv(output_base / "all_combinations_results.csv", index=False)
 	
 	print(f"\n[Hoàn tất] Kết quả tìm kiếm đã được ghi nhận tại: {output_base}/")
-	print(f"  - best_splits_search_report.txt -> Báo cáo tổng hợp chi tiết.")
-	print(f"  - optimal_split_config.json      -> File cấu hình tối ưu rút gọn để copy vào SPLIT_CONFIG.")
+	print(f"  - best_splits_search_report.txt -> Báo cáo tổng hợp chi tiết cả 2 phương hướng.")
+	print(f"  - optimal_split_config_classwise.json -> File cấu hình tối ưu cục bộ (class-wise).")
+	print(f"  - optimal_split_config_global.json    -> File cấu hình tối ưu toàn cục (global).")
 	print(f"  - all_combinations_results.csv   -> Bảng dữ liệu thô của cả 171 tổ hợp.")
 
 
