@@ -26,7 +26,7 @@ from timm.data import resolve_data_config
 from sklearn.metrics import classification_report
 
 # ===== CẤU HÌNH =====
-ROOT_DIR = r"/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
+ROOT_DIR = r"/content/drive/MyDrive/S3"
 OUTPUT_BASE_DIR = "outputs_final_v2"
 TRAIN_RATIO = 0.7
 VAL_RATIO = 0.15
