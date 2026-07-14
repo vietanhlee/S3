@@ -1,0 +1,32 @@
+\section{Explainable AI and Embedding Analysis}
+
+\subsection{t-SNE Clustering Visualization}
+Phân tích không gian đặc trưng bằng t-SNE tập trung làm rõ chi gỗ \textit{Afzelia}, bao gồm bốn loài có mức độ tương đồng giải phẫu học cao: \textit{A. africana}, \textit{A. bella}, \textit{A. pachyloba} và \textit{A. quanzensis}. Đây là một nhóm phân loại cực kỳ khó phân biệt do cấu trúc hình thái mạch gỗ và tia gỗ của chúng gần như giống hệt nhau. Đối với mô hình phân loại truyền thống hoặc các hàm loss học khoảng cách thông thường, đặc trưng nhúng của bốn loài gỗ này thường bị chồng lấn rất mạnh, tạo nên các vùng phân bố mơ hồ và dễ gây nhầm lẫn. Sau khi tối ưu hóa không gian nhúng bằng các phương pháp học khoảng cách sâu đề xuất, kết quả kỳ vọng là các mẫu gỗ vẫn duy trì phân nhóm chung cấp chi nhưng tự động tách thành bốn cụm loài riêng biệt rõ rệt, chứng minh khả năng trích xuất các đặc trưng mịn siêu vi mô của mô hình (Hình \ref{fig:tsne_comparison}).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{fig/tsne_comparison.png}
+\caption{t-SNE visualization comparing embedding spaces of the baseline model vs. DML optimized representations for the genus \textit{Afzelia}.}
+\label{fig:tsne_comparison}
+\end{figure}
+
+\subsection{Grad-CAM Attention Mapping}
+Các phương pháp trực quan hóa bản đồ chú ý như Grad-CAM và Finer-CAM được áp dụng để phân tích các vùng điểm ảnh mà mô hình tập trung quan sát khi đưa ra quyết định phân loại loài gỗ. Trước khi thực hiện tinh chỉnh (fine-tuning), mạng cơ sở thường chỉ chú ý vào các thông tin thô như màu sắc tổng thể, vùng nền ảnh hoặc các chi tiết tạp chất trên bề mặt lát cắt. Sau khi tối ưu hóa bằng các hàm loss học khoảng cách sâu, bản đồ kích hoạt chú ý của mô hình dịch chuyển rõ rệt về các cấu trúc giải phẫu sinh học quan trọng của thớ gỗ (như hình dạng lỗ mạch, mật độ phân bố nhu mô quanh mạch, hướng đi của tia gỗ và cấu trúc sợi gỗ). Việc tập trung sự chú ý vào các marker giải phẫu này giúp khẳng định mô hình đã học được các tri thức khoa học thực sự có tính diễn giải sinh học, thay vì dựa vào các đặc trưng lối tắt phi bản chất để đạt accuracy cao (Hình \ref{fig:grad_cam}).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{fig/grad-cam.png}
+\caption{Grad-CAM and Finer-CAM activation maps showing attention shifts from background shortcuts to biological anatomical keys (vessels and parenchyma).}
+\label{fig:grad_cam}
+\end{figure}
+
+\subsection{Embedding Distance Distribution}
+Biểu đồ phân phối khoảng cách (distance distribution) của không gian nhúng biểu diễn khoảng cách Euclid giữa các cặp mẫu thuộc cùng loài (intra-class) và khác loài (inter-class) (Hình \ref{fig:distance_distribution}). Kết quả kỳ vọng sau khi tối ưu hóa là khoảng cách intra-class giảm đáng kể (đẩy các mẫu cùng loài lại gần nhau) và khoảng cách inter-class tăng lên (đẩy các loài khác nhau ra xa), thiết lập một biên phân tách khoảng cách rõ rệt.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{fig/distance_distribution.png}
+\caption{Euclidean distance distribution of intra-class vs. inter-class embedding pairs before and after deep metric learning optimization.}
+\label{fig:distance_distribution}
+\end{figure}
+

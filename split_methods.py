@@ -1255,6 +1255,7 @@ def stratified_group_kfold_split(
 # ============================================================
 
 SPLIT_METHODS = {
+	"PP1_Mahalanobis_Fixed": mahalanobis_fixed_split,
 	"PP2_Mahalanobis_Iterative": mahalanobis_iterative_split,
 	"PP4_Hierarchical_Clustering": hierarchical_clustering_split,
 	"PP5_Cosine_Graph": cosine_graph_split,

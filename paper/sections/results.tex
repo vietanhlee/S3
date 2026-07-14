@@ -1,0 +1,126 @@
+\section{Results and Discussion}
+
+\subsection{Quantitative Performance Evaluation}
+Để thiết lập mức hiệu năng so sánh cơ sở (baseline), chúng tôi tiến hành đánh giá chi tiết trên từng lớp gỗ đối với mô hình phân loại sử dụng mạng xương sống (backbone) ConvNeXt-Tiny tinh chỉnh trực tiếp bằng hàm lỗi entropy chéo. Kết quả báo cáo phân loại chi tiết trên tập kiểm thử được trình bày trong Bảng \ref{tab:baseline_report}. Nhìn chung, mô hình cơ sở đạt độ chính xác (accuracy) tổng thể là $80.28\%$, với điểm F1-Macro trung bình đạt $76.77\%$. Tuy nhiên, có sự chênh lệch hiệu năng rất lớn giữa các lớp gỗ: trong khi các loài như \textit{Peltogyne pubescens} đạt điểm số tuyệt đối $1.00$ F1-score, loài \textit{Afzelia bella} chỉ đạt $0.026$ F1-score. Điều này cho thấy ranh giới phân biệt rất hẹp giữa các loài trong cùng một chi (ví dụ chi \textit{Afzelia}) và thách thức nghiêm trọng của hiện tượng dịch chuyển phân phối ở cấp mẫu vật khi áp dụng giao thức cô lập nghiêm ngặt.
+
+\begin{table}[htbp]
+\centering
+\caption{Species-wise classification report of the baseline classifier on the test set (CEGS-Split)}
+\label{tab:baseline_report}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Species} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Support} \\
+\midrule
+\textit{Afzelia africana} & 0.5833 & 0.5185 & 0.5490 & 54 \\
+\textit{Afzelia bella} & 0.0270 & 0.0250 & 0.0260 & 40 \\
+\textit{Afzelia pachyloba} & 0.2500 & 0.2955 & 0.2708 & 44 \\
+\textit{Afzelia quanzensis} & 0.6628 & 1.0000 & 0.7972 & 57 \\
+\textit{Dalbergia cochinchinensis} & 0.9028 & 0.9286 & 0.9155 & 70 \\
+\textit{Dalbergia melanoxylon} & 1.0000 & 0.9636 & 0.9815 & 55 \\
+\textit{Dalbergia oliveri} & 0.9118 & 1.0000 & 0.9538 & 62 \\
+\textit{Dalbergia rimosa} & 0.8571 & 1.0000 & 0.9231 & 30 \\
+\textit{Dalbergia tonkinensis} & 0.9565 & 0.7333 & 0.8302 & 30 \\
+\textit{Guibourtia arnoldiana} & 1.0000 & 0.5588 & 0.7170 & 34 \\
+\textit{Guibourtia coleosperma} & 1.0000 & 0.9861 & 0.9930 & 72 \\
+\textit{Guibourtia ehie} & 0.4906 & 0.6500 & 0.5591 & 40 \\
+\textit{Peltogyne pubescens} & 1.0000 & 1.0000 & 1.0000 & 110 \\
+\textit{Pterocarpus erinaceus} & 0.7882 & 1.0000 & 0.8816 & 67 \\
+\textit{Pterocarpus indicus} & 1.0000 & 0.6034 & 0.7527 & 58 \\
+\textit{Pterocarpus macrocarpus} & 1.0000 & 0.6667 & 0.8000 & 51 \\
+\textit{Pterocarpus soyauxii} & 0.8209 & 1.0000 & 0.9016 & 55 \\
+\textit{Sindora cochinchinensis} & 0.9474 & 0.7129 & 0.8136 & 101 \\
+\textit{Sindora tonkinensis} & 0.8537 & 1.0000 & 0.9211 & 35 \\
+\midrule
+\textbf{Accuracy} & \multicolumn{2}{c}{---} & 0.8028 & 1065 \\
+\textbf{Macro Avg} & 0.7922 & 0.7707 & 0.7677 & 1065 \\
+\textbf{Weighted Avg} & 0.8250 & 0.8028 & 0.8015 & 1065 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Ma trận nhầm lẫn (confusion matrix) chi tiết trên tập kiểm thử được mô tả trong Hình \ref{fig:confusion_matrix}, cho thấy rõ mức độ nhầm lẫn tập trung chủ yếu giữa các loài trong cùng một chi (ví dụ các loài thuộc chi \textit{Afzelia}).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{fig/confusion_matrix_test.png}
+\caption{Confusion matrix of the baseline classifier on the test set under CEGS-Split.}
+\label{fig:confusion_matrix}
+\end{figure}
+
+Bảng \ref{tab:main_results} trình bày khung báo cáo kết quả thực nghiệm chính của các phương pháp học biểu diễn đặc trưng trên tập kiểm thử. Khi cập nhật số liệu thực nghiệm thực tế, mỗi phương pháp cần được báo cáo đồng thời theo hai chỉ số macro average (macro average) và harmonic mean (harmonic mean) để phản ánh rõ nét cả hiệu năng tổng thể lẫn độ công bằng, ổn định của mô hình đối với các loài gỗ hiếm hoặc có độ khó phân loại cao.
+
+\begin{table*}[htbp]
+\centering
+\caption{Performance Comparison of Representation Learning Methods on the Test Set (CEGS-Split)}
+\label{tab:main_results}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{2}{c}{\textbf{Recall@1 (\%)}} & \multicolumn{2}{c}{\textbf{Precision@1 (\%)}} & \multicolumn{2}{c}{\textbf{mAP (\%)}} & \multicolumn{5}{c}{\textbf{Clustering Metrics}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-12}
+& Macro & Harmonic & Macro & Harmonic & Macro & Harmonic & Silhouette $\uparrow$ & DBI $\downarrow$ & CHI $\uparrow$ & Dunn $\uparrow$ & NMI $\uparrow$ \\
+\midrule
+\multicolumn{12}{l}{\textit{Classification Base}} \\
+Focal Loss Baseline & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\multicolumn{12}{l}{\textit{Pairwise \& Triplet Metric Learning}} \\
+Contrastive Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Hard Contrastive Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Triplet Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Semi-hard Triplet Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Soft-Margin Triplet & - & - & - & - & - & - & - & - & - & - & - \\
+Lifted Structured Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Multi-Similarity Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Circle Loss & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\multicolumn{12}{l}{\textit{Angular Margin and Proxy-based Learning}} \\
+Angular Loss & - & - & - & - & - & - & - & - & - & - & - \\
+Proxy Anchor & - & - & - & - & - & - & - & - & - & - & - \\
+ArcFace & - & - & - & - & - & - & - & - & - & - & - \\
+SubCenter ArcFace & - & - & - & - & - & - & - & - & - & - & - \\
+SoftTriple & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\multicolumn{12}{l}{\textit{Self-Supervised Learning}} \\
+SupCon & - & - & - & - & - & - & - & - & - & - & - \\
+SimCLR & - & - & - & - & - & - & - & - & - & - & - \\
+BYOL & - & - & - & - & - & - & - & - & - & - & - \\
+SimSiam & - & - & - & - & - & - & - & - & - & - & - \\
+Barlow Twins & - & - & - & - & - & - & - & - & - & - & - \\
+\midrule
+\textbf{Proposed CEGS-Split (Ours)} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Ablation on Data Splitting Impact}
+Để định lượng tác động của rò rỉ dữ liệu, chúng tôi so sánh Random Split với CEGS-Split bằng một giao thức KNN trên embedding Swin-Large. Random Split được chạy trên ba seed $(42,123,456)$, trong khi CEGS-Split dùng cấu hình class-wise đã chọn. Các chỉ số gồm KNN test accuracy, F1-Macro, F1-Weighted, mean cosine similarity và max cosine similarity giữa train-test. Mean cosine similarity phản ánh mức gần trung bình giữa ảnh test và không gian train; max cosine similarity đặc biệt quan trọng vì nó phát hiện các test sample có láng giềng gần bất thường trong train, một dấu hiệu của near-duplicate hoặc rò rỉ ngữ nghĩa.
+
+\begin{table*}[htbp]
+\centering
+\caption{Detailed runs and comparison of Random Split vs. CEGS-Split (KNN evaluation on Swin-Large embeddings)}
+\label{tab:split_ablation}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccccccc}
+\toprule
+\textbf{Split Method} & \textbf{Seed} & \textbf{KNN Acc.} & \textbf{F1-Macro} & \textbf{F1-Weighted} & \textbf{Mean CosSim} & \textbf{Max CosSim} & \textbf{Train Size} & \textbf{Test Size} \\
+\midrule
+Random & 42 & 0.9522 & 0.9343 & 0.9495 & 0.5678 & 0.9139 & 3900 & 1026 \\
+Random & 123 & 0.9429 & 0.9390 & 0.9426 & 0.5754 & 0.9173 & 3963 & 1015 \\
+Random & 456 & 0.9793 & 0.9745 & 0.9792 & 0.5758 & 0.9171 & 3895 & 1064 \\
+CEGS-Split & 42 & 0.9087 & 0.8858 & 0.9062 & 0.5711 & 0.8999 & 4151 & 1041 \\
+\midrule
+Random (avg) & --- & $0.9581 \pm 0.0155$ & $0.9493 \pm 0.0179$ & $0.9571 \pm 0.0159$ & $0.5730 \pm 0.0037$ & $0.9161 \pm 0.0015$ & --- & --- \\
+CEGS-Split (avg) & --- & $0.9087 $ & $0.8858 $ & $0.9062 $ & $0.5711 $ & $0.8999 $ & --- & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+Kết quả thực nghiệm ở Bảng \ref{tab:split_ablation} cho thấy Random Split đạt accuracy KNN trung bình là $0.9581$, cao hơn giao thức CEGS-Split ($0.9087$) một khoảng $0.0494$ (tương đương mức đánh giá quá cao hiệu năng thực tế là $4.94\%$). Chỉ số F1-Macro cũng sụt giảm đáng kể từ $0.9493$ xuống $0.8858$ khi chuyển đổi sang giao thức cô lập cấp mẫu vật vật lý, chứng minh rằng sự sụt giảm hiệu năng không chỉ xảy ra ở các loài gỗ phổ biến mà còn ảnh hưởng trực tiếp đến accuracy và tính công bằng ở các loài gỗ hiếm. Đồng thời, Random Split ghi nhận cosine similarity trung bình cao hơn CEGS-Split $0.0019$ và cosine similarity lớn nhất cao hơn $0.0162$ ($0.9161$ so với $0.8999$). Điều này chỉ ra rằng tập kiểm thử của phép chia ngẫu nhiên có xu hướng nằm quá gần tập huấn luyện trong không gian đặc trưng biểu diễn, dẫn đến việc mô hình hoặc bộ phân loại KNN dễ dàng đạt điểm số cao nhờ học thuộc lòng các đặc trưng lối tắt từ các ảnh có cùng nguồn gốc tiêu bản gỗ. Do đó, giao thức CEGS-Split thiết lập một môi trường đánh giá khách quan, khó khăn hơn nhưng phản ánh chính xác khả năng ứng dụng thực tế trên các khúc gỗ hoàn toàn mới.
+
+\subsection{Ablation Study on Model Components}
+Các thực nghiệm loại bỏ thành phần (ablation study) dự kiến bao gồm việc đánh giá sự thay đổi hiệu năng khi thay thế cấu trúc mạng trích xuất đặc trưng cơ sở (ResNet-50, EfficientNetV2-S, ConvNeXt-Tiny, Swin-Tiny và DINOv2-ViT-S/14); thay đổi số chiều không gian nhúng ($64, 128, 256, 512$); thay đổi tỷ lệ đóng băng lớp mạng ($0\%, 50\%, 75\%, 90\%, 100\%$); và so sánh chéo giữa các hàm loss cốt lõi như Triplet, ArcFace, Multi-Similarity và SupCon. Kết quả thực nghiệm nên được trình bày dưới dạng giá trị trung bình kèm standard deviation (mean $\pm$ standard deviation) thu được trên nhiều lượt huấn luyện ngẫu nhiên khác nhau, kết hợp sử dụng các phép kiểm định thống kê cặp (như paired t-test hoặc Wilcoxon signed-rank test) để đảm bảo các cải tiến hiệu năng có ý nghĩa thống kê thực sự chứ không phải do nhiễu thực nghiệm.
+
