@@ -1,19 +1,72 @@
-\section{Proposed Methodology}
+\section{Proposed Specimen-Centric Data Protocol (SCDP)}
 
 \subsection{Overall Framework}
-Quy trình nghiên cứu đề xuất gồm sáu bước chính. Thứ nhất, dữ liệu S3 được chuẩn hóa hình ảnh và loại bỏ các mẫu không có nhãn định danh cụ thể ở cấp loài. Thứ hai, các hình ảnh được nhóm theo thư mục con (subfolder) đại diện cho mẫu vật lý. Thứ ba, các đặc trưng biểu diễn ban đầu được trích xuất bằng mạng trích xuất đặc trưng cơ sở (backbone) mạnh như EfficientNetV2-M hoặc Swin-Large để lập bản đồ phân bố ngữ nghĩa của từng mẫu vật. Thứ tư, giao thức CEGS-Split tự động chọn phương pháp phân chia dữ liệu tối ưu cho từng loài gỗ nhằm thiết lập các tập huấn luyện (train), kiểm định (validation) và kiểm thử (test) cô lập mẫu vật lý, đảm bảo chống rò rỉ dữ liệu. Thứ năm, mạng ConvNeXt-Tiny được tinh chỉnh (fine-tune) kết hợp với bộ đầu chiếu (projection head) phi tuyến để học biểu diễn đặc trưng nhúng 256 chiều. Thứ sáu, mô hình được đánh giá toàn diện bằng các phép truy xuất hình ảnh (retrieval), thuật toán phân cụm (clustering), trực quan hóa giảm chiều t-SNE và bản đồ kích hoạt chú ý Grad-CAM/Finer-CAM.
+SCDP là một protocol cho các bài toán mà một thực thể vật lý sinh ra nhiều quan sát ảnh tương quan. Protocol gồm năm pha theo thứ tự: (i) xác định đơn vị nguồn và kế hoạch thu thập; (ii) lưu trữ có truy vết; (iii) thực hiện data audit; (iv) thực hiện group-disjoint split và đóng băng (freeze) tập test; và (v) training, model selection và reporting. Thứ tự này có ý nghĩa phương pháp luận: thông tin nguồn gốc phải tồn tại trước khi dữ liệu được split, và không được suy diễn ngược từ kết quả mô hình.
+
+Trong bài toán nhận diện loài gỗ, dữ liệu hình ảnh thường được thu thập và tổ chức theo cấu trúc thư mục phân cấp vật lý: thư mục gốc đại diện cho các loài gỗ khác nhau, và bên dưới mỗi loài chứa các thư mục con (subfolders) chứa hình ảnh chụp macro từ các mẫu gỗ khác nhau. Thông thường, mỗi thư mục con này tương ứng với một mẫu vật vật lý độc lập (specimen) — đơn vị nguồn tối thiểu cần được cô lập hoàn toàn giữa các split để ngăn ngừa rò rỉ thông tin (data leakage). Tuy nhiên, protocol SCDP không mặc nhiên giả định mối tương đương này; sự tương ứng giữa các thư mục con và định danh mẫu vật độc lập (\texttt{specimen\_id}) phải được đối chiếu và xác nhận chính thức trong tệp manifest.
+
+\subsection{Collection, Storage, and Traceability}
+\subsubsection{Data Units and Required Metadata}
+Mỗi mẫu vật được cấp một \texttt{specimen\_id} bất biến. Mỗi lần thu nhận được cấp \texttt{session\_id}, và mỗi tệp ảnh có \texttt{image\_id} cùng đường dẫn hoặc mã băm nội dung. Nhãn loài cần kèm nguồn định danh và mức độ chắc chắn; các mẫu chỉ xác định tới cấp chi không được gộp ngầm vào nhãn loài. Bảng \ref{tab:manifest} mô tả bộ trường tối thiểu. Các trường này cho phép tái tạo split mà không phụ thuộc vào tên tệp hay cấu trúc thư mục cục bộ.
+
+\begin{table}[htbp]
+\centering
+\caption{Minimum fields of the traceable manifest.}
+\label{tab:manifest}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{p{0.30\columnwidth}p{0.62\columnwidth}}
+\toprule
+\textbf{Field group} & \textbf{Content and purpose} \\
+\midrule
+Identifiers & \texttt{image\_id}, \texttt{specimen\_id}, \texttt{session\_id}, path, and content hash; defines the one-image-one-source relation. \\
+Biological identity & Standardized species name, identification level, expert source, confirmation date, and uncertainty flag. \\
+Acquisition & Device, magnification, section plane, capture location, lighting condition, and collector or collection protocol. \\
+Governance & Dataset version, validation status, exclusion reason, \texttt{split\_id}, and seed after the split is frozen. \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Về tổ chức, ảnh gốc được lưu bất biến; các ảnh đã chuẩn hóa, crop hoặc tăng cường được tạo dẫn xuất từ ảnh gốc và không thay thế ảnh nguồn. Một cấu trúc thư mục khả dụng là \texttt{raw/specimen\_id/session\_id/image\_id} kết hợp với một manifest dạng CSV hoặc Parquet ở dataset level. Cấu trúc thư mục giúp thao tác thuận tiện, trong khi manifest là nguồn chân lý cho nhãn và provenance/origin relation. Việc này tránh suy luận \texttt{specimen\_id} chỉ từ quy ước đặt tên vốn dễ bị thay đổi theo thời gian.
+
+\subsubsection{Audit Before Split}
+Trước khi tạo tập train, SCDP thực hiện bốn bước audit. Thứ nhất, kiểm tra schema bảo đảm mọi ảnh có định danh, nhãn và trạng thái hợp lệ. Thứ hai, kiểm tra group integrity bảo đảm một \texttt{specimen\_id} không mang các nhãn mâu thuẫn, trừ trường hợp được gắn cờ để chuyên gia xem xét. Thứ ba, perceptual hash và image similarity được dùng để phát hiện ảnh trùng, ảnh crop lại hoặc ảnh xuất hiện dưới nhiều tên. Thứ tư, thống kê số specimen và số ảnh theo loài để xác định các class không đủ số nhóm cho train--validation--test.
+
+Các bước audit này phân biệt hai tình huống. Ảnh giống nhau do cùng mẫu vật là lỗi phân chia nếu chúng ở các split khác nhau. Ảnh giống nhau do hai mẫu vật khác nhau có thể là biến thiên sinh học hợp lệ, nhưng vẫn cần được lưu ý khi diễn giải độ khó của benchmark. Không có kiểm tra embedding nào thay thế được thông tin nguồn gốc được quản lý tốt.
 
 \subsection{Embedding-Aware Class-wise Specimen Split (CEGS-Split)}
-Với mỗi thư mục con $S_j$, đặc trưng nhúng đại diện được tính bằng trọng tâm (centroid) của các hình ảnh thuộc thư mục con đó:
+\subsubsection{Allocation Constraints}
+Sau khi manifest được audit, CEGS-Split thực hiện split ở cấp mẫu vật (specimen level). Với biến nhị phân $a_{j,t}$ chỉ việc gán mẫu vật $S_j$ vào tập $t\in\{\mathrm{train},\mathrm{val},\mathrm{test}\}$, ràng buộc chính là
 \begin{equation}
-E_j=\frac{1}{|S_j|}\sum_{x_i\in S_j} e_i,
+\sum_t a_{j,t}=1,\qquad \forall S_j\in\mathcal{S}.
+\label{eq:one_split}
 \end{equation}
-trong đó $e_i\in\mathbb{R}^{D}$ là vector đặc trưng của hình ảnh $x_i$. Nếu số chiều quá lớn so với số lượng thư mục con, thuật toán phân tích thành phần chính (PCA) được áp dụng để giảm chiều về $d'=\min(G-2,128)$ nhằm ổn định việc ước lượng ma trận hiệp phương sai và giảm thiểu hiện tượng quá khớp do số chiều lớn (curse of dimensionality).
+Kết hợp với ánh xạ từ ảnh sang mẫu vật, (\ref{eq:one_split}) bảo đảm điều kiện rời nhau ở (\ref{eq:group_disjoint}). Với mỗi loài $c$, số ảnh hoặc số mẫu vật trong tập $t$ được giữ gần tỷ lệ định trước $p_t$:
+\begin{equation}
+\left|n_{c,t}-p_t n_c\right|\leq \delta_c,
+\label{eq:class_balance}
+\end{equation}
+trong đó $n_{c,t}$ là số đơn vị được chọn để cân bằng, $n_c$ là tổng số specimen của loài $c$, và $\delta_c$ phản ánh tính rời rạc do số mẫu vật có hạn. Khi số specimens của một loài quá ít, protocol ưu tiên báo cáo giới hạn đó thay vì tách ảnh của một mẫu vật để đạt tỷ lệ giả định.
 
-Giao thức CEGS-Split hoạt động bằng cách quét qua một không gian các chiến lược phân chia tiềm năng (gồm các nhóm phương pháp chính: Mahalanobis distance, Hierarchical Clustering, phân nhóm có phân tầng và phân cụm phân tầng) để xác định thuật toán phù hợp nhất cho từng loài gỗ cụ thể. Trong đó, bốn chiến lược phân chia cốt lõi được phát triển nhằm duy trì tính cô lập thư mục con nghiêm ngặt ở các mức độ hình học và phân phối khác nhau. Phép phân chia ngẫu nhiên có phân tầng đóng vai trò phương pháp đối chiếu cơ sở (baseline) để so sánh hiệu năng, còn các phương pháp còn lại đều cố gắng giữ tính cô lập mẫu vật lý ở các mức độ khác nhau nhằm triệt tiêu rò rỉ thông tin. Phương pháp CEGS-Split tự động chọn phương pháp phân chia tối ưu theo từng loài thay vì áp dụng một quy tắc cứng nhắc duy nhất cho toàn bộ bộ dữ liệu.
+\subsubsection{Specimen-Level Representation}
+Để kiểm tra cấu trúc hình ảnh ngoài metadata, CEGS-Split dùng bộ trích xuất feature tham chiếu $f_0$ đã đóng băng (frozen backbone) và không được tinh chỉnh bằng nhãn của dataset đích. Với ảnh $x_i$, embedding chuẩn hóa là
+\begin{equation}
+z_i=\frac{f_0(x_i)}{\|f_0(x_i)\|_2}.
+\end{equation}
+Đại diện của mẫu vật $S_j$ (specimen centroid) là trung bình của các embedding ảnh:
+\begin{equation}
+h_j=\frac{1}{|S_j|}\sum_{x_i\in S_j}z_i.
+\label{eq:specimen_centroid}
+\end{equation}
+Nếu cần ước lượng hiệp phương sai với số specimens nhỏ, PCA chỉ được fit trên development set và số chiều được giới hạn để tránh ma trận suy biến.
 
-\subsubsection{Mahalanobis Distance-based Split}
-Chiến lược này xem các mẫu vật ở xa trọng tâm (centroid) của lớp là các mẫu dị biệt (outlier) về mặt ngữ nghĩa và đưa chúng vào tập kiểm thử hoặc kiểm định nhằm thử nghiệm giới hạn (stress-test) khả năng tổng quát hóa của mô hình. Với tập mẫu chưa phân bổ $U$, centroid $\mu_U$ và hiệp phương sai $\Sigma_U$ được xác định bởi:
+\subsubsection{Allocation Strategies and Selection Criteria}
+CEGS-Split triển khai bốn chiến lược ở group level: (i) \emph{Mahalanobis stratification}, phân tầng mẫu vật theo độ điển hình đối với phân bố của loài; (ii) \emph{hierarchical allocation}, giữ nguyên các cụm mẫu vật gần nhau khi phân bổ; (iii) \emph{stratified group allocation}, tối ưu cân bằng loài; và (iv) \emph{agglomerative stratified allocation}, kết hợp cụm với cân bằng các distance bands. Mọi chiến lược đều phải thỏa (\ref{eq:one_split}); chúng khác nhau ở cách xử lý class imbalance và multi-modal structure trong từng loài.
+
+Chiến lược được chọn bằng tiêu chí đã xác định trước trên development set, gồm sai lệch cân bằng theo (\ref{eq:class_balance}), số specimens tối thiểu của mỗi loài, độ ổn định qua các seed và các embedding audit metrics. Không chọn split chỉ để làm kết quả nhận diện cao hơn hoặc thấp hơn. Sau khi chọn seed và cấu hình, manifest split được đóng băng trước khi training target model; mọi thay đổi sau đó phải tạo một phiên bản benchmark mới.
+
+\paragraph{(i) Mahalanobis Distance-based Split:}
+Chiến lược này xem các mẫu vật ở xa trọng tâm (centroid) của lớp là các mẫu dị biệt (outlier) về mặt ngữ nghĩa và ưu tiên đưa chúng vào tập test hoặc validation. Với tập mẫu chưa phân bổ $U$, centroid $\mu_U$ và hiệp phương sai $\Sigma_U$ được xác định bởi:
 \begin{equation}
 \mu_U=\frac{1}{|U|}\sum_{j\in U} z_j,
 \end{equation}
@@ -24,10 +77,10 @@ Khoảng cách Mahalanobis của mẫu $j$ đến centroid hiện tại là:
 \begin{equation}
 d_{\text{Mahal}}(z_j,\mu_U)=\sqrt{(z_j-\mu_U)^T\Sigma_U^{-1}(z_j-\mu_U)}.
 \end{equation}
-Tại mỗi vòng lặp, mẫu ở xa nhất $j^*=\arg\max_{j\in U}d_{\text{Mahal}}(z_j,\mu_U)$ được đưa vào tập kiểm thử hoặc kiểm định dựa trên kích thước yêu cầu, các mẫu còn lại được giữ lại làm dữ liệu huấn luyện.
+Tại mỗi vòng lặp, mẫu ở xa nhất $j^*=\arg\max_{j\in U}d_{\text{Mahal}}(z_j,\mu_U)$ được chọn theo dung lượng còn thiếu của tập đích, còn các mẫu khác được giữ lại cho vòng sau.
 
-\subsubsection{Hierarchical Clustering-based Split}
-Chiến lược này phát hiện các nhóm mẫu vật tự nhiên trong cùng một loài bằng thuật toán Hierarchical Clustering liên kết tích tụ (Agglomerative Hierarchical Clustering) với tiêu chí liên kết Ward. Số lượng cụm tối ưu $K^*$ được xác định bằng phương pháp khuỷu tay (elbow method) áp dụng trên tổng bình phương khoảng cách trong cụm (Within-Cluster Sum of Squares - WCSS):
+\paragraph{(ii) Hierarchical Clustering-based Split:}
+Chiến lược này phát hiện các nhóm mẫu vật tự nhiên trong cùng một loài bằng Agglomerative Hierarchical Clustering với Ward linkage. Số lượng cụm tối ưu $K^*$ được xác định bằng phương pháp khuỷu tay (elbow method) trên tổng bình phương khoảng cách trong cụm:
 \begin{equation}
 \text{WCSS}(K)=\sum_{k=1}^{K}\sum_{z_j\in\mathcal{C}_k}\|z_j-\mu_{\mathcal{C}_k}\|_2^2.
 \end{equation}
@@ -35,10 +88,10 @@ After scaling $K$ and $\text{WCSS}(K)$ to $[0,1]$, the elbow point is selected b
 \begin{equation}
 K^*=\arg\max_K \frac{|x_K+y_K-1|}{\sqrt{2}}.
 \end{equation}
-Mỗi cụm $\mathcal{C}_k$ được giữ nguyên vẹn khi phân bổ vào tập huấn luyện, kiểm định hoặc kiểm thử. Điều này ngăn các nhóm vân gỗ có cấu trúc bề mặt gần nhau bị chia cắt sang các tập khác nhau, giảm thiểu nguy cơ rò rỉ dữ liệu ở cấp độ cụm (cluster-level leakage).
+Mỗi cụm $\mathcal{C}_k$ được giữ nguyên vẹn khi phân bổ vào tập train, validation hoặc test, nhằm tránh cắt đứt các nhóm vân gỗ có cấu trúc bề mặt gần nhau.
 
-\subsubsection{Stratified Group-based Split}
-Phương pháp phân chia nhóm có phân tầng (Stratified Group Split) tối ưu hóa đồng thời hai ràng buộc: cô lập nhóm mẫu vật và cân bằng phân bố lớp giữa các tập. Gọi $w_{g,c}$ là số lượng ảnh của loài $c$ trong nhóm $g$, số lượng mẫu mục tiêu cho phân chia $f$ là:
+\paragraph{(iii) Stratified Group-based Split:}
+Phương pháp phân chia nhóm có phân tầng tối ưu hóa đồng thời cô lập nhóm mẫu vật và cân bằng phân bố lớp giữa các tập. Gọi $w_{g,c}$ là số lượng ảnh của loài $c$ trong nhóm $g$, số lượng mẫu mục tiêu cho phân chia $f$ là:
 \begin{equation}
 T_{f,c}=\frac{1}{K}\sum_{g=1}^{G}w_{g,c}.
 \end{equation}
@@ -46,14 +99,14 @@ Thuật toán gán tham lam sẽ lựa chọn tập:
 \begin{equation}
 f^*=\arg\min_f \sum_{c=1}^{C}\left(\frac{C_{f,c}+w_{g,c}}{T_{f,c}}-1\right)^2,
 \end{equation}
-trong đó $C_{f,c}$ là số lượng mẫu hiện tại của loài $c$ trong tập $f$. Phương pháp phân chia này phù hợp với các loài gỗ cần ưu tiên sự cân bằng số lượng mẫu giữa các tập để ổn định quá trình tính toán đạo hàm (gradient).
+trong đó $C_{f,c}$ là số lượng mẫu hiện tại của loài $c$ trong tập $f$.
 
-\subsubsection{Agglomerative Stratified Split}
+\paragraph{(iv) Agglomerative Stratified Split:}
 Phương pháp này kết hợp giữa phân cụm đặc trưng và phân chia phân tầng theo khoảng cách hình học. Sau khi gom cụm mẫu vật, khoảng cách từ trọng tâm cụm $\mu_{\mathcal{C}_k}$ đến trọng tâm chung của toàn loài $\mu_{\text{global}}$ được tính bằng:
 \begin{equation}
 d(\mathcal{C}_k) = \sqrt{ D^2(\mu_{\mathcal{C}_k}, \mu_{\text{global}}) },
 \end{equation}
-where:
+Trong đó:
 \begin{equation}
 D^2(\mu_{\mathcal{C}_k}, \mu_{\text{global}}) = (\mu_{\mathcal{C}_k}-\mu_{\text{global}})^T\Sigma_{\text{global}}^{-1}(\mu_{\mathcal{C}_k}-\mu_{\text{global}}).
 \end{equation}
@@ -61,283 +114,62 @@ Các cụm được chia thành ba dải Near, Mid và Far. Khi phân bổ, thu�
 \begin{equation}
 \Delta_s=\max(0,N_s^{\text{target}}-N_s^{\text{current}}),\quad s\in\{\text{train},\text{val},\text{test}\}.
 \end{equation}
-Nhờ đó, cả ba tập huấn luyện, kiểm định và kiểm thử đều chứa đầy đủ các mẫu điển hình, mẫu trung gian và mẫu dị biệt, tránh việc dồn tất cả các mẫu ngoại lai (outlier) vào tập kiểm thử.
+Nhờ đó, cả ba tập train, validation và test đều chứa đầy đủ các mẫu điển hình, mẫu trung gian và mẫu dị biệt.
 
-\subsection{CEGS-Split Configuration}
-CEGS-Split là một cấu hình lai theo từng loài. Thay vì áp dụng một chiến lược duy nhất cho toàn bộ dataset, mỗi loài được gán phương pháp chia phù hợp với đặc điểm sinh học, số lượng subfolder và kết quả phân tích phân bố không gian biểu diễn. Cấu hình này được suy ra từ quy trình tìm kiếm tự động quét các chiến lược chia dữ liệu trên từng lớp, dùng EfficientNetV2-M để tạo embedding phục vụ thuật toán phân hoạch, dùng Swin-Large để đo nearest-neighbor similarity giữa train và test, rồi chọn phương pháp có mean nearest-neighbor similarity nhỏ nhất nhằm giảm thiểu tối đa nguy cơ rò rỉ ngữ nghĩa. Bảng \ref{tab:cegs_split} trình bày cấu hình chi tiết đang được triển khai thực tế.
+\subsubsection{CEGS-Split Optimization and Configuration}
+Để tự động hóa việc tìm kiếm cấu hình phân bổ tối ưu và giảm thiểu rủi ro rò rỉ dữ liệu (data leakage) một cách khách quan nhất, chúng tôi triển khai thuật toán tìm kiếm tối ưu hóa theo loài (Class-wise Optimization). Với mỗi loài gỗ $c$ trong số 19 loài, quy trình tìm kiếm được thực hiện như sau:
+
+Gọi $\mathcal{D}_{\text{train}}^{(m, c)}$ và $\mathcal{D}_{\text{test}}^{(m, c)}$ lần lượt là tập dữ liệu huấn luyện và kiểm thử của loài $c$ thu được khi phân chia bằng phương pháp $m$ (trong số các chiến lược phân bổ được khảo sát). Chúng tôi sử dụng một bộ trích xuất đặc trưng Swin-Large đã đóng băng để thu nhận vector đặc trưng chuẩn hóa $L_2$ ký hiệu là $\mathbf{z}$ của từng ảnh. Độ tương đồng cosine gần nhất (Nearest-Neighbor Cosine Similarity) của một mẫu ảnh kiểm thử $x_i \in \mathcal{D}_{\text{test}}^{(m, c)}$ đối với tập huấn luyện $\mathcal{D}_{\text{train}}^{(m, c)}$ được tính toán bởi:
+\begin{equation}
+s_{\text{NN}}(x_i) = \max_{x_j \in \mathcal{D}_{\text{train}}^{(m, c)}} \frac{\mathbf{z}_i^T \mathbf{z}_j}{\|\mathbf{z}_i\|_2 \|\mathbf{z}_j\|_2}.
+\end{equation}
+Tiêu chí để xác định phương pháp chia tối ưu $m^*$ cho loài gỗ $c$ là cực tiểu hóa giá trị trung bình của độ tương đồng cosine gần nhất này trên toàn bộ tập mẫu kiểm thử:
+\begin{equation}
+m^* = \arg\min_{m} \frac{1}{|\mathcal{D}_{\text{test}}^{(m, c)}|} \sum_{x_i \in \mathcal{D}_{\text{test}}^{(m, c)}} s_{\text{NN}}(x_i).
+\end{equation}
+Phương pháp tối ưu $m^*$ này đại diện cho cấu hình phân chia tạo ra tập kiểm thử thách thức nhất và ít bị rò rỉ thông tin nhất về mặt không gian biểu diễn đặc trưng đối với tập huấn luyện. Kết quả tìm kiếm tối ưu hóa theo loài được trình bày chi tiết trong Bảng \ref{tab:cegs_split}. Quy trình này hoàn toàn tự động dựa trên tiêu chí đo lường tương đồng và không yêu cầu bất kỳ bước điều chỉnh hoặc hoán đổi tập thủ công nào.
 
 \begin{table}[htbp]
 \centering
-\caption{Class-specific configuration of the CEGS-Split protocol}
+\caption{Class-specific optimal split configuration of the CEGS-Split protocol.}
 \label{tab:cegs_split}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{ll}
 \toprule
 \textbf{Species} & \textbf{Split Strategy} \\
 \midrule
-\textit{Afzelia africana} & Stratified Group \\
+\textit{Afzelia africana} & Hierarchical Clustering \\
 \textit{Afzelia bella} & Hierarchical Clustering \\
-\textit{Afzelia pachyloba} & Agglomerative Stratified \\
-\textit{Afzelia quanzensis} & Mahalanobis Iterative \\
-\textit{Dalbergia cochinchinensis} & Agglomerative Stratified \\
-\textit{Dalbergia melanoxylon} & Mahalanobis Iterative \\
-\textit{Dalbergia oliveri} & Stratified Group \\
-\textit{Dalbergia rimosa} & Hierarchical Clustering \\
-\textit{Dalbergia tonkinensis} & Hierarchical Clustering \\
+\textit{Afzelia pachyloba} & Mahalanobis Fixed \\
+\textit{Afzelia quanzensis} & Hierarchical Clustering \\
+\textit{Dalbergia cochinchinensis} & Mahalanobis Fixed \\
+\textit{Dalbergia melanoxylon} & Stratified Group K-Fold \\
+\textit{Dalbergia oliveri} & Mahalanobis Fixed \\
+\textit{Dalbergia rimosa} & Mahalanobis Fixed \\
+\textit{Dalbergia tonkinensis} & Stratified Group K-Fold \\
 \textit{Guibourtia arnoldiana} & Hierarchical Clustering \\
-\textit{Guibourtia coleosperma} & Agglomerative Stratified \\
-\textit{Guibourtia ehie} & Hierarchical Clustering \\
-\textit{Peltogyne pubescens} & Mahalanobis Iterative \\
-\textit{Pterocarpus erinaceus} & Agglomerative Stratified \\
+\textit{Guibourtia coleosperma} & Mahalanobis Fixed \\
+\textit{Guibourtia ehie} & Cosine Graph \\
+\textit{Peltogyne pubescens} & Mahalanobis Fixed \\
+\textit{Pterocarpus erinaceus} & Mahalanobis Fixed \\
 \textit{Pterocarpus indicus} & Agglomerative Stratified \\
 \textit{Pterocarpus macrocarpus} & Hierarchical Clustering \\
-\textit{Pterocarpus soyauxii} & Hierarchical Clustering \\
+\textit{Pterocarpus soyauxii} & Mahalanobis Fixed \\
 \textit{Sindora cochinchinensis} & Mahalanobis Iterative \\
-\textit{Sindora tonkinensis} & Agglomerative Stratified \\
+\textit{Sindora tonkinensis} & Adversarial Validation \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
+\subsubsection{Cross-Split Near-Duplicate Audit}
+Với một mẫu vật test $S_j$, độ tương đồng lớn nhất tới tập train được định nghĩa:
+\begin{equation}
+r_j=\max_{S_k\in\mathcal{S}_{\mathrm{train}}}
+\frac{h_j^\top h_k}{\|h_j\|_2\|h_k\|_2}.
+\label{eq:nn_audit}
+\end{equation}
+Các mẫu có $r_j$ thuộc đuôi cao của phân bố, hoặc có ảnh gần trùng lặp theo perceptual hash, được đưa vào audit list để đối chiếu lại \texttt{specimen\_id}, \texttt{session\_id}, nguồn thu thập và ảnh gốc. Nếu phát hiện cùng nguồn bị gán nhiều định danh, các bản ghi được sửa và split được tái tạo. Nếu nguồn khác nhau nhưng hợp lệ, mẫu được giữ lại và cờ audit được lưu trong manifest. Cách làm này sử dụng embedding như một công cụ audit, không biến độ tương đồng hình ảnh thành định nghĩa của rò rỉ.
 
-Đối với các loài gỗ có phân bổ hoán đổi (Swapped (Val)), kết quả chia tạm thời được điều chỉnh như sau:
-\begin{equation}
-\mathcal{D}_{\text{train}}=\mathcal{D}_{\text{train\_temp}},\quad
-\mathcal{D}_{\text{val}}=\mathcal{D}_{\text{test\_temp}},\quad
-\mathcal{D}_{\text{test}}=\mathcal{D}_{\text{val\_temp}}.
-\end{equation}
-Với các loài có cấu hình tiêu chuẩn (Standard (Test)), kết quả ban đầu được giữ nguyên. Cơ chế này giúp cân bằng độ khó giữa tập kiểm định và tập kiểm thử theo đặc thù của từng loài gỗ, đồng thời vẫn duy trì sự cô lập thư mục con nghiêm ngặt.
-
-\subsection{Feature Backbone and Nonlinear Projection Head}
-Mô hình nhận diện chính sử dụng kiến trúc ConvNeXt-Tiny làm mạng trích xuất đặc trưng cơ sở (backbone). Khoảng $90\%$ các lớp đầu tiên được đóng băng (freeze) để giữ lại các đặc trưng tổng quát học từ tập ImageNet, tránh hiện tượng quá khớp (overfitting) trên các loài gỗ có số lượng mẫu vật hạn chế. Đặc trưng thô $\mathbf{f}\in\mathbb{R}^{768}$ sau đó được đưa qua bộ đầu chiếu (projection head) phi tuyến để tạo đặc trưng nhúng $\mathbf{z}\in\mathbb{R}^{256}$. Đối với bộ đầu chiếu gồm hai tầng liên kết đầy đủ, biểu diễn chuẩn hóa $L_2$ được tính toán như sau:
-\begin{equation}
-\tilde{\mathbf{z}}=W_2\text{ReLU}(W_1\mathbf{f}+b_1)+b_2,
-\end{equation}
-\begin{equation}
-\mathbf{z}=\frac{\tilde{\mathbf{z}}}{\|\tilde{\mathbf{z}}\|_2}.
-\end{equation}
-Do $\|\mathbf{z}\|_2=1$, khoảng cách Euclid giữa hai đặc trưng nhúng liên hệ trực tiếp với cosine similarity (cosine similarity):
-\begin{equation}
-d(\mathbf{z}_a,\mathbf{z}_b)=\|\mathbf{z}_a-\mathbf{z}_b\|_2=\sqrt{2(1-\mathbf{z}_a^T\mathbf{z}_b)}.
-\end{equation}
-
-\subsection{Deep Metric Learning Loss Functions and Baselines}
-Để đánh giá khách quan các hướng học biểu diễn đặc trưng, chúng tôi thực nghiệm đối chiếu 14 hàm loss học khoảng cách trong cùng một quy trình huấn luyện thống nhất về mạng cơ sở, bộ đầu chiếu, tăng cường dữ liệu và giao thức CEGS-Split. Ký hiệu chung: $\mathbf{z}_i\in\mathbb{R}^{D}$ là đặc trưng nhúng đã chuẩn hóa $L_2$, $y_i$ là nhãn loài, $d_{ij}=\|\mathbf{z}_i-\mathbf{z}_j\|_2$ là khoảng cách Euclid, $S_{ij}=\mathbf{z}_i^T\mathbf{z}_j$ là cosine similarity và $[u]_+=\max(0,u)$. Đối với hình ảnh mặt cắt gỗ, các hàm loss này không chỉ được đánh giá bằng accuracy (accuracy) mà còn bằng khả năng xây dựng không gian nhúng có cấu trúc phân cụm ổn định cho các loài gỗ trong cùng chi.
-
-\subsubsection{Standard Triplet Loss}
-Triplet Loss tối ưu hóa mối quan hệ giữa bộ ba mẫu gồm mẫu neo (anchor) $a$, mẫu tích cực (positive) $p$ thuộc cùng loài và mẫu tiêu cực (negative) $n$ thuộc loài khác. Mục tiêu của hàm loss là thu hẹp khoảng cách giữa mẫu neo và mẫu tích cực, đồng thời đẩy mẫu tiêu cực ra xa hơn mẫu neo ít nhất một khoảng biên (margin) $\alpha$:
-\begin{equation}
-L_{\text{triplet}}=\frac{1}{|\mathcal{T}|}\sum_{(a,p,n)\in\mathcal{T}}\left[d(a,p)^2-d(a,n)^2+\alpha\right]_+.
-\end{equation}
-Đây là mô hình đối chiếu nền tảng để kiểm tra liệu mô hình có học được cấu trúc kéo-gần/đẩy-xa cơ bản hay không. Hạn chế của phương pháp này là số lượng bộ ba hợp lệ tăng nhanh theo kích thước lô dữ liệu $O(B^3)$ và phần lớn các bộ ba trong lô dữ liệu (batch) nhanh chóng trở thành bộ ba dễ (có giá trị loss bằng 0). Trên bộ dữ liệu S3, điều này đặc biệt bất lợi do các loài gỗ cùng chi tạo ra các ranh giới phân tách rất khó, trong khi số lượng mẫu trong một lô dữ liệu có thể không đủ đa dạng để tìm được các bộ ba hữu ích.
-
-\subsubsection{Semi-hard Triplet Loss}
-Phương pháp Triplet bán khó (Semi-hard Triplet Loss) lựa chọn các mẫu tiêu cực (negative) không quá dễ nhưng cũng không quá nhiễu. Với một cặp mẫu neo và mẫu tích cực $(a,p)$, mẫu tiêu cực $n$ được chọn nếu thỏa mãn:
-\begin{equation}
-d(a,p)^2<d(a,n)^2<d(a,p)^2+\alpha.
-\end{equation}
-Loss vẫn giữ dạng triplet chuẩn:
-\begin{equation}
-L_{\text{semi-hard}}=\frac{1}{|\mathcal{T}_{sh}|}\sum_{(a,p,n)\in\mathcal{T}_{sh}}\left[d(a,p)^2-d(a,n)^2+\alpha\right]_+.
-\end{equation}
-Cơ chế này giúp ổn định đạo hàm (gradient) hơn so với việc khai thác mẫu khó nhất (hardest mining), do mẫu tiêu cực vẫn nằm ngoài khoảng cách mẫu tích cực một chút, tránh cho mô hình bị ảnh hưởng bởi các mẫu dị biệt (outlier) hoặc nhãn bị nhiễu. Đối với hình ảnh mặt cắt gỗ, cơ chế khai thác mẫu bán khó (semi-hard mining) rất hữu ích khi cần học biên giới phân biệt giữa các loài gỗ gần nhau trong cùng chi \textit{Dalbergia} mà không làm mô hình bị tối ưu quá mức đối với các mẫu bất thường.
-
-\subsubsection{Soft-Margin Triplet Loss}
-Phương pháp Triplet biên mềm (Soft-Margin Triplet) thay thế hàm hinge cứng bằng hàm log-sum-exp mịn:
-\begin{equation}
-L_{\text{soft-triplet}}=\frac{1}{N}\sum_{i=1}^{N}\log\left[1+e^{d(a_i,p_i)^2-d(a_i,n_i)^2}\right].
-\end{equation}
-Khác với hàm loss Triplet truyền thống có biên cố định, hàm này vẫn duy trì một lượng cập nhật đạo hàm nhỏ ngay cả khi mẫu tiêu cực đã ở khoảng cách tương đối an toàn. Điều này làm giảm độ nhạy của mô hình đối với việc chọn siêu tham số biên $\alpha$, giúp quá trình tối ưu hội tụ mượt mà hơn. Trong bối cảnh bộ dữ liệu S3, biên mềm đóng vai trò cầu nối hiệu quả giữa phương pháp đối chiếu Triplet cơ bản và các hàm loss hiện đại, giúp mô hình liên tục tinh chỉnh cấu trúc của không gian nhúng thay vì dừng học sớm khi đã vượt qua biên cứng.
-
-\subsubsection{Angular Loss}
-Hàm loss Angular (Angular Loss) tối ưu hóa quan hệ góc của tam giác được tạo bởi bộ ba mẫu (triplet) thay vì chỉ tối ưu hóa khoảng cách Euclid đơn thuần. Với bộ ba mẫu $(a,p,n)$, hàm loss được xác định như sau:
-\begin{equation}
-L_{\text{angular}}=\frac{1}{|\mathcal{T}|}\sum_{(a,p,n)\in\mathcal{T}}\log\left[1+e^{\Delta_{\theta}(a,p,n)}\right],
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\Delta_{\theta}(a,p,n) = &4\tan^2\alpha(\mathbf{z}_a+\mathbf{z}_p)^T\mathbf{z}_n \\
-&- 2(1+\tan^2\alpha)\mathbf{z}_a^T\mathbf{z}_p.
-\end{aligned}
-\end{equation}
-Do đặc trưng nhúng đã được chuẩn hóa L2, biên góc ít bị ảnh hưởng bởi độ lớn (scale) của vector đặc trưng. Điều này rất phù hợp với hình ảnh gỗ vĩ mô, nơi cùng một cấu trúc thớ gỗ có thể thay đổi cường độ sáng, độ phóng đại hoặc độ ẩm bề mặt, nhưng quan hệ góc trong không gian nhúng vẫn bảo toàn được thông tin phân biệt loài.
-
-\subsubsection{Multi-Similarity Loss}
-Multi-Similarity Loss khai thác đồng thời thông tin từ nhiều cặp tích cực và tiêu cực trong cùng một lô dữ liệu, đồng thời gán trọng số lớn hơn cho các cặp có độ khó cao:
-\begin{equation}
-L_{\text{MS}}=\frac{1}{N}\sum_{i=1}^{N} \left[ \phi^+(P_i) + \phi^-(N_i) \right],
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\phi^+(P_i) &= \frac{1}{\alpha}\log\left[1+\sum_{p\in P_i}e^{-\alpha(S_{ip}-\lambda)}\right], \\
-\phi^-(N_i) &= \frac{1}{\beta}\log\left[1+\sum_{n\in N_i}e^{\beta(S_{in}-\lambda)}\right].
-\end{aligned}
-\end{equation}
-Thành phần tích cực phạt các mẫu cùng loài chưa đủ gần nhau trong không gian đặc trưng; thành phần tiêu cực phạt các mẫu khác loài nhưng lại có cosine similarity lớn. Đây là một trong những hàm loss đối chiếu quan trọng nhất đối với bộ dữ liệu S3, do các loài gỗ khác nhau nhưng cùng chi thường tạo ra các mẫu tiêu cực khó (hard negative) tự nhiên trong thực tế, ví dụ giữa loài \textit{Dalbergia oliveri} và \textit{Dalbergia tonkinensis}.
-
-\subsubsection{Standard Contrastive Loss}
-Contrastive Loss tối ưu hóa khoảng cách trên từng cặp mẫu riêng lẻ. Gọi $q_{ij}=0$ nếu hai mẫu $i, j$ cùng loài ($y_i=y_j$) và $q_{ij}=1$ nếu khác loài ($y_i\ne y_j$), hàm loss được phát biểu:
-\begin{equation}
-L_{\text{contrastive}}=(1-q_{ij})\frac{1}{2}d_{ij}^{2}+q_{ij}\frac{1}{2}[m-d_{ij}]_+^2.
-\end{equation}
-Hàm loss kéo các cặp hình ảnh cùng loài về gần nhau và đẩy các cặp khác loài ra ngoài khoảng biên $m$. Ưu điểm của phương pháp này là trực quan và dễ cài đặt; tuy nhiên, hạn chế lớn là một biên khoảng cách duy nhất được áp dụng chung cho mọi cặp mẫu tiêu cực, không phản ánh được mức độ khó phân biệt khác nhau giữa các loài cùng chi so với các loài thuộc các chi khác nhau.
-
-\subsubsection{Online Hard Contrastive Loss}
-Phương pháp tương phản khai thác mẫu khó trực tuyến (Online Hard Contrastive) tập trung tối ưu hóa trên cặp tích cực xa nhất và cặp tiêu cực gần nhất trong cùng một lô dữ liệu (batch):
-\begin{equation}
-d_{\text{pos\_max}}^i=\max_{p:y_p=y_i,p\ne i}d_{ip},\quad d_{\text{neg\_min}}^i=\min_{n:y_n\ne y_i}d_{in}.
-\end{equation}
-\begin{equation}
-L_{\text{hard-cont}}=\frac{1}{B}\sum_{i=1}^{B}\left[(d_{\text{pos\_max}}^i)^2+[m-d_{\text{neg\_min}}^i]_+^2\right].
-\end{equation}
-Cách tiếp cận này tập trung tài nguyên tính toán đạo hàm vào các vùng ranh giới khó phân tách nhất thay vì các cặp mẫu dễ. Đối với hình ảnh gỗ, nó giúp mô hình tập trung phân biệt các mẫu gỗ có vân tương đồng giữa hai loài khác nhau, nhưng cũng nhạy cảm hơn với các mẫu dị biệt (outlier), ảnh bị nhiễu hoặc nhãn bị gán sai.
-
-\subsubsection{Lifted Structured Loss}
-Lifted Structured Loss mở rộng cơ chế học tương phản bằng cách đồng thời xem xét tất cả các mẫu tiêu cực liên quan đến một cặp mẫu tích cực $(i,j)$:
-\begin{equation}
-L_{\text{lifted}}=\frac{1}{2|P|}\sum_{(i,j)\in P}\left[d_{ij}+\log\left(\Phi(i, j)\right)\right]_+^2,
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\Phi(i, j) = &\sum_{k:y_k\ne y_i}e^{\alpha-d_{ik}} \\
-&+ \sum_{k:y_k\ne y_j}e^{\alpha-d_{jk}}.
-\end{aligned}
-\end{equation}
-Hàm $\log\sum\exp$ đóng vai trò là một xấp xỉ trơn của phép toán lấy giá trị cực đại, do đó các mẫu tiêu cực gần mẫu neo nhất sẽ tự động nhận lực đẩy mạnh nhất. Hàm loss này rất hữu ích để đánh giá hiệu quả của việc tối ưu hóa cấu trúc lô dữ liệu đối với bề mặt gỗ, nơi nhiều loài khác nhau thường có một số mẫu đặc trưng nằm rất gần nhau trong không gian nhúng.
-
-\subsubsection{Circle Loss}
-Circle Loss đề xuất một cách tiếp cận tối ưu hóa độ tương đồng thống nhất, trong đó các mẫu tích cực và tiêu cực được gán các trọng số tự điều chỉnh:
-\begin{equation}
-L_{\text{circle}} = \log \left[ 1 + \Omega_{\text{circle}}(i) \right],
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\Omega_{\text{circle}}(i) = &\sum_{n\in N_i}e^{\gamma\alpha_n(S_{in}-\Delta_n)} \times \\
-&\sum_{p\in P_i}e^{-\gamma\alpha_p(S_{ip}-\Delta_p)},
-\end{aligned}
-\end{equation}
-and:
-\begin{equation}
-\alpha_p=[O_p-S_{ip}]_+, \quad \alpha_n=[S_{in}-O_n]_+.
-\end{equation}
-Mẫu tích cực đã ở đủ gần sẽ nhận trọng số cập nhật nhỏ, trong khi mẫu tiêu cực quá gần sẽ bị đẩy đi rất mạnh. Cơ chế này đặc biệt phù hợp với bài toán phân loại chi tiết (fine-grained), do nó tránh việc tối ưu hóa quá mức trên các loài dễ phân biệt, đồng thời tập trung đạo hàm vào các cặp mẫu thuộc cùng một chi có độ tương đồng cao.
-
-\subsubsection{Proxy Anchor Loss}
-Phương pháp Proxy Anchor thay thế việc so sánh trực tiếp giữa các hình ảnh bằng việc so sánh hình ảnh với các mẫu đại diện (proxy) của từng lớp. Với proxy $p$ đại diện cho một lớp, hàm loss được tính như sau:
-\begin{equation}
-L_{\text{PA}} = \frac{1}{|P^+|}\sum_{p\in P^+}\log \Gamma^+(p) + \frac{1}{|P|}\sum_{p\in P}\log \Gamma^-(p),
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\Gamma^+(p) &= 1+\sum_{\mathbf{z}\in X_p^+}e^{-\alpha(S(\mathbf{z},p)-\delta)}, \\
-\Gamma^-(p) &= 1+\sum_{\mathbf{z}\in X_p^-}e^{\alpha(S(\mathbf{z},p)+\delta)}.
-\end{aligned}
-\end{equation}
-Do số lượng lớp của bộ dữ liệu S3 tương đối nhỏ, phương pháp học dựa trên proxy (proxy-based learning) mang lại chi phí tính toán thấp và dòng đạo hàm ổn định. Ngoài ra, Proxy Anchor giúp giảm thiểu sự phụ thuộc vào cấu trúc thành phần của lô dữ liệu (batch composition) - một ưu điểm quan trọng khi các loài gỗ trong cơ sở dữ liệu có sự mất cân bằng lớn về số lượng ảnh và số lượng thư mục con.
-
-\subsubsection{ArcFace Loss}
-Phương pháp ArcFace (Additive Angular Margin Loss) áp dụng trực tiếp một biên góc cộng (additive angular margin) vào giá trị logit của lớp chính xác:
-\begin{equation}
-\begin{aligned}
-L_{\text{ArcFace}} = -\frac{1}{N}\sum_{i=1}^{N}\log \frac{e^{s\cos(\theta_{y_i}+m)}}{\Lambda_i},
-\end{aligned}
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\Lambda_i = e^{s\cos(\theta_{y_i}+m)} + \sum_{j\ne y_i}e^{s\cos\theta_j}.
-\end{aligned}
-\end{equation}
-Do cả đặc trưng nhúng và ma trận trọng số của lớp đều được chuẩn hóa, ArcFace thiết lập một biên khoảng cách trắc địa (geodesic margin) trên bề mặt siêu cầu đơn vị. Hàm loss này tỏ ra đặc biệt hiệu quả trong bài toán phân loại chi tiết (fine-grained), do nó ép cụm đặc trưng của cùng một lớp co lại trong một vùng góc hẹp và đẩy cụm của các lớp khác ra xa, rất thích hợp với các loài gỗ có sự khác biệt hình thái cực kỳ nhỏ.
-
-\subsubsection{SubCenter ArcFace Loss}
-Phương pháp SubCenter ArcFace mở rộng thuật toán ArcFace bằng cách gán nhiều trọng tâm phụ (sub-center) cho mỗi lớp. Với cấu hình $K$ trọng tâm phụ cho mỗi loài, giá trị logit của lớp chính xác được tính toán dựa trên trọng tâm phụ gần nhất:
-\begin{equation}
-\cos\theta_{y_i}=\max_{k=1}^{K}\frac{\mathbf{z}_i^T W_{y_i}^{(k)}}{\|\mathbf{z}_i\|_2\|W_{y_i}^{(k)}\|_2}.
-\end{equation}
-Sau đó, mô hình áp dụng cùng một biên góc tương tự như ArcFace. Cơ chế đa tâm này rất phù hợp với đặc thù bộ dữ liệu S3, nơi các hình ảnh của một loài gỗ có thể tạo ra phân bố đa đỉnh trong không gian đặc trưng do sự khác biệt giữa gỗ lõi và gỗ giác, tuổi cây hoặc vị trí cắt. Thay vì ép buộc tất cả các biến thể tự nhiên này vào một trọng tâm duy nhất, SubCenter ArcFace cho phép mô hình tự động học các cụm phân bố cấu trúc bề mặt riêng biệt trong cùng một loài gỗ.
-
-\subsubsection{SoftTriple Loss}
-Tương tự, phương pháp SoftTriple cũng sử dụng nhiều trọng tâm đại diện cho mỗi lớp nhưng áp dụng cơ chế gán mềm (soft assignment) thay vì lấy giá trị cực đại:
-\begin{equation}
-S_{i,c}=\sum_{k=1}^{K}\frac{e^{\mathbf{z}_i^T w_c^{(k)}/\gamma}}{\sum_{t=1}^{K}e^{\mathbf{z}_i^T w_c^{(t)}/\gamma}}\mathbf{z}_i^T w_c^{(k)}.
-\end{equation}
-Loss phân loại có margin:
-\begin{equation}
-L_{\text{SoftTriple}}=-\log\frac{e^{\lambda(S_{i,y_i}-\delta)}}{e^{\lambda(S_{i,y_i}-\delta)}+\sum_{c\ne y_i}e^{\lambda S_{i,c}}}.
-\end{equation}
-Cơ chế gán mềm giúp dòng đạo hàm cập nhật đồng thời cho nhiều trọng tâm trong mỗi bước huấn luyện, hạn chế hiện tượng trọng tâm bị cô lập hoặc không được cập nhật (dead center). Đối với hình ảnh gỗ, SoftTriple mang lại ý nghĩa thực tế lớn do các phân nhóm vân gỗ thường không phân tách một cách rõ rệt mà có sự chuyển tiếp liên tục giữa các vùng mô trên mặt cắt.
-
-\subsubsection{Supervised Contrastive Loss (SupCon)}
-Contrastive Loss có giám sát (Supervised Contrastive Loss - SupCon) mở rộng phương pháp SimCLR sang học có giám sát bằng cách coi tất cả các mẫu thuộc cùng một loài trong lô dữ liệu là các mẫu tích cực của nhau:
-\begin{equation}
-L_{\text{SupCon}}=\sum_{i\in I}\frac{-1}{|P(i)|}\sum_{p\in P(i)}\log\frac{e^{\mathbf{z}_i^T\mathbf{z}_p/\tau}}{\sum_{a\in A(i)}e^{\mathbf{z}_i^T\mathbf{z}_a/\tau}}.
-\end{equation}
-SupCon tối ưu hóa việc sắp đặt đặc trưng trên toàn bộ lô dữ liệu và thường tạo ra không gian nhúng có khả năng chuyển giao tốt. Trong bài toán S3, phương pháp này giúp kéo hình ảnh của cùng một loài lại gần nhau bất kể những biến thiên do góc chụp, nhưng vẫn tiềm ẩn nguy cơ đẩy các mẫu có độ tương đồng cao sang hai phía quá mạnh (false-negative repulsion) when two species under the same genus are extremely similar.
-
-\subsection{Self-Supervised Learning Loss Functions}
-Trong học biểu diễn tự giám sát (Self-Supervised Learning - SSL), mô hình thực hiện tối ưu hóa đặc trưng thông qua các biến thể tăng cường ngẫu nhiên của hình ảnh mà không cần sử dụng nhãn lớp giám sát. Phần này trình bày các hàm loss của bốn phương pháp học tự giám sát được khảo sát trong nghiên cứu.
-
-\subsubsection{SimCLR Loss}
-Phương pháp SimCLR (Simple Framework for Contrastive Learning of Visual Representations) tối ưu hóa hàm loss tương phản InfoNCE trên các cặp ảnh tăng cường. Với kích thước lô dữ liệu là $N$, mỗi hình ảnh được tăng cường ngẫu nhiên thành 2 phiên bản (views), tạo thành một lô gồm $2N$ mẫu dữ liệu. Cặp mẫu tích cực (positive pair) là $(i,j)$ gồm hai phiên bản tăng cường khác nhau của cùng một hình ảnh gốc. Hàm loss cho mỗi cặp mẫu tích cực $(i,j)$ được phát biểu:
-\begin{equation}
-\begin{aligned}
-\ell(i, j) = -\log \frac{e^{\mathbf{z}_i^T\mathbf{z}_j/\tau}}{\Omega_i},
-\end{aligned}
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\Omega_i = \sum_{k=1}^{2N} \mathbb{I}_{[k \ne i]} e^{\mathbf{z}_i^T\mathbf{z}_k/\tau}.
-\end{aligned}
-\end{equation}
-trong đó $\tau$ là siêu tham số nhiệt độ (temperature). Hàm loss tổng thể được tính bằng macro average của toàn bộ các cặp mẫu tích cực trong lô dữ liệu:
-\begin{equation}
-L_{\text{SimCLR}} = \frac{1}{2N} \sum_{k=1}^{N} \left[ \ell(2k-1, 2k) + \ell(2k, 2k-1) \right].
-\end{equation}
-
-\subsubsection{BYOL Loss}
-Phương pháp BYOL (Bootstrap Your Own Latent) sử dụng hai mạng nơ-ron song song: mạng học trực tiếp (online network) với tham số $\theta$ và target network với tham số $\xi$. Mạng học trực tiếp có nhiệm vụ dự đoán biểu diễn của mạng mục tiêu từ một phiên bản ảnh khác. BYOL tối ưu hóa sai số bình phương trung bình (MSE) giữa vector dự đoán đã chuẩn hóa của mạng trực tiếp và vector đặc trưng của mạng mục tiêu:
-\begin{equation}
-L_{\text{MSE}}(q_\theta(z_\theta), z'_\xi) = \left\| \bar{q}_\theta - \bar{z}'_\xi \right\|_2^2 = 2 - 2 \bar{q}_\theta^T \bar{z}'_\xi,
-\end{equation}
-where:
-\begin{equation}
-\bar{q}_\theta = \frac{q_\theta(z_\theta)}{\|q_\theta(z_\theta)\|_2},\quad \bar{z}'_\xi = \frac{z'_\xi}{\|z'_\xi\|_2}.
-\end{equation}
-Việc ngăn chặn hiện tượng sụp đổ biểu diễn đặc trưng (representation collapse) được đảm bảo bằng cơ chế dừng cập nhật đạo hàm (\textit{stop-gradient}) đặt trên mạng mục tiêu:
-\begin{equation}
-L_{\text{BYOL}} = L_{\text{MSE}}(q_\theta(z_\theta), \text{stop\_gradient}(z'_\xi)).
-\end{equation}
-Tham số mạng mục tiêu $\xi$ được cập nhật chậm theo cơ chế trung bình trượt lũy thừa (EMA) từ $\theta$:
-\begin{equation}
-\xi \leftarrow m \xi + (1-m) \theta,
-\end{equation}
-trong đó $m \in [0, 1]$ là hệ số momentum.
-
-\subsubsection{SimSiam Loss}
-Phương pháp SimSiam (Simple Siamese) đơn giản hóa kiến trúc BYOL bằng cách loại bỏ hoàn toàn momentum target network (momentum target network, tức thiết lập $\xi = \theta$). SimSiam chứng minh rằng chỉ cần sử dụng cơ chế dừng cập nhật đạo hàm kết hợp với kiến trúc không đối xứng (bộ dự đoán predictor) là đủ để ngăn chặn sự sụp đổ biểu diễn đặc trưng. Hàm loss đối xứng được định nghĩa như sau:
-\begin{equation}
-L_{\text{SimSiam}} = \frac{1}{2} \mathcal{D}\big(p_1, \text{sg}(z_2)\big) + \frac{1}{2} \mathcal{D}\big(p_2, \text{sg}(z_1)\big),
-\end{equation}
-trong đó $p_1 = q_\theta(z_1)$ và $p_2 = q_\theta(z_2)$ là đầu ra của bộ dự đoán cho hai phiên bản ảnh, còn $z_1, z_2$ là đầu ra của bộ đầu chiếu. $\text{sg}$ biểu thị toán tử dừng đạo hàm (stop-gradient). $\mathcal{D}$ là cosine similarity âm:
-\begin{equation}
-\mathcal{D}(p, z) = -\frac{p^T z}{\|p\|_2 \|z\|_2}.
-\end{equation}
-
-\subsubsection{Barlow Twins Loss}
-Phương pháp Barlow Twins áp dụng nguyên lý giảm thiểu thông tin dư thừa (redundancy reduction) lên ma trận tương quan chéo thu được từ hai phiên bản ảnh tăng cường. Gọi $C$ là ma trận tương quan chéo kích thước $D \times D$ tính toán dọc theo chiều lô dữ liệu $B$ giữa hai tập đặc trưng chiếu $\mathbf{z}^A$ và $\mathbf{z}^B$:
-\begin{equation}
-C_{ij} = \frac{\sum_{b=1}^{B} z_{b,i}^A z_{b,j}^B}{\sqrt{\sum_{b=1}^{B} (z_{b,i}^A)^2} \sqrt{\sum_{b=1}^{B} (z_{b,j}^B)^2}},
-\end{equation}
-trong đó $i, j$ đại diện cho các chiều của không gian đặc trưng nhúng. Hàm mất mát Barlow Twins được định nghĩa là:
-\begin{equation}
-L_{\text{BarlowTwins}} = \sum_{i=1}^{D} (1 - C_{ii})^2 + \lambda \sum_{i=1}^{D} \sum_{j \neq i} C_{ij}^2,
-\end{equation}
-trong đó số hạng thứ nhất (invariance term) ép các hệ số tương quan chéo trên đường chéo chính tiến về 1 (tối đa hóa độ tương đồng giữa hai phiên bản ảnh), số hạng thứ hai (redundancy reduction term) ép các hệ số tương quan chéo ngoài đường chéo chính tiến về 0 với hệ số phạt $\lambda > 0$ (giảm thiểu sự trùng lặp thông tin giữa các chiều đặc trưng nhúng).
-
+\subsection{Generality of the Protocol}
+SCDP không phụ thuộc vào gỗ. Với ảnh da liễu, lát cắt y sinh, sản phẩm công nghiệp, ảnh vệ tinh đa thời điểm hoặc dữ liệu côn trùng, \texttt{specimen\_id} có thể được thay lần lượt bằng bệnh nhân, chi tiết sản phẩm, ô địa lý--thời gian hoặc cá thể. Nguyên tắc giữ nguyên là: xác định đơn vị mà hệ thống phải tổng quát hóa tới, ghi nhận provenance/origin relation trước khi training, và thực hiện split theo đơn vị đó.

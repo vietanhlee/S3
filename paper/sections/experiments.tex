@@ -1,45 +1,39 @@
 \section{Experimental Configuration}
 
-\subsection{S3 Dataset Details}
-Bộ dữ liệu hình ảnh gỗ S3 chứa hình ảnh mặt cắt ngang ở mức vĩ mô (macro) của 19 loài gỗ thuộc 6 chi khác nhau: \textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Peltogyne}, \textit{Pterocarpus} và \textit{Sindora}. Bộ dữ liệu có cấu trúc phân cấp tự nhiên: mỗi loài gỗ tương ứng với một lớp (class); bên trong mỗi loài chứa nhiều thư mục con đại diện cho một mẫu vật lý riêng biệt. Việc giữ nguyên vẹn toàn bộ hình ảnh của cùng một thư mục con vào cùng một tập dữ liệu là bắt buộc để tránh rò rỉ đặc trưng lối tắt từ phiên chụp. Các mẫu gỗ chỉ được định danh ở cấp chi được loại bỏ khỏi quy trình huấn luyện để đảm bảo tính nhất quán của nhãn. Phân bố chi tiết số lượng ảnh và mẫu vật của các tập dữ liệu thành phần sau khi phân chia được minh họa trong Hình \ref{fig:eda_split}.
+\subsection{S3 Dataset and Analysis Unit}
+Dataset S3 gồm ảnh mặt cắt ngang ở mức vĩ mô của 19 loài thuộc 6 chi: \textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Peltogyne}, \textit{Pterocarpus} và \textit{Sindora}. Mỗi loài có nhiều thư mục con; trong phiên bản dữ liệu được sử dụng, một thư mục con biểu diễn tập hợp ảnh của cùng một mẫu vật (specimen). Các bản ghi chỉ xác định tới cấp chi bị loại khỏi tập giám sát theo loài. Trước khi áp dụng SCDP cho một phiên bản mới của S3, mối quan hệ giữa thư mục con và mẫu vật phải được xác nhận trong manifest thay vì chỉ được giả định từ tên thư mục.
+
+Hình \ref{fig:eda_split} trình bày phân bố số ảnh và số specimen theo loài sau khi áp dụng CEGS-Split. Báo cáo cả hai đại lượng là cần thiết: nhiều ảnh của một mẫu vật cải thiện độ phủ bề mặt, nhưng không làm tăng số đơn vị độc lập để đánh giá khả năng tổng quát hóa.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{fig/eda_split_end_version.png}
-\caption{Class-wise specimen and image distribution of the S3 dataset under the CEGS-Split protocol.}
+\caption{Class-wise image and specimen distribution in S3 after CEGS-Split allocation.}
 \label{fig:eda_split}
 \end{figure}
 
-\subsection{Data Augmentation}
-Quy trình tăng cường dữ liệu được thiết kế nhằm bảo toàn các cấu trúc giải phẫu sinh học (vân gỗ, mạch gỗ) nhưng nâng cao khả năng chống chịu trước các biến thiên thực tế: xoay ngẫu nhiên, cắt và thay đổi kích thước (RandomResizedCrop), biến đổi màu sắc nhẹ (ColorJitter), chuyển đổi ảnh xám, làm mờ Gaussian (GaussianBlur), điều chỉnh độ sắc nét và xóa ngẫu nhiên (RandomErasing). Các phép biến đổi này mô phỏng sự khác biệt về hướng cắt, độ phóng đại ống kính, độ sáng và các yếu tố nhiễu bề mặt.
+\subsection{Split Protocol and Comparison}
+Chúng tôi so sánh hai cấu hình đánh giá. Cấu hình \emph{Random Image Split} chia ảnh có phân tầng theo nhãn loài nhưng không ràng buộc ảnh cùng nguồn ở cùng một tập. Cấu hình \emph{CEGS-Split} sử dụng \texttt{specimen\_id} để split toàn bộ ảnh của một nhóm nguồn vào duy nhất tập train, validation hoặc test, đồng thời thực hiện data audit nhằm kiểm tra cân bằng lớp và các cặp cross-split có độ tương đồng cosine cao. Cả hai cấu hình dùng cùng một feature extractor và thủ tục KNN trong phép đối chiếu về split; do đó, chênh lệch quan sát được quy cho đơn vị split dữ liệu, không phải kiến trúc mạng.
 
-\subsection{Benchmarking Protocols}
-Nghiên cứu tiến hành đánh giá thực nghiệm đối chiếu 14 phương pháp học khoảng cách: Triplet cơ bản, Triplet bán khó, Triplet biên mềm, Angular, Multi-Similarity, Contrastive cơ bản, Contrastive khai thác cặp khó, Lifted Structured, Circle, Proxy Anchor, ArcFace, SubCenter ArcFace, SoftTriple và tương phản có giám sát (SupCon). Nhóm tự giám sát bao gồm bốn mô hình: SimCLR, BYOL, SimSiam và Barlow Twins. Tất cả các phương pháp này đều được huấn luyện và kiểm thử trên cùng một cấu hình chia dữ liệu thu được từ giao thức CEGS-Split để đảm bảo tính khách quan và loại trừ các sai số do phân bổ dữ liệu.
+Random Image Split được thực hiện với ba seed $(42,123,456)$. CEGS-Split hiện được báo cáo như một split đã khóa nhằm phục vụ benchmark tái lập. Vì chỉ có một phiên bản CEGS-Split trong kết quả hiện tại, mọi so sánh định lượng với random split được hiểu là mô tả độ nhạy của benchmark, không phải kiểm định ý nghĩa thống kê. Các nghiên cứu tiếp theo nên phát hành nhiều split group-disjoint hoặc dùng group cross-validation khi số mẫu vật cho phép.
 
-\subsection{Embedding Space Evaluation Metrics}
-Chất lượng của không gian nhúng biểu diễn đặc trưng được kiểm chứng qua hai nhóm chỉ số đo lường chính. Nhóm truy xuất (retrieval) bao gồm: Recall@k, Precision@k, mAP và AUC. Đối với từng chỉ số đo lường theo từng lớp $x_i$, báo cáo sử dụng cả giá trị macro average (macro average) và harmonic mean (harmonic mean) kèm theo một ngưỡng làm mịn $\epsilon=0.01$ để tránh chia cho 0:
-\begin{equation}
-\text{HM}=\frac{N}{\sum_{i=1}^{N}\frac{1}{x_i+\epsilon}},\quad \epsilon=0.01.
-\end{equation}
-Chỉ số harmonic mean (Harmonic mean) giúp phản ánh chính xác hiệu năng ở các lớp gỗ yếu, tránh tình trạng mô hình đạt điểm số macro average (macro average) cao nhờ các loài dễ phân biệt nhưng lại hoàn toàn thất bại ở các loài gỗ cùng chi có độ tương đồng hình thái cao (fine-grained).
+\subsection{Classification Baseline Model Training}
+Mô hình phân loại baseline sử dụng ConvNeXt-Tiny \cite{convnext} làm backbone, được khởi tạo từ trọng số pre-trained trên ImageNet. Đặc trưng trích xuất đi qua classifier head phi tuyến và được tối ưu hóa bằng Focal Loss ($\gamma = 2.0$, $\alpha = 0.25$) để cân bằng độ khó và tần suất của các loài gỗ. Trong cấu hình huấn luyện, khoảng $90\%$ số lượng lớp của backbone được freeze nhằm hạn chế hiện tượng overfitting trên bộ dữ liệu có ít specimen cho từng lớp. Mô hình sử dụng bộ tối ưu hóa AdamW với learning rate khởi tạo là $10^{-4}$, weight decay $10^{-2}$, học tập với Cosine Annealing scheduler trong tối đa 100 epoch và áp dụng early stopping dựa trên validation loss với patience 50.
 
-Nhóm clustering gồm Silhouette Score, Davies-Bouldin Index, Calinski-Harabasz Index, Dunn Index và Normalized Mutual Information. Với một mẫu $i$, Silhouette được tính:
-\begin{equation}
-s(i)=\frac{b(i)-a(i)}{\max(a(i),b(i))},
-\end{equation}
-trong đó $a(i)$ là khoảng cách trung bình đến các mẫu cùng cụm và $b(i)$ là khoảng cách trung bình nhỏ nhất đến cụm khác. Davies-Bouldin Index là
-\begin{equation}
-\text{DBI}=\frac{1}{C}\sum_{i=1}^{C}\max_{j\ne i}\frac{\sigma_i+\sigma_j}{d(\mu_i,\mu_j)}.
-\end{equation}
-Dunn Index được định nghĩa:
-\begin{equation}
-\text{DI}=\frac{\min_{i\ne j}\delta(C_i,C_j)}{\max_k\Delta(C_k)}.
-\end{equation}
-NMI đo mức tương đồng thông tin giữa nhãn cụm dự đoán và nhãn loài thật:
-\begin{equation}
-\text{NMI}(Y,C)=\frac{2I(Y;C)}{H(Y)+H(C)}.
-\end{equation}
+Data augmentation chỉ áp dụng cho tập train, bao gồm các phép biến đổi: rotation, \emph{random resized crop}, color jitter ở mức nhẹ, Gaussian blur và \emph{random erasing}. Các biến đổi này được lựa chọn để mô phỏng thay đổi điều kiện chụp macro nhưng không che lấp cấu trúc mạch hoặc tia gỗ. Tất cả các quá trình chuẩn hóa thống kê, lựa chọn checkpoint và chọn siêu tham số được thực hiện hoàn toàn trên tập train và validation; tập test không được sử dụng cho các bước này.
 
-\subsection{Implementation Hyperparameters}
-Mô hình được tối ưu hóa bằng thuật toán AdamW với tốc độ học (learning rate) $10^{-4}$ và hệ số suy giảm trọng số (weight decay) $10^{-2}$. Bộ lập lịch suy giảm tốc độ học theo hàm cosin (Cosine Annealing scheduler) được sử dụng trong tối đa 100 chu kỳ huấn luyện (epoch). Cơ chế dừng sớm (early stopping) giám sát chỉ số harmonic mAP trên tập kiểm định với ngưỡng chờ (patience) là 30 chu kỳ. Số chiều đặc trưng nhúng (embedding dimension) mặc định là 256, tỷ lệ đóng băng các lớp mạng (freeze ratio) mặc định là $90\%$, và mạng cơ sở (backbone) chính được sử dụng là ConvNeXt-Tiny. Các thực nghiệm loại bỏ thành phần (ablation study) được thiết kế chi tiết để đánh giá ảnh hưởng của cấu trúc mạng cơ sở, số chiều đặc trưng nhúng, tỷ lệ đóng băng lớp mạng, phương pháp phân chia dữ liệu và hàm loss.
+\subsection{Representation Learning Methods}
+Trên cùng manifest và split khóa, benchmark bao gồm các họ hàm loss học biểu diễn khoảng cách (pairwise/triplet: Contrastive, Hard Contrastive, Triplet, Semi-hard Triplet, Soft-Margin Triplet và Lifted Structured; pair weighting/angular/proxy: Multi-Similarity, Circle, Angular, Proxy Anchor, ArcFace, SubCenter ArcFace và SoftTriple; cùng Supervised Contrastive). Bốn phương pháp tự giám sát (SSL) được khảo sát gồm SimCLR, BYOL, SimSiam và Barlow Twins. Mục tiêu của benchmark không phải tìm một loss function mặc định cho mọi bộ dữ liệu; nó kiểm tra liệu kết luận về mô hình có còn giữ được khi điều kiện dữ liệu đã được cố định và audit nghiêm ngặt.
+
+\subsection{Evaluation Metrics}
+Với bài toán phân loại đóng (closed-set classification), chúng tôi báo cáo accuracy, precision, recall, F1 theo loài, macro-F1 và weighted-F1. Macro-F1 được ưu tiên khi số ảnh giữa các loài không đồng đều. Với embedding, các chỉ số retrieval gồm Recall@k, Precision@k và mAP; giá trị macro và harmonic mean được báo cáo để tránh các lớp dễ chi phối kết quả. Harmonic mean với hằng số ổn định $\epsilon=0.01$ được tính:
+\begin{equation}
+\mathrm{HM}=\frac{C}{\sum_{c=1}^{C}\frac{1}{m_c+\epsilon}},
+\end{equation}
+trong đó $m_c$ là chỉ số của loài $c$ và $C$ là số loài.
+
+Chất lượng cấu trúc embedding được bổ sung bằng Silhouette, Davies--Bouldin, Calinski--Harabasz, Dunn và NMI. Các chỉ số này không thay thế hiệu năng nhận diện, nhưng giúp đánh giá chất lượng của biểu diễn đặc trưng dưới góc độ phân cụm không giám sát (unsupervised clustering).
+
+\subsection{Split Audit Metrics}
+Ngoài hiệu năng nhận diện, chúng tôi ghi nhận số specimen trong mỗi tập, số \texttt{specimen\_id} giao nhau giữa các tập, và độ tương đồng cosine cross-split từ bộ trích xuất tham chiếu. Với phép đối chiếu trong Bảng \ref{tab:split_ablation}, các giá trị cosine là trung bình và cực đại của các cặp ảnh train--test; chúng là chỉ số chẩn đoán về mức độ gần của ảnh, không phải thước đo trực tiếp của rò rỉ. Mọi ảnh bị gắn cờ bởi embedding audit phải được đối chiếu lại với manifest trước khi đưa ra kết luận cuối cùng.
 
