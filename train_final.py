@@ -1078,6 +1078,10 @@ def main() -> None:
 		raw_model.load_state_dict(torch.load(best_path, map_location=device, weights_only=True))
 		print(f"\nĐã load checkpoint tốt nhất từ {best_path}")
 
+	# Đánh giá trên tập Val
+	print("\nĐánh giá trên tập Val...")
+	evaluate_and_report(model, val_loader, device, class_names, output_dir, prefix="val")
+
 	# Đánh giá trên tập Test
 	print("\nĐánh giá trên tập Test...")
 	evaluate_and_report(model, test_loader, device, class_names, output_dir, prefix="test")
