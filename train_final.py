@@ -45,28 +45,50 @@ COSINE_THRESHOLD = 0.92  # Cho PP5
 # ====================
 
 
-SPLIT_CONFIG = {
-		"Afzelia africana": ("PP8", "val", "eff"),
-		"Afzelia bella": ("PP4", "val", "swin"),
-		"Afzelia pachyloba": ("PP9", "test", "swin"),
-		"Afzelia quanzensis": ("PP2", "val", "eff"),
-		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
-		"Dalbergia melanoxylon": ("PP2", "test", "eff"),
-		"Dalbergia oliveri": ("PP8", "val", "eff"),
-		"Dalbergia rimosa": ("PP4", "test", "eff"),
-		"Dalbergia tonkinensis": ("PP4", "test", "swin"),
-		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
-		"Guibourtia coleosperma": ("PP9", "test", "swin"),
-		"Guibourtia ehie": ("PP4", "test", "swin"),
-		"Peltogyne pubescens": ("PP2", "test", "eff"),
-		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
-		"Pterocarpus indicus": ("PP9", "test", "eff"),
-		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
-		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
-		"Sindora cochinchinensis": ("PP2", "test", "swin"),
-		"Sindora tonkinensis": ("PP9", "val", "eff"),
-	}
+# SPLIT_CONFIG = {
+# 		"Afzelia africana": ("PP8", "val", "eff"),
+# 		"Afzelia bella": ("PP4", "val", "swin"),
+# 		"Afzelia pachyloba": ("PP9", "test", "swin"),
+# 		"Afzelia quanzensis": ("PP2", "val", "eff"),
+# 		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
+# 		"Dalbergia melanoxylon": ("PP2", "test", "eff"),
+# 		"Dalbergia oliveri": ("PP8", "val", "eff"),
+# 		"Dalbergia rimosa": ("PP4", "test", "eff"),
+# 		"Dalbergia tonkinensis": ("PP4", "test", "swin"),
+# 		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
+# 		"Guibourtia coleosperma": ("PP9", "test", "swin"),
+# 		"Guibourtia ehie": ("PP4", "test", "swin"),
+# 		"Peltogyne pubescens": ("PP2", "test", "eff"),
+# 		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
+# 		"Pterocarpus indicus": ("PP9", "test", "eff"),
+# 		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
+# 		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
+# 		"Sindora cochinchinensis": ("PP2", "test", "swin"),
+# 		"Sindora tonkinensis": ("PP9", "val", "eff"),
+# 	}
 	
+SPLIT_CONFIG = {
+  "Afzelia africana": ["PP8", "val", "eff"],
+  "Afzelia bella": ["PP4", "test", "eff"],
+  "Afzelia pachyloba": ["PP1", "test", "eff"],
+  "Afzelia quanzensis": ["PP2", "val", "eff"],
+  "Dalbergia cochinchinensis": ["PP1", "test", "eff"],
+  "Dalbergia melanoxylon": ["PP8", "test", "eff"],
+  "Dalbergia oliveri": ["PP1", "test", "eff"],
+  "Dalbergia rimosa": ["PP1", "test", "eff"],
+  "Dalbergia tonkinensis": ["PP4", "test", "swin"],
+  "Guibourtia arnoldiana": ["PP4", "test", "eff"],
+  "Guibourtia coleosperma": ["PP1", "test", "eff"],
+  "Guibourtia ehie": ["PP5", "test", "eff"],
+  "Peltogyne pubescens": ["PP1", "test", "eff"],
+  "Pterocarpus erinaceus": ["PP9", "val", "eff"],
+  "Pterocarpus indicus": ["PP9", "test", "eff"],
+  "Pterocarpus macrocarpus": ["PP4", "test", "eff"],
+  "Pterocarpus soyauxii": ["PP4", "test", "swin"],
+  "Sindora cochinchinensis": ["PP2", "test", "eff"],
+  "Sindora tonkinensis": ["PP7", "test", "eff"]
+}
+
 from utils import (
 	set_seed,
 	get_device,
