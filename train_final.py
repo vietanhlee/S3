@@ -837,6 +837,7 @@ def end_version_split(
 	split_config = SPLIT_CONFIG
 
 	pp_map = {
+		"PP1": "PP1_Mahalanobis_Fixed",
 		"PP2": "PP2_Mahalanobis_Iterative",
 		"PP4": "PP4_Hierarchical_Clustering",
 		"PP5": "PP5_Cosine_Graph",

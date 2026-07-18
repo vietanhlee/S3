@@ -39,7 +39,7 @@ LR = 5e-4
 WEIGHT_DECAY = 1e-2
 FOCAL_GAMMA = 2.0
 FOCAL_ALPHA = 0.25
-MODEL_NAME = "swin_tiny_patch4_window7_224"
+MODEL_NAME = "convnext_tiny"
 FREEZE_RATIO = 0.90
 COSINE_THRESHOLD = 0.92  # Cho PP5
 # ====================
