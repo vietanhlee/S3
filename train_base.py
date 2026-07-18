@@ -554,21 +554,23 @@ class BaseMetricTrainer(ABC):
 					if val_results is not None:
 						for k, v in val_results.items():
 							if k in ["Recall@1", "Recall@5", "Precision@1", "Precision@5", "mAP", "AUC"]:
-								metrics_to_log[f"val_self/{k}"] = v
+								if eval_mode in ("self", "both"):
+									metrics_to_log[f"val_self/{k}"] = v
 							elif k not in ["per_class_recall1", "per_class_recall5", "per_class_precision1", "per_class_precision5", "per_class_map", "per_class_auc"]:
 								metrics_to_log[f"val_clustering/{k}"] = v
 						
 						# Log Harmonic metrics cho val self
-						for k, class_key in [
-							("Recall@1", "per_class_recall1"),
-							("Recall@5", "per_class_recall5"),
-							("Precision@1", "per_class_precision1"),
-							("Precision@5", "per_class_precision5"),
-							("mAP", "per_class_map"),
-							("AUC", "per_class_auc")
-						]:
-							if class_key in val_results:
-								metrics_to_log[f"val_self_harmonic/{k}"] = _calc_h_mean(val_results[class_key])
+						if eval_mode in ("self", "both"):
+							for k, class_key in [
+								("Recall@1", "per_class_recall1"),
+								("Recall@5", "per_class_recall5"),
+								("Precision@1", "per_class_precision1"),
+								("Precision@5", "per_class_precision5"),
+								("mAP", "per_class_map"),
+								("AUC", "per_class_auc")
+							]:
+								if class_key in val_results:
+									metrics_to_log[f"val_self_harmonic/{k}"] = _calc_h_mean(val_results[class_key])
 
 					if val_cross_results is not None:
 						for k, v in val_cross_results.items():
