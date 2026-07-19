@@ -68,25 +68,25 @@ COSINE_THRESHOLD = 0.92  # Cho PP5
 # 	}
 	
 SPLIT_CONFIG = {
-	"Afzelia africana": ("PP7", "test", "swin"),
-	"Afzelia bella": ("PP4", "val", "swin"),
-	"Afzelia pachyloba": ("PP4", "val", "swin"),
-	"Afzelia quanzensis": ("PP2", "test", "swin"),
-	"Dalbergia cochinchinensis": ("PP9", "val", "swin"),
-	"Dalbergia melanoxylon": ("PP8", "val", "swin"),
-	"Dalbergia oliveri": ("PP1", "test", "swin"),
-	"Dalbergia rimosa": ("PP8", "test", "swin"),
-	"Dalbergia tonkinensis": ("PP7", "test", "swin"),
-	"Guibourtia arnoldiana": ("PP9", "test", "swin"),
-	"Guibourtia coleosperma": ("PP1", "test", "swin"),
-	"Guibourtia ehie": ("PP5", "test", "swin"),
-	"Peltogyne pubescens": ("PP1", "val", "swin"),
-	"Pterocarpus erinaceus": ("PP2", "val", "swin"),
-	"Pterocarpus indicus": ("PP2", "val", "swin"),
-	"Pterocarpus macrocarpus": ("PP2", "test", "swin"),
-	"Pterocarpus soyauxii": ("PP7", "test", "swin"),
-	"Sindora cochinchinensis": ("PP8", "val", "swin"),
-	"Sindora tonkinensis": ("PP7", "test", "swin"),
+	"Afzelia africana": ("PP7", "val", "swin"), # 66
+	"Afzelia bella": ("PP4", "val", "swin"), # 0
+	"Afzelia pachyloba": ("PP4", "val", "swin"), # 56
+	"Afzelia quanzensis": ("PP2", "test", "swin"), # 88
+	"Dalbergia cochinchinensis": ("PP9", "val", "swin"), # 92
+	"Dalbergia melanoxylon": ("PP8", "test", "swin"), # 98
+	"Dalbergia oliveri": ("PP1", "test", "swin"), # 98
+	"Dalbergia rimosa": ("PP8", "test", "swin"), # 94
+	"Dalbergia tonkinensis": ("PP7", "test", "swin"), # 90
+	"Guibourtia arnoldiana": ("PP9", "test", "swin"), # 1
+	"Guibourtia coleosperma": ("PP1", "test", "swin"), # 95
+	"Guibourtia ehie": ("PP5", "test", "swin"), # 58
+	"Peltogyne pubescens": ("PP1", "val", "swin"), # 1
+	"Pterocarpus erinaceus": ("PP2", "test", "swin"), # 97,71
+	"Pterocarpus indicus": ("PP2", "val", "swin"), # 85
+	"Pterocarpus macrocarpus": ("PP2", "test", "swin"),# 76
+	"Pterocarpus soyauxii": ("PP7", "test", "swin"),#95
+	"Sindora cochinchinensis": ("PP8", "val", "swin"),#61
+	"Sindora tonkinensis": ("PP7", "val", "swin"),# 88
 }
 from utils import (
 	set_seed,
