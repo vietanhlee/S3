@@ -49,9 +49,9 @@ SEED = 42
 EPOCHS = 17
 BATCH_SIZE = 64  # Có thể điều chỉnh tùy thuộc vào GPU VRAM (ví dụ 64 hoặc 128)
 CLASSIFICATION_MODEL_NAME = "swin_tiny_patch4_window7_224"  # Model dùng để train classification (có thể chỉnh thành convnext_tiny)
-EMBEDDING_MODEL_NAME = "swin_large_patch4_window7_224"       # Model dùng để trích xuất embeddings chia dữ liệu
+EMBEDDING_MODEL_NAME = "tf_efficientnetv2_m_in21k"       # Model dùng để trích xuất embeddings chia dữ liệu
 # =============================
-
+# EMBEDDING_MODEL_NAME = "swin_large_patch4_window7_224"       # Model dùng để trích xuất embeddings chia dữ liệu
 # Thiết lập các cấu hình toàn cục trong train_final để đồng bộ
 train_final.ROOT_DIR = ROOT_DIR
 train_final.SEED = SEED
