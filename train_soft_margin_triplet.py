@@ -12,7 +12,7 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_soft_margin_triplet",
-	"EPOCHS": 60,
+	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"P_CLASSES": 19,

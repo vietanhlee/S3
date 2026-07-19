@@ -14,7 +14,7 @@ from train_base import BaseMetricTrainer
 CONFIG = {
 	"OUTPUT_DIR": "outputs_angular",
 	"ANGULAR_ALPHA_DEG": 75.0,   # Giới hạn góc (đơn vị độ)
-	"EPOCHS": 60,
+	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"P_CLASSES": 19,

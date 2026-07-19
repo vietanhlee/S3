@@ -21,7 +21,7 @@ CONFIG = {
 	"SOFTTRIPLE_GAMMA": 0.1,       # Tham số entropy gamma điều tiết độ tương đồng
 	"SOFTTRIPLE_TAU": 0.2,         # Margin delta (tau / margin)
 	"FOCAL_GAMMA": 2.0,            # Siêu tham số gamma cho Focal Loss
-	"EPOCHS": 60,
+	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"WEIGHT_DECAY": 1e-4,

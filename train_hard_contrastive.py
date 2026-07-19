@@ -13,7 +13,7 @@ from train_base import BaseMetricTrainer
 CONFIG = {
 	"OUTPUT_DIR": "outputs_hard_contrastive",
 	"CONTRASTIVE_MARGIN": 0.5,
-	"EPOCHS": 60,
+	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
 	"P_CLASSES": 19,
