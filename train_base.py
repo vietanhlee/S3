@@ -826,18 +826,22 @@ class BaseMetricTrainer(ABC):
 			with open(output_dir / "retrieval_report_test.txt", "w", encoding="utf-8") as f:
 				f.write(report)
 
-			# Log to WandB Summary
+			# Log to WandB Summary & History (để vẽ biểu đồ cột so sánh giữa các run)
 			if getattr(self, "use_wandb", False):
 				try:
 					import wandb
 					if wandb.run is not None:
+						log_dict = {}
 						for k, v in results.items():
 							if k in ["Recall@1", "Recall@5", "Precision@1", "Precision@5", "mAP", "AUC"]:
 								wandb.run.summary[f"final_test_self/{k}"] = v
+								log_dict[f"final_test_self/{k}"] = v
 							else:
 								wandb.run.summary[f"final_test_clustering/{k}"] = v
-				except Exception:
-					pass
+								log_dict[f"final_test_clustering/{k}"] = v
+						wandb.log(log_dict)
+				except Exception as e:
+					print(f"[Wandb Warning] Lỗi khi log final evaluation self: {e}")
 
 		if eval_mode in ("cross", "both"):
 			print(f"\n[Đánh giá chéo - Test Query vs Train Gallery]")
@@ -853,15 +857,18 @@ class BaseMetricTrainer(ABC):
 			with open(output_dir / "retrieval_report_test_cross.txt", "w", encoding="utf-8") as f:
 				f.write(report)
 
-			# Log to WandB Summary
+			# Log to WandB Summary & History (để vẽ biểu đồ cột so sánh giữa các run)
 			if getattr(self, "use_wandb", False):
 				try:
 					import wandb
 					if wandb.run is not None:
+						log_dict = {}
 						for k, v in results.items():
 							wandb.run.summary[f"final_test_cross/{k}"] = v
-				except Exception:
-					pass
+							log_dict[f"final_test_cross/{k}"] = v
+						wandb.log(log_dict)
+				except Exception as e:
+					print(f"[Wandb Warning] Lỗi khi log final evaluation cross: {e}")
 
 	def _run_post_training_analysis(self, model, train_eval_loader, test_loader,
 	                                val_loader, device, class_names, num_classes,
