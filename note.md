@@ -67,3 +67,102 @@ Proxy-based: `Proxy Anchor`, SoftTriple
 Angular margin: `ArcFace`, Sub-center ArcFace, Circle Loss, Angular Loss
 Mining-based: Multi-Similarity, `Lifted Structured`
 Self-supervised: SimCLR, BYOL, SimSiam, Barlow Twins, SupCon
+
+
+{
+  "Afzelia africana": [
+    "PP9",
+    "val",
+    "swin"
+  ], 
+  "Afzelia bella": [
+    "PP5",
+    "test",
+    "swin"
+  ], 
+  "Afzelia pachyloba": [
+    "PP4",
+    "val",
+    "swin" 
+  ],
+  "Afzelia quanzensis": [
+    "PP9",
+    "test",
+    "swin"
+  ],
+  "Dalbergia cochinchinensis": [
+    "PP4",
+    "val",
+    "swin"
+  ],
+  "Dalbergia melanoxylon": [
+    "PP2",
+    "val",
+    "swin"
+  ],
+  "Dalbergia oliveri": [
+    "PP7",
+    "val",
+    "swin"
+  ],
+  "Dalbergia rimosa": [
+    "PP7",
+    "val",
+    "swin"
+  ],
+  "Dalbergia tonkinensis": [
+    "PP4",
+    "test",
+    "swin"
+  ],
+  "Guibourtia arnoldiana": [
+    "PP4",
+    "test",
+    "swin"
+  ],
+  "Guibourtia coleosperma": [
+    "PP1",
+    "test",
+    "swin"
+  ],
+  "Guibourtia ehie": [
+    "PP5",
+    "test",
+    "swin"
+  ],
+  "Peltogyne pubescens": [
+    "PP1",
+    "val",
+    "swin"
+  ],
+  "Pterocarpus erinaceus": [
+    "PP9",
+    "test",
+    "swin"
+  ],
+  "Pterocarpus indicus": [
+    "PP9",
+    "test",
+    "swin"
+  ],
+  "Pterocarpus macrocarpus": [
+    "PP7",
+    "val",
+    "swin"
+  ],
+  "Pterocarpus soyauxii": [
+    "PP4",
+    "test",
+    "swin"
+  ],
+  "Sindora cochinchinensis": [
+    "PP9",
+    "val",
+    "swin"
+  ],
+  "Sindora tonkinensis": [
+    "PP7",
+    "test",
+    "swin"
+  ]
+}

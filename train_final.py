@@ -46,48 +46,49 @@ COSINE_THRESHOLD = 0.92  # Cho PP5
 
 
 # SPLIT_CONFIG = {
-# 		"Afzelia africana": ("PP8", "val", "eff"),
-# 		"Afzelia bella": ("PP4", "val", "swin"),
-# 		"Afzelia pachyloba": ("PP9", "test", "swin"),
-# 		"Afzelia quanzensis": ("PP2", "val", "eff"),
-# 		"Dalbergia cochinchinensis": ("PP9", "val", "eff"),
-# 		"Dalbergia melanoxylon": ("PP2", "test", "eff"),
-# 		"Dalbergia oliveri": ("PP8", "val", "eff"),
-# 		"Dalbergia rimosa": ("PP4", "test", "eff"),
-# 		"Dalbergia tonkinensis": ("PP4", "test", "swin"),
-# 		"Guibourtia arnoldiana": ("PP4", "test", "swin"),
-# 		"Guibourtia coleosperma": ("PP9", "test", "swin"),
-# 		"Guibourtia ehie": ("PP4", "test", "swin"),
-# 		"Peltogyne pubescens": ("PP2", "test", "eff"),
-# 		"Pterocarpus erinaceus": ("PP9", "val", "eff"),
-# 		"Pterocarpus indicus": ("PP9", "test", "eff"),
-# 		"Pterocarpus macrocarpus": ("PP4", "test", "eff"),
-# 		"Pterocarpus soyauxii": ("PP4", "test", "swin"),
-# 		"Sindora cochinchinensis": ("PP2", "test", "swin"),
-# 		"Sindora tonkinensis": ("PP9", "val", "eff"),
-# 	}
-	
+# 	"Afzelia africana": ("PP7", "val", "swin"), # 66
+# 	"Afzelia bella": ("PP4", "val", "swin"), # 0
+# 	"Afzelia pachyloba": ("PP4", "val", "swin"), # 56
+# 	"Afzelia quanzensis": ("PP2", "test", "swin"), # 88
+# 	"Dalbergia cochinchinensis": ("PP9", "val", "swin"), # 92
+# 	"Dalbergia melanoxylon": ("PP8", "test", "swin"), # 98
+# 	"Dalbergia oliveri": ("PP1", "test", "swin"), # 98
+# 	"Dalbergia rimosa": ("PP8", "test", "swin"), # 94
+# 	"Dalbergia tonkinensis": ("PP7", "test", "swin"), # 90
+# 	"Guibourtia arnoldiana": ("PP9", "test", "swin"), # 1
+# 	"Guibourtia coleosperma": ("PP1", "test", "swin"), # 95
+# 	"Guibourtia ehie": ("PP5", "test", "swin"), # 58
+# 	"Peltogyne pubescens": ("PP1", "val", "swin"), # 1
+# 	"Pterocarpus erinaceus": ("PP2", "test", "swin"), # 97,71
+# 	"Pterocarpus indicus": ("PP2", "val", "swin"), # 85
+# 	"Pterocarpus macrocarpus": ("PP2", "test", "swin"),# 76
+# 	"Pterocarpus soyauxii": ("PP7", "test", "swin"),#95
+# 	"Sindora cochinchinensis": ("PP8", "val", "swin"),#61
+# 	"Sindora tonkinensis": ("PP7", "val", "swin"),# 88
+# }
+
 SPLIT_CONFIG = {
-	"Afzelia africana": ("PP7", "val", "swin"), # 66
-	"Afzelia bella": ("PP4", "val", "swin"), # 0
-	"Afzelia pachyloba": ("PP4", "val", "swin"), # 56
-	"Afzelia quanzensis": ("PP2", "test", "swin"), # 88
-	"Dalbergia cochinchinensis": ("PP9", "val", "swin"), # 92
-	"Dalbergia melanoxylon": ("PP8", "test", "swin"), # 98
-	"Dalbergia oliveri": ("PP1", "test", "swin"), # 98
-	"Dalbergia rimosa": ("PP8", "test", "swin"), # 94
-	"Dalbergia tonkinensis": ("PP7", "test", "swin"), # 90
-	"Guibourtia arnoldiana": ("PP9", "test", "swin"), # 1
-	"Guibourtia coleosperma": ("PP1", "test", "swin"), # 95
-	"Guibourtia ehie": ("PP5", "test", "swin"), # 58
-	"Peltogyne pubescens": ("PP1", "val", "swin"), # 1
-	"Pterocarpus erinaceus": ("PP2", "test", "swin"), # 97,71
-	"Pterocarpus indicus": ("PP2", "val", "swin"), # 85
-	"Pterocarpus macrocarpus": ("PP2", "test", "swin"),# 76
-	"Pterocarpus soyauxii": ("PP7", "test", "swin"),#95
-	"Sindora cochinchinensis": ("PP8", "val", "swin"),#61
-	"Sindora tonkinensis": ("PP7", "val", "swin"),# 88
+    "Afzelia africana": ("PP9", "val", "swin"),
+    "Afzelia bella": ("PP5", "test", "swin"),
+    "Afzelia pachyloba": ("PP4", "val", "swin"),
+    "Afzelia quanzensis": ("PP9", "test", "swin"),
+    "Dalbergia cochinchinensis": ("PP4", "val", "swin"),
+    "Dalbergia melanoxylon": ("PP2", "val", "swin"),
+    "Dalbergia oliveri": ("PP7", "val", "swin"),
+    "Dalbergia rimosa": ("PP7", "val", "swin"),
+    "Dalbergia tonkinensis": ("PP4", "test", "swin"),
+    "Guibourtia arnoldiana": ("PP4", "test", "swin"),
+    "Guibourtia coleosperma": ("PP1", "test", "swin"),
+    "Guibourtia ehie": ("PP5", "test", "swin"),
+    "Peltogyne pubescens": ("PP1", "val", "swin"),
+    "Pterocarpus erinaceus": ("PP9", "test", "swin"),
+    "Pterocarpus indicus": ("PP9", "test", "swin"),
+    "Pterocarpus macrocarpus": ("PP7", "val", "swin"),
+    "Pterocarpus soyauxii": ("PP4", "test", "swin"),
+    "Sindora cochinchinensis": ("PP9", "val", "swin"),
+    "Sindora tonkinensis": ("PP7", "test", "swin"),
 }
+
 from utils import (
 	set_seed,
 	get_device,
