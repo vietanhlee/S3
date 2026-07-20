@@ -68,25 +68,25 @@ COSINE_THRESHOLD = 0.92  # Cho PP5
 # }
 
 SPLIT_CONFIG = {
-    "Afzelia africana": ("PP9", "val", "eff"),
-    "Afzelia bella": ("PP5", "test", "eff"),
+    "Afzelia africana": ("PP9", "test", "eff"),
+	"Afzelia bella": ("PP4", "val", "swin"), # 0
     "Afzelia pachyloba": ("PP4", "val", "eff"),
     "Afzelia quanzensis": ("PP9", "test", "eff"),
-    "Dalbergia cochinchinensis": ("PP4", "val", "eff"),
+	"Dalbergia cochinchinensis": ("PP9", "val", "swin"), # 92
     "Dalbergia melanoxylon": ("PP2", "val", "eff"),
-    "Dalbergia oliveri": ("PP7", "val", "eff"),
-    "Dalbergia rimosa": ("PP7", "val", "eff"),
-    "Dalbergia tonkinensis": ("PP4", "test", "eff"),
+	"Dalbergia oliveri": ("PP1", "test", "swin"), # 98
+	"Dalbergia rimosa": ("PP8", "test", "swin"), # 94
+	"Dalbergia tonkinensis": ("PP7", "test", "swin"), # 90
     "Guibourtia arnoldiana": ("PP4", "test", "eff"),
     "Guibourtia coleosperma": ("PP1", "test", "eff"),
-    "Guibourtia ehie": ("PP5", "test", "eff"),
+	"Guibourtia ehie": ("PP5", "test", "swin"), # 58
     "Peltogyne pubescens": ("PP1", "val", "eff"),
-    "Pterocarpus erinaceus": ("PP9", "test", "eff"),
+	"Pterocarpus erinaceus": ("PP2", "test", "swin"), # 97,71
     "Pterocarpus indicus": ("PP9", "test", "eff"),
-    "Pterocarpus macrocarpus": ("PP7", "val", "eff"),
+	"Pterocarpus macrocarpus": ("PP2", "test", "swin"),# 76
     "Pterocarpus soyauxii": ("PP4", "test", "eff"),
-    "Sindora cochinchinensis": ("PP9", "val", "eff"),
-    "Sindora tonkinensis": ("PP7", "test", "eff"),
+    "Sindora cochinchinensis": ("PP8", "val", "swin"),#61
+	"Sindora tonkinensis": ("PP7", "val", "swin"),# 88
 }
 
 from utils import (
