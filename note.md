@@ -68,22 +68,21 @@ Angular margin: `ArcFace`, Sub-center ArcFace, Circle Loss, Angular Loss
 Mining-based: Multi-Similarity, `Lifted Structured`
 Self-supervised: SimCLR, BYOL, SimSiam, Barlow Twins, SupCon
 
-
 {
   "Afzelia africana": [
     "PP9",
-    "val",
+    "test",
     "swin"
-  ], 
+  ],
   "Afzelia bella": [
     "PP5",
     "test",
     "swin"
-  ], 
+  ],
   "Afzelia pachyloba": [
     "PP4",
     "val",
-    "swin" 
+    "swin"
   ],
   "Afzelia quanzensis": [
     "PP9",
@@ -157,7 +156,7 @@ Self-supervised: SimCLR, BYOL, SimSiam, Barlow Twins, SupCon
   ],
   "Sindora cochinchinensis": [
     "PP9",
-    "val",
+    "test",
     "swin"
   ],
   "Sindora tonkinensis": [
@@ -165,4 +164,5 @@ Self-supervised: SimCLR, BYOL, SimSiam, Barlow Twins, SupCon
     "test",
     "swin"
   ]
+}
 }
