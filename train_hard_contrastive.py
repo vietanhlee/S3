@@ -12,7 +12,7 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_hard_contrastive",
-	"CONTRASTIVE_MARGIN": 0.5,
+	"CONTRASTIVE_MARGIN": 1.1,  # Tăng margin khoảng cách Euclidean lên 1.1 (phạt negative khi cosine sim > 0.395)
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,

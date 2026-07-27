@@ -12,9 +12,9 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_multi_similarity",
-	"MS_ALPHA": 2.5,       # Siêu tham số alpha
-	"MS_BETA": 50.0,       # Siêu tham số beta
-	"MS_MARGIN": 0.65,      # Siêu tham số lambda/margin
+	"MS_ALPHA": 10.0,      # Siêu tham số alpha (tăng lên 10.0 để kéo mạnh positive khó)
+	"MS_BETA": 40.0,       # Siêu tham số beta (cân bằng lại dốc phạt negative)
+	"MS_MARGIN": 0.50,     # Siêu tham số margin chuẩn trong không gian cosine
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,

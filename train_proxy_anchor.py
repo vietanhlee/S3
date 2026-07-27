@@ -8,13 +8,13 @@ Hội tụ cực nhanh, gradient ổn định — 18 class → cực hiệu qu�
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from train_base import BaseMetricTrainer
+from train_base import BaseMetricTrainer, PKSampler
 
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_proxy_anchor",
 	"PROXY_ALPHA": 32.0,
-	"PROXY_MARGIN": 0.1,
+	"PROXY_MARGIN": 0.40,    # Tăng margin để buộc các positive kéo chặt hơn về phía proxy
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
@@ -94,8 +94,8 @@ class ProxyAnchorTrainer(BaseMetricTrainer):
 		)
 
 	def build_train_sampler(self, labels: list):
-		# Proxy Anchor là proxy-based loss, không dùng PK Sampler mà dùng RandomSampler thông thường
-		return None
+		# Sử dụng PK Sampler để đảm bảo cân bằng các mẫu/lớp trong từng batch
+		return PKSampler(labels, p=self.config["P_CLASSES"], k=self.config["K_SAMPLES"])
 
 
 if __name__ == "__main__":
