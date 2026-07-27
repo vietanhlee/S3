@@ -12,7 +12,7 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_semi_hard_triplet",
-	"TRIPLET_MARGIN": 0.3,
+	"TRIPLET_MARGIN": 0.6,  # Tăng margin khoảng cách bình phương lên 0.6 để mở rộng vùng tìm semi-hard negative
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,

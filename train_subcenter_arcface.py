@@ -9,14 +9,14 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from train_base import BaseMetricTrainer
+from train_base import BaseMetricTrainer, PKSampler
 
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_subcenter_arcface",
 	"ARCFACE_SCALE": 30.0,
-	"ARCFACE_MARGIN": 0.50,
-	"NUM_SUBCENTERS": 3,    # Số sub-center mỗi lớp
+	"ARCFACE_MARGIN": 0.35,    # Giảm margin góc xuống 0.35 rad (~20 độ) để giảm ép cụm
+	"NUM_SUBCENTERS": 2,       # Giảm xuống 2 sub-centers tránh phân rã cụm trên dataset nhỏ
 	"FOCAL_GAMMA": 2.0,      # Siêu tham số gamma cho Focal Loss
 	"EPOCHS": 50,
 	"PATIENCE": 25,
@@ -134,8 +134,8 @@ class SubCenterArcFaceTrainer(BaseMetricTrainer):
 		)
 
 	def build_train_sampler(self, labels: list):
-		# SubCenter ArcFace là classification-based loss, không dùng PK Sampler mà dùng RandomSampler thông thường
-		return None
+		# Sử dụng PK Sampler để đảm bảo cân bằng các mẫu/lớp trong từng batch
+		return PKSampler(labels, p=self.config["P_CLASSES"], k=self.config["K_SAMPLES"])
 
 
 if __name__ == "__main__":
