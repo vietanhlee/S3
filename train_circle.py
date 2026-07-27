@@ -3,6 +3,14 @@ train_circle.py — Circle Loss (Pair-based, CVPR 2020)
 =====================================================
 Tối ưu hóa không đối xứng trên mặt cầu đơn vị.
 Positive đã gần → giảm lực kéo, Negative ở gần → tăng lực đẩy.
+
+Các cải tiến & Tối ưu hóa siêu tham số:
+1. CIRCLE_GAMMA = 64.0 (Giảm từ 80.0 xuống 64.0): Khắc phục hiện tượng nổ gradient
+   và bị phụ thuộc quá mức vào các cặp nhiễu/mẫu vật kỳ dị ở các loài gỗ cùng chi.
+2. Tách biệt Đạo hàm (alpha.detach()): Giúp alpha_p và alpha_n đóng vai trò làm
+   hệ số điều chỉnh gradient động chuẩn xác theo đúng lý thuyết công bố tại CVPR 2020.
+3. An toàn Số học (masked_fill với -1e4): Loại bỏ triệt để hiện tượng NaN/Overflow
+   do -1e10 gây ra trong hàm logsumexp của PyTorch autograd.
 """
 
 import torch
@@ -13,8 +21,8 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_circle",
-	"CIRCLE_GAMMA": 80.0,
-	"CIRCLE_MARGIN": 0.25,
+	"CIRCLE_GAMMA": 64.0,       # Giảm từ 80.0 xuống 64.0 để ổn định gradient và hội tụ hài hòa giữa các loài
+	"CIRCLE_MARGIN": 0.25,      # Margin tối ưu 0.25 (Target Δp=0.75, Δn=0.25)
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
@@ -25,9 +33,9 @@ CONFIG = {
 
 
 class CircleLoss(nn.Module):
-	"""Circle Loss (Pair-based) — adaptive soft-margin trên mặt cầu đơn vị."""
+	"""Circle Loss (Pair-based) — adaptive soft-margin trên mặt cầu đơn vị với Đạo hàm Tách biệt."""
 
-	def __init__(self, gamma: float = 80.0, margin: float = 0.25) -> None:
+	def __init__(self, gamma: float = 64.0, margin: float = 0.25) -> None:
 		super().__init__()
 		self.gamma = gamma
 		self.margin = margin
@@ -37,6 +45,7 @@ class CircleLoss(nn.Module):
 		self.Delta_n = margin
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+		# Ma trận Cosine Similarity trên mặt cầu đơn vị
 		similarity_matrix = torch.matmul(embeddings, embeddings.t())
 		batch_size = embeddings.size(0)
 
@@ -47,14 +56,17 @@ class CircleLoss(nn.Module):
 		diag_mask = torch.eye(batch_size, device=embeddings.device)
 		is_positive = torch.clamp(is_positive - diag_mask, min=0.0)
 
-		alpha_p = torch.clamp(self.O_p - similarity_matrix, min=0.0)
-		alpha_n = torch.clamp(similarity_matrix - self.O_n, min=0.0)
+		# Tính trọng số gradient động alpha_p và alpha_n (sử dụng .detach() để giữ đúng dạng đạo hàm lý thuyết)
+		sim_detach = similarity_matrix.detach()
+		alpha_p = torch.clamp(self.O_p - sim_detach, min=0.0)
+		alpha_n = torch.clamp(sim_detach - self.O_n, min=0.0)
 
 		exp_p = -self.gamma * alpha_p * (similarity_matrix - self.Delta_p)
 		exp_n = self.gamma * alpha_n * (similarity_matrix - self.Delta_n)
 
-		exp_p = exp_p * is_positive + (1.0 - is_positive) * -1e10
-		exp_n = exp_n * is_negative + (1.0 - is_negative) * -1e10
+		# Masking an toàn số học bằng masked_fill (-1e4 tránh tràn số trong logsumexp)
+		exp_p = exp_p.masked_fill(is_positive == 0, -1e4)
+		exp_n = exp_n.masked_fill(is_negative == 0, -1e4)
 
 		logsumexp_p = torch.logsumexp(exp_p, dim=1)
 		logsumexp_n = torch.logsumexp(exp_n, dim=1)
