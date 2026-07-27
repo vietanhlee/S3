@@ -1,8 +1,10 @@
 """
 train_proxy_anchor.py — Proxy Anchor Loss (CVPR 2020)
 =====================================================
-So sánh ảnh với Proxy lớp thay vì ảnh-ảnh. O(N×C) thay vì O(N²).
-Hội tụ cực nhanh, gradient ổn định — 18 class → cực hiệu quả.
+So sánh ảnh với Proxy đại diện từng lớp thay vì ảnh-ảnh.
+Được tối ưu hóa Vectorized 100% trên GPU (không dùng vòng lặp Python)
+và điều chỉnh margin chuẩn hóa PROXY_MARGIN = 0.10 cho sự cân bằng tuyệt đối
+giữa lực kéo Positive và lực đẩy Negative cho các loài gỗ trong cùng Chi.
 """
 
 import torch
@@ -13,8 +15,8 @@ from train_base import BaseMetricTrainer, PKSampler
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_proxy_anchor",
-	"PROXY_ALPHA": 32.0,
-	"PROXY_MARGIN": 0.40,    # Tăng margin để buộc các positive kéo chặt hơn về phía proxy
+	"PROXY_ALPHA": 32.0,     # Scale factor alpha chuẩn 32.0
+	"PROXY_MARGIN": 0.10,    # Margin delta chuẩn 0.10 cho Proxy Anchor (Target Δp=0.10, Δn=-0.10)
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
@@ -26,52 +28,49 @@ CONFIG = {
 
 
 class ProxyAnchorLoss(nn.Module):
-	"""Proxy Anchor Loss — so sánh mẫu với proxy đại diện từng lớp."""
+	"""Proxy Anchor Loss (CVPR 2020) — Vectorized & An toàn số học 100% trên GPU."""
 
 	def __init__(self, num_classes: int, embedding_dim: int = 256,
-	             alpha: float = 32.0, margin: float = 0.1) -> None:
+	             alpha: float = 32.0, margin: float = 0.10) -> None:
 		super().__init__()
 		self.alpha = alpha
 		self.margin = margin
 		self.num_classes = num_classes
-		# Proxy vectors có thể học (learnable)
+		# Proxy vectors có thể học (learnable proxies)
 		self.proxies = nn.Parameter(torch.randn(num_classes, embedding_dim))
 		nn.init.kaiming_normal_(self.proxies, mode="fan_out")
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-		# Chuẩn hóa proxy
-		proxies = F.normalize(self.proxies, p=2, dim=1)
-		# Ma trận cosine similarity: (B, C)
-		similarity = torch.matmul(embeddings, proxies.t())
+		# Chuẩn hóa Proxy và Embedding về mặt cầu đơn vị
+		proxies = F.normalize(self.proxies, p=2, dim=1)        # (C, D)
+		sim_matrix = torch.matmul(embeddings, proxies.t())     # Cosine similarity: (B, C)
 
-		# Positive proxies: proxy của lớp mà batch có chứa ít nhất 1 mẫu
-		unique_labels = torch.unique(labels)
+		# One-hot mask cho nhãn mục tiêu trong batch
+		one_hot = F.one_hot(labels, num_classes=self.num_classes).float()  # (B, C)
+		pos_mask = one_hot.bool()
+		neg_mask = ~pos_mask
 
-		loss_pos = torch.tensor(0.0, device=embeddings.device)
-		loss_neg = torch.tensor(0.0, device=embeddings.device)
+		# Tính exponent cho positive term và negative term
+		pos_exp = -self.alpha * (sim_matrix - self.margin)
+		neg_exp = self.alpha * (sim_matrix + self.margin)
 
-		for p_idx in range(self.num_classes):
-			# Tìm các mẫu cùng lớp với proxy p_idx
-			pos_mask = (labels == p_idx)
-			neg_mask = (labels != p_idx)
+		# Masking an toàn số học bằng masked_fill (-1e4 tránh tràn số trong logsumexp)
+		pos_exp = pos_exp.masked_fill(~pos_mask, -1e4)
+		neg_exp = neg_exp.masked_fill(~neg_mask, -1e4)
 
-			if pos_mask.any():
-				# Positive term: kéo các mẫu cùng lớp về gần proxy
-				pos_sim = similarity[pos_mask, p_idx]
-				loss_pos += torch.log(1.0 + torch.sum(
-					torch.exp(-self.alpha * (pos_sim - self.margin))
-				))
+		# Logsumexp theo chiều batch cho từng proxy: (C,)
+		pos_term = torch.logsumexp(pos_exp, dim=0)
+		neg_term = torch.logsumexp(neg_exp, dim=0)
 
-			if neg_mask.any():
-				# Negative term: đẩy các mẫu khác lớp ra xa proxy
-				neg_sim = similarity[neg_mask, p_idx]
-				loss_neg += torch.log(1.0 + torch.sum(
-					torch.exp(self.alpha * (neg_sim + self.margin))
-				))
+		# Xác định các proxy có ít nhất 1 mẫu positive trong batch hiện tại
+		has_pos = pos_mask.any(dim=0)
+		num_pos_proxies = max(int(has_pos.sum().item()), 1)
 
-		n_pos_proxies = len(unique_labels)
-		loss = loss_pos / max(n_pos_proxies, 1) + loss_neg / self.num_classes
-		return loss
+		# Tính loss tổng hợp theo đúng công thức CVPR 2020 gốc
+		loss_pos = torch.log1p(torch.exp(pos_term[has_pos])).sum() / num_pos_proxies
+		loss_neg = torch.log1p(torch.exp(neg_term)).sum() / self.num_classes
+
+		return loss_pos + loss_neg
 
 
 class ProxyAnchorTrainer(BaseMetricTrainer):
