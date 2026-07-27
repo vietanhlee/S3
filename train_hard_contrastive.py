@@ -1,8 +1,9 @@
 """
-train_hard_contrastive.py — Online Hard Pair Contrastive Loss
-=============================================================
-Chỉ tính loss cho cặp positive xa nhất và negative gần nhất trong batch.
-Cầu nối giữa Vanilla Contrastive và các loss pair-based nâng cao.
+train_hard_contrastive.py — Online Top-K Hard Pair Contrastive Loss
+=====================================================================
+Khai thác Top-K cặp positive xa nhất và negative gần nhất với Dual Margin.
+Giải quyết triệt để tình trạng nhạy cảm với nhiễu (outliers) và tối ưu hóa
+cho các loài gỗ khó có intra-class variance lớn.
 """
 
 import torch
@@ -12,7 +13,9 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_hard_contrastive",
-	"CONTRASTIVE_MARGIN": 1.1,  # Tăng margin khoảng cách Euclidean lên 1.1 (phạt negative khi cosine sim > 0.395)
+	"CONTRASTIVE_MARGIN": 1.1,  # Negative margin khoảng cách Euclidean (phạt khi cosine sim > 0.395)
+	"POS_MARGIN": 0.2,          # Positive margin (chỉ kéo khi d > 0.2)
+	"TOP_K_HARD": 3,            # Khai thác Top-3 cặp positive xa nhất và negative gần nhất per anchor
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
@@ -23,11 +26,13 @@ CONFIG = {
 
 
 class OnlineHardContrastiveLoss(nn.Module):
-	"""Online Hard Pair Contrastive Loss — chọn hardest positive và hardest negative."""
+	"""Online Top-K Hard Pair Contrastive Loss với Dual Margin."""
 
-	def __init__(self, margin: float = 0.5) -> None:
+	def __init__(self, neg_margin: float = 1.1, pos_margin: float = 0.2, top_k: int = 3) -> None:
 		super().__init__()
-		self.margin = margin
+		self.neg_margin = neg_margin
+		self.pos_margin = pos_margin
+		self.top_k = top_k
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 		dist_mat = torch.cdist(embeddings, embeddings, p=2)
@@ -46,15 +51,24 @@ class OnlineHardContrastiveLoss(nn.Module):
 			if len(pos_indices) == 0 or len(neg_indices) == 0:
 				continue
 
-			# Hardest positive: xa nhất
-			hardest_pos_dist = dist_mat[i, pos_indices].max()
-			# Hardest negative: gần nhất
-			hardest_neg_dist = dist_mat[i, neg_indices].min()
+			# Hardest positive: Top-K xa nhất
+			pos_dists = dist_mat[i, pos_indices]
+			if len(pos_dists) > self.top_k:
+				hard_pos_dists, _ = torch.topk(pos_dists, k=self.top_k, largest=True)
+			else:
+				hard_pos_dists = pos_dists
 
-			# Positive loss
-			pos_loss = hardest_pos_dist.pow(2)
-			# Negative loss
-			neg_loss = torch.clamp(self.margin - hardest_neg_dist, min=0.0).pow(2)
+			# Hardest negative: Top-K gần nhất
+			neg_dists = dist_mat[i, neg_indices]
+			if len(neg_dists) > self.top_k:
+				hard_neg_dists, _ = torch.topk(neg_dists, k=self.top_k, largest=False)
+			else:
+				hard_neg_dists = neg_dists
+
+			# Positive loss: chỉ kéo khi d > pos_margin
+			pos_loss = torch.clamp(hard_pos_dists - self.pos_margin, min=0.0).pow(2).mean()
+			# Negative loss: phạt khi d < neg_margin
+			neg_loss = torch.clamp(self.neg_margin - hard_neg_dists, min=0.0).pow(2).mean()
 
 			losses.append(0.5 * (pos_loss + neg_loss))
 
@@ -69,10 +83,18 @@ class HardContrastiveTrainer(BaseMetricTrainer):
 		return "Online Hard Pair Contrastive Loss"
 
 	def get_loss_config(self) -> dict:
-		return {"contrastive_margin": self.config["CONTRASTIVE_MARGIN"]}
+		return {
+			"contrastive_margin": self.config["CONTRASTIVE_MARGIN"],
+			"pos_margin": self.config["POS_MARGIN"],
+			"top_k_hard": self.config["TOP_K_HARD"],
+		}
 
 	def build_loss(self, num_classes: int) -> nn.Module:
-		return OnlineHardContrastiveLoss(margin=self.config["CONTRASTIVE_MARGIN"])
+		return OnlineHardContrastiveLoss(
+			neg_margin=self.config["CONTRASTIVE_MARGIN"],
+			pos_margin=self.config["POS_MARGIN"],
+			top_k=self.config["TOP_K_HARD"],
+		)
 
 
 if __name__ == "__main__":
