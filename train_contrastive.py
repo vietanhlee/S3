@@ -1,8 +1,9 @@
 """
 train_contrastive.py — Vanilla Contrastive Loss (Baseline, CVPR 2005)
 =====================================================================
-So sánh từng cặp mẫu với margin cố định.
-Baseline pair-based cơ bản nhất để đo mức cải thiện của Circle Loss, MS Loss.
+So sánh từng cặp mẫu với margin khoảng cách Euclidean chuẩn hóa.
+Được cải tiến margin lên 1.0 để đảm bảo lực đẩy mạnh mẽ cho các loài gỗ
+khác loài thuộc cùng một Chi (Intra-genus negative pairs).
 """
 
 import torch
@@ -12,7 +13,7 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_contrastive",
-	"CONTRASTIVE_MARGIN": 0.5,
+	"CONTRASTIVE_MARGIN": 1.0,  # Tăng margin Euclidean lên 1.0 (đẩy các cặp negative có cosine sim > 0.5)
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
@@ -23,9 +24,9 @@ CONFIG = {
 
 
 class VanillaContrastiveLoss(nn.Module):
-	"""Vanilla Contrastive Loss — margin cố định, kéo positive, đẩy negative."""
+	"""Vanilla Contrastive Loss — margin chuẩn hóa Euclidean distance."""
 
-	def __init__(self, margin: float = 0.5) -> None:
+	def __init__(self, margin: float = 1.0) -> None:
 		super().__init__()
 		self.margin = margin
 
@@ -44,7 +45,7 @@ class VanillaContrastiveLoss(nn.Module):
 		# Negative loss: max(0, margin - d(xi, xj))^2
 		neg_loss = torch.clamp(self.margin - dist_mat, min=0.0).pow(2) * neg_mask.float()
 
-		# Trung bình
+		# Trung bình tính độc lập cho positive và negative
 		n_pos = pos_mask.float().sum()
 		n_neg = neg_mask.float().sum()
 

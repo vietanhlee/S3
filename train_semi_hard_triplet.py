@@ -1,8 +1,9 @@
 """
 train_semi_hard_triplet.py — Semi-hard Triplet Loss (FaceNet Style, CVPR 2015)
 ===============================================================================
-Chọn các negative nằm trong vùng biên margin: d(a,p) < d(a,n) < d(a,p) + margin.
-Baseline kinh điển được sử dụng rộng rãi trong tất cả các benchmark DML.
+Chọn các negative nằm trong vùng biên margin: d(a,p)² < d(a,n)² < d(a,p)² + margin.
+Được cải tiến margin khoảng cách d² lên 0.5 giúp định hình không gian nhúng
+phân tách sắc nét hơn cho các loài gỗ trong cùng Chi.
 """
 
 import torch
@@ -12,7 +13,7 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_semi_hard_triplet",
-	"TRIPLET_MARGIN": 0.6,  # Tăng margin khoảng cách bình phương lên 0.6 để mở rộng vùng tìm semi-hard negative
+	"TRIPLET_MARGIN": 0.5,  # Margin khoảng cách bình phương d² = 0.5 (tương đương với Cosine delta >= 0.25)
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
@@ -28,7 +29,7 @@ class SemiHardTripletLoss(nn.Module):
 	Chọn negative n sao cho: d(a,p)^2 < d(a,n)^2 < d(a,p)^2 + margin
 	"""
 
-	def __init__(self, margin: float = 0.3) -> None:
+	def __init__(self, margin: float = 0.5) -> None:
 		super().__init__()
 		self.margin = margin
 

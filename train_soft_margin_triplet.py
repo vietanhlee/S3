@@ -1,8 +1,9 @@
 """
 train_soft_margin_triplet.py — Soft-Margin Triplet Loss
 =======================================================
-Thay hàm hinge cứng bằng hàm log-entropy mịn, loại bỏ hoàn toàn
-siêu tham số margin α, gradient liên tục không bao giờ bị triệt tiêu.
+Thay hàm hinge cứng bằng hàm log-entropy mịn, loại bổ siêu tham số margin α cứng.
+Được cải tiến bổ sung scale factor beta = 2.0 giúp điều tiết độ dốc gradient,
+tránh bị nhiễu do một vài bức ảnh outlier đơn lẻ gây ra.
 """
 
 import torch
@@ -12,6 +13,7 @@ from train_base import BaseMetricTrainer
 # ===== CẤU HÌNH =====
 CONFIG = {
 	"OUTPUT_DIR": "outputs_soft_margin_triplet",
+	"SCALE_BETA": 2.0,      # Scale factor beta điều tiết độ nhạy của hàm soft-margin
 	"EPOCHS": 50,
 	"PATIENCE": 25,
 	"LR": 1e-4,
@@ -22,10 +24,14 @@ CONFIG = {
 
 
 class SoftMarginTripletLoss(nn.Module):
-	"""Soft-Margin Triplet Loss — gradient liên tục, không cần margin.
+	"""Soft-Margin Triplet Loss — gradient liên tục mịn.
 
-	L = log(1 + exp(d(a,p)^2 - d(a,n)^2))
+	L = log(1 + exp(beta * (d(a,p)^2 - d(a,n)^2)))
 	"""
+
+	def __init__(self, beta: float = 2.0) -> None:
+		super().__init__()
+		self.beta = beta
 
 	def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 		dist_mat = torch.cdist(embeddings, embeddings, p=2).pow(2)
@@ -48,8 +54,8 @@ class SoftMarginTripletLoss(nn.Module):
 			d_ap = dist_mat[i, pos_indices].max()
 			d_an = dist_mat[i, neg_indices].min()
 
-			# Soft margin: log(1 + exp(d_ap - d_an))
-			loss = torch.log1p(torch.exp(d_ap - d_an))
+			# Soft margin mịn: log(1 + exp(beta * (d_ap - d_an)))
+			loss = torch.log1p(torch.exp(self.beta * (d_ap - d_an)))
 			losses.append(loss)
 
 		if len(losses) == 0:
@@ -63,10 +69,10 @@ class SoftMarginTripletTrainer(BaseMetricTrainer):
 		return "Soft-Margin Triplet Loss"
 
 	def get_loss_config(self) -> dict:
-		return {"note": "No margin parameter needed"}
+		return {"scale_beta": self.config["SCALE_BETA"]}
 
 	def build_loss(self, num_classes: int) -> nn.Module:
-		return SoftMarginTripletLoss()
+		return SoftMarginTripletLoss(beta=self.config["SCALE_BETA"])
 
 
 if __name__ == "__main__":
