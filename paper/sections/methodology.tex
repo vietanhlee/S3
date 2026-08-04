@@ -1,13 +1,13 @@
 \section{Proposed Specimen-Centric Data Protocol (SCDP)}
 
 \subsection{Overall Framework}
-SCDP là một protocol cho các bài toán mà một thực thể vật lý sinh ra nhiều quan sát ảnh tương quan. Protocol gồm năm pha theo thứ tự: (i) xác định đơn vị nguồn và kế hoạch thu thập; (ii) lưu trữ có truy vết; (iii) thực hiện data audit; (iv) thực hiện group-disjoint split và đóng băng (freeze) tập test; và (v) training, model selection và reporting. Thứ tự này có ý nghĩa phương pháp luận: thông tin nguồn gốc phải tồn tại trước khi dữ liệu được split, và không được suy diễn ngược từ kết quả mô hình.
+SCDP is a protocol for settings in which a single physical entity generates multiple correlated image observations. The protocol comprises five ordered phases: (i) defining the source unit and collection plan; (ii) traceable storage; (iii) data auditing; (iv) group-disjoint splitting and test set freezing; and (v) training, model selection, and reporting. This ordering has a methodological basis: provenance information must exist before data are split, and it must not be inferred retrospectively from model outputs.
 
-Trong bài toán nhận diện loài gỗ, dữ liệu hình ảnh thường được thu thập và tổ chức theo cấu trúc thư mục phân cấp vật lý: thư mục gốc đại diện cho các loài gỗ khác nhau, và bên dưới mỗi loài chứa các thư mục con (subfolders) chứa hình ảnh chụp macro từ các mẫu gỗ khác nhau. Thông thường, mỗi thư mục con này tương ứng với một mẫu vật vật lý độc lập (specimen) — đơn vị nguồn tối thiểu cần được cô lập hoàn toàn giữa các split để ngăn ngừa rò rỉ thông tin (data leakage). Tuy nhiên, protocol SCDP không mặc nhiên giả định mối tương đương này; sự tương ứng giữa các thư mục con và định danh mẫu vật độc lập (\texttt{specimen\_id}) phải được đối chiếu và xác nhận chính thức trong tệp manifest.
+In the wood identification setting, images are typically organized in a hierarchical directory structure where the root level represents species and each subdirectory contains macro-scale images from one or more specimens. In the dataset used here, each subdirectory corresponds to a single independent physical specimen---the minimal source unit that must be kept wholly within one split to prevent leakage. However, SCDP does not assume this correspondence as given; the mapping between subdirectories and specimen identifiers (\texttt{specimen\_id}) must be verified and formally recorded in a manifest file.
 
 \subsection{Collection, Storage, and Traceability}
 \subsubsection{Data Units and Required Metadata}
-Mỗi mẫu vật được cấp một \texttt{specimen\_id} bất biến. Mỗi lần thu nhận được cấp \texttt{session\_id}, và mỗi tệp ảnh có \texttt{image\_id} cùng đường dẫn hoặc mã băm nội dung. Nhãn loài cần kèm nguồn định danh và mức độ chắc chắn; các mẫu chỉ xác định tới cấp chi không được gộp ngầm vào nhãn loài. Bảng \ref{tab:manifest} mô tả bộ trường tối thiểu. Các trường này cho phép tái tạo split mà không phụ thuộc vào tên tệp hay cấu trúc thư mục cục bộ.
+Each specimen is assigned a persistent \texttt{specimen\_id}. Each acquisition session receives a \texttt{session\_id}, and each image file is assigned an \texttt{image\_id} together with its path or content hash. Species labels must be accompanied by the identification source and confidence level; records identified only to genus level are excluded from species-level supervision and must not be silently merged with species labels. Table~\ref{tab:manifest} lists the minimum required fields. These fields allow the split to be reproduced without relying on file names or local directory structures that may change over time.
 
 \begin{table}[htbp]
 \centering
@@ -27,60 +27,60 @@ Governance & Dataset version, validation status, exclusion reason, \texttt{split
 }
 \end{table}
 
-Về tổ chức, ảnh gốc được lưu bất biến; các ảnh đã chuẩn hóa, crop hoặc tăng cường được tạo dẫn xuất từ ảnh gốc và không thay thế ảnh nguồn. Một cấu trúc thư mục khả dụng là \texttt{raw/specimen\_id/session\_id/image\_id} kết hợp với một manifest dạng CSV hoặc Parquet ở dataset level. Cấu trúc thư mục giúp thao tác thuận tiện, trong khi manifest là nguồn chân lý cho nhãn và provenance/origin relation. Việc này tránh suy luận \texttt{specimen\_id} chỉ từ quy ước đặt tên vốn dễ bị thay đổi theo thời gian.
+Regarding storage, raw images are kept immutable; normalized, cropped, or augmented versions are derived from originals and do not replace the source files. A practical directory structure is \texttt{raw/specimen\_id/session\_id/image\_id}, combined with a dataset-level manifest in CSV or Parquet format. The directory structure facilitates navigation, while the manifest serves as the ground truth for labels and provenance relations. This approach avoids inferring \texttt{specimen\_id} solely from naming conventions, which are prone to change over time.
 
 \subsubsection{Audit Before Split}
-Trước khi tạo tập train, SCDP thực hiện bốn bước audit. Thứ nhất, kiểm tra schema bảo đảm mọi ảnh có định danh, nhãn và trạng thái hợp lệ. Thứ hai, kiểm tra group integrity bảo đảm một \texttt{specimen\_id} không mang các nhãn mâu thuẫn, trừ trường hợp được gắn cờ để chuyên gia xem xét. Thứ ba, perceptual hash và image similarity được dùng để phát hiện ảnh trùng, ảnh crop lại hoặc ảnh xuất hiện dưới nhiều tên. Thứ tư, thống kê số specimen và số ảnh theo loài để xác định các class không đủ số nhóm cho train--validation--test.
+Before any training split is created, SCDP performs four audit steps. First, a schema check verifies that every image has a valid identifier, label, and status. Second, a group integrity check confirms that no \texttt{specimen\_id} carries contradictory labels, except for records explicitly flagged for expert review. Third, perceptual hashing and image similarity are used to detect duplicate or re-cropped images appearing under multiple names. Fourth, per-species specimen and image counts are computed to identify classes with insufficient groups for a valid train--validation--test partition.
 
-Các bước audit này phân biệt hai tình huống. Ảnh giống nhau do cùng mẫu vật là lỗi phân chia nếu chúng ở các split khác nhau. Ảnh giống nhau do hai mẫu vật khác nhau có thể là biến thiên sinh học hợp lệ, nhưng vẫn cần được lưu ý khi diễn giải độ khó của benchmark. Không có kiểm tra embedding nào thay thế được thông tin nguồn gốc được quản lý tốt.
+These steps distinguish two situations. Images that are similar because they originate from the same specimen constitute a partitioning error if they appear in different splits. Images that are similar because two distinct specimens share biological traits may represent valid intra-species variation, but should be noted when interpreting benchmark difficulty. No embedding-based check replaces well-maintained provenance information.
 
 \subsection{Embedding-Aware Class-wise Specimen Split (CEGS-Split)}
 \subsubsection{Allocation Constraints}
-Sau khi manifest được audit, CEGS-Split thực hiện split ở cấp mẫu vật (specimen level). Với biến nhị phân $a_{j,t}$ chỉ việc gán mẫu vật $S_j$ vào tập $t\in\{\mathrm{train},\mathrm{val},\mathrm{test}\}$, ràng buộc chính là
+After the manifest has been audited, CEGS-Split partitions data at the specimen level. Let $a_{j,t}$ be a binary variable indicating that specimen $S_j$ is assigned to split $t\in\{\mathrm{train},\mathrm{val},\mathrm{test}\}$. The primary constraint is
 \begin{equation}
-\sum_t a_{j,t}=1,\qquad \forall S_j\in\mathcal{S}.
+\sum_t a_{j,t}=1,\qquad \forall\, S_j\in\mathcal{S}.
 \label{eq:one_split}
 \end{equation}
-Kết hợp với ánh xạ từ ảnh sang mẫu vật, (\ref{eq:one_split}) bảo đảm điều kiện rời nhau ở (\ref{eq:group_disjoint}). Với mỗi loài $c$, số ảnh hoặc số mẫu vật trong tập $t$ được giữ gần tỷ lệ định trước $p_t$:
+Combined with the image-to-specimen mapping, (\ref{eq:one_split}) enforces the disjointness condition in (\ref{eq:group_disjoint}). For each species $c$, the number of images or specimens in split $t$ is kept near the prescribed ratio $p_t$:
 \begin{equation}
 \left|n_{c,t}-p_t n_c\right|\leq \delta_c,
 \label{eq:class_balance}
 \end{equation}
-trong đó $n_{c,t}$ là số đơn vị được chọn để cân bằng, $n_c$ là tổng số specimen của loài $c$, và $\delta_c$ phản ánh tính rời rạc do số mẫu vật có hạn. Khi số specimens của một loài quá ít, protocol ưu tiên báo cáo giới hạn đó thay vì tách ảnh của một mẫu vật để đạt tỷ lệ giả định.
+where $n_{c,t}$ is the count of units selected to maintain balance, $n_c$ is the total specimen count for species $c$, and $\delta_c$ reflects discretization due to the limited specimen count. When a species has too few specimens, the protocol reports this limitation rather than splitting images of a single specimen to meet a notional ratio.
 
 \subsubsection{Specimen-Level Representation}
-Để kiểm tra cấu trúc hình ảnh ngoài metadata, CEGS-Split dùng bộ trích xuất feature tham chiếu $f_0$ đã đóng băng (frozen backbone) và không được tinh chỉnh bằng nhãn của dataset đích. Với ảnh $x_i$, embedding chuẩn hóa là
+To examine image structure beyond metadata, CEGS-Split uses a frozen reference feature extractor $f_0$ that has not been fine-tuned on the target dataset. For image $x_i$, the $L_2$-normalized embedding is
 \begin{equation}
 z_i=\frac{f_0(x_i)}{\|f_0(x_i)\|_2}.
 \end{equation}
-Đại diện của mẫu vật $S_j$ (specimen centroid) là trung bình của các embedding ảnh:
+The representative embedding for specimen $S_j$ (specimen centroid) is the mean of its image embeddings:
 \begin{equation}
 h_j=\frac{1}{|S_j|}\sum_{x_i\in S_j}z_i.
 \label{eq:specimen_centroid}
 \end{equation}
-Nếu cần ước lượng hiệp phương sai với số specimens nhỏ, PCA chỉ được fit trên development set và số chiều được giới hạn để tránh ma trận suy biến.
+If covariance estimation is needed with small specimen counts, PCA is fitted only on the development set and the number of components is restricted to avoid singular matrices.
 
 \subsubsection{Allocation Strategies and Selection Criteria}
-CEGS-Split triển khai bốn chiến lược ở group level: (i) \emph{Mahalanobis stratification}, phân tầng mẫu vật theo độ điển hình đối với phân bố của loài; (ii) \emph{hierarchical allocation}, giữ nguyên các cụm mẫu vật gần nhau khi phân bổ; (iii) \emph{stratified group allocation}, tối ưu cân bằng loài; và (iv) \emph{agglomerative stratified allocation}, kết hợp cụm với cân bằng các distance bands. Mọi chiến lược đều phải thỏa (\ref{eq:one_split}); chúng khác nhau ở cách xử lý class imbalance và multi-modal structure trong từng loài.
+CEGS-Split implements four group-level allocation strategies: (i)~\emph{Mahalanobis stratification}, which ranks specimens by typicality with respect to the class distribution; (ii)~\emph{hierarchical allocation}, which preserves naturally occurring specimen clusters; (iii)~\emph{stratified group allocation}, which optimizes per-species balance; and (iv)~\emph{agglomerative stratified allocation}, which combines clustering with balance across distance bands. All strategies satisfy~(\ref{eq:one_split}); they differ in how they handle class imbalance and multi-modal structure within a species.
 
-Chiến lược được chọn bằng tiêu chí đã xác định trước trên development set, gồm sai lệch cân bằng theo (\ref{eq:class_balance}), số specimens tối thiểu của mỗi loài, độ ổn định qua các seed và các embedding audit metrics. Không chọn split chỉ để làm kết quả nhận diện cao hơn hoặc thấp hơn. Sau khi chọn seed và cấu hình, manifest split được đóng băng trước khi training target model; mọi thay đổi sau đó phải tạo một phiên bản benchmark mới.
+The strategy is selected using predefined criteria evaluated on the development set: the balance deviation in~(\ref{eq:class_balance}), the minimum specimen count per species, stability across seeds, and embedding audit metrics. No split is chosen solely to raise or lower recognition scores. Once the seed and configuration are selected, the split manifest is frozen before any target model is trained; any subsequent revision must produce a new benchmark version.
 
 \paragraph{(i) Mahalanobis Distance-based Split:}
-Chiến lược này xem các mẫu vật ở xa trọng tâm (centroid) của lớp là các mẫu dị biệt (outlier) về mặt ngữ nghĩa và ưu tiên đưa chúng vào tập test hoặc validation. Với tập mẫu chưa phân bổ $U$, centroid $\mu_U$ và hiệp phương sai $\Sigma_U$ được xác định bởi:
+This strategy treats specimens far from the class centroid as semantic outliers and allocates them preferentially to the test or validation set. For the set of unassigned specimens $U$ with centroid $\mu_U$ and covariance $\Sigma_U$:
 \begin{equation}
 \mu_U=\frac{1}{|U|}\sum_{j\in U} z_j,
 \end{equation}
 \begin{equation}
 \Sigma_U=\frac{1}{|U|-1}\sum_{j\in U}(z_j-\mu_U)(z_j-\mu_U)^T+\epsilon I.
 \end{equation}
-Khoảng cách Mahalanobis của mẫu $j$ đến centroid hiện tại là:
+The Mahalanobis distance of specimen $j$ to the current centroid is:
 \begin{equation}
 d_{\text{Mahal}}(z_j,\mu_U)=\sqrt{(z_j-\mu_U)^T\Sigma_U^{-1}(z_j-\mu_U)}.
 \end{equation}
-Tại mỗi vòng lặp, mẫu ở xa nhất $j^*=\arg\max_{j\in U}d_{\text{Mahal}}(z_j,\mu_U)$ được chọn theo dung lượng còn thiếu của tập đích, còn các mẫu khác được giữ lại cho vòng sau.
+At each iteration, the most distant specimen $j^*=\arg\max_{j\in U}d_{\text{Mahal}}(z_j,\mu_U)$ is selected according to the remaining capacity of the target split; remaining specimens are held for subsequent rounds.
 
 \paragraph{(ii) Hierarchical Clustering-based Split:}
-Chiến lược này phát hiện các nhóm mẫu vật tự nhiên trong cùng một loài bằng Agglomerative Hierarchical Clustering với Ward linkage. Số lượng cụm tối ưu $K^*$ được xác định bằng phương pháp khuỷu tay (elbow method) trên tổng bình phương khoảng cách trong cụm:
+This strategy detects natural specimen groups within each species using agglomerative hierarchical clustering with Ward linkage. The optimal cluster count $K^*$ is determined by the elbow method on within-cluster sum of squares:
 \begin{equation}
 \text{WCSS}(K)=\sum_{k=1}^{K}\sum_{z_j\in\mathcal{C}_k}\|z_j-\mu_{\mathcal{C}_k}\|_2^2.
 \end{equation}
@@ -88,46 +88,43 @@ After scaling $K$ and $\text{WCSS}(K)$ to $[0,1]$, the elbow point is selected b
 \begin{equation}
 K^*=\arg\max_K \frac{|x_K+y_K-1|}{\sqrt{2}}.
 \end{equation}
-Mỗi cụm $\mathcal{C}_k$ được giữ nguyên vẹn khi phân bổ vào tập train, validation hoặc test, nhằm tránh cắt đứt các nhóm vân gỗ có cấu trúc bề mặt gần nhau.
+Each cluster $\mathcal{C}_k$ is kept intact when assigned to a split, preventing specimens with similar surface texture from being separated.
 
 \paragraph{(iii) Stratified Group-based Split:}
-Phương pháp phân chia nhóm có phân tầng tối ưu hóa đồng thời cô lập nhóm mẫu vật và cân bằng phân bố lớp giữa các tập. Gọi $w_{g,c}$ là số lượng ảnh của loài $c$ trong nhóm $g$, số lượng mẫu mục tiêu cho phân chia $f$ là:
+This strategy optimizes simultaneously for group isolation and class balance across splits. Let $w_{g,c}$ denote the image count of species $c$ in group $g$; the target count for split $f$ is:
 \begin{equation}
 T_{f,c}=\frac{1}{K}\sum_{g=1}^{G}w_{g,c}.
 \end{equation}
-Thuật toán gán tham lam sẽ lựa chọn tập:
+A greedy assignment selects the split:
 \begin{equation}
 f^*=\arg\min_f \sum_{c=1}^{C}\left(\frac{C_{f,c}+w_{g,c}}{T_{f,c}}-1\right)^2,
 \end{equation}
-trong đó $C_{f,c}$ là số lượng mẫu hiện tại của loài $c$ trong tập $f$.
+where $C_{f,c}$ is the current image count of species $c$ in split $f$.
 
 \paragraph{(iv) Agglomerative Stratified Split:}
-Phương pháp này kết hợp giữa phân cụm đặc trưng và phân chia phân tầng theo khoảng cách hình học. Sau khi gom cụm mẫu vật, khoảng cách từ trọng tâm cụm $\mu_{\mathcal{C}_k}$ đến trọng tâm chung của toàn loài $\mu_{\text{global}}$ được tính bằng:
+This strategy combines feature-space clustering with stratification based on geometric distance bands. After clustering, the distance from each cluster centroid $\mu_{\mathcal{C}_k}$ to the global species centroid $\mu_{\text{global}}$ is computed as:
 \begin{equation}
 d(\mathcal{C}_k) = \sqrt{ D^2(\mu_{\mathcal{C}_k}, \mu_{\text{global}}) },
 \end{equation}
-Trong đó:
 \begin{equation}
 D^2(\mu_{\mathcal{C}_k}, \mu_{\text{global}}) = (\mu_{\mathcal{C}_k}-\mu_{\text{global}})^T\Sigma_{\text{global}}^{-1}(\mu_{\mathcal{C}_k}-\mu_{\text{global}}).
 \end{equation}
-Các cụm được chia thành ba dải Near, Mid và Far. Khi phân bổ, thuật toán chọn tập có độ hụt lớn nhất so với mục tiêu:
+Clusters are grouped into three distance bands: Near, Mid, and Far. During allocation, the split with the largest shortfall relative to its target receives priority:
 \begin{equation}
 \Delta_s=\max(0,N_s^{\text{target}}-N_s^{\text{current}}),\quad s\in\{\text{train},\text{val},\text{test}\}.
 \end{equation}
-Nhờ đó, cả ba tập train, validation và test đều chứa đầy đủ các mẫu điển hình, mẫu trung gian và mẫu dị biệt.
+This ensures that all three splits contain representative, intermediate, and atypical specimens.
 
 \subsubsection{CEGS-Split Optimization and Configuration}
-Để tự động hóa việc tìm kiếm cấu hình phân bổ tối ưu và giảm thiểu rủi ro rò rỉ dữ liệu (data leakage) một cách khách quan nhất, chúng tôi triển khai thuật toán tìm kiếm tối ưu hóa theo loài (Class-wise Optimization). Với mỗi loài gỗ $c$ trong số 19 loài, quy trình tìm kiếm được thực hiện như sau:
-
-Gọi $\mathcal{D}_{\text{train}}^{(m, c)}$ và $\mathcal{D}_{\text{test}}^{(m, c)}$ lần lượt là tập dữ liệu huấn luyện và kiểm thử của loài $c$ thu được khi phân chia bằng phương pháp $m$ (trong số các chiến lược phân bổ được khảo sát). Chúng tôi sử dụng một bộ trích xuất đặc trưng Swin-Large đã đóng băng để thu nhận vector đặc trưng chuẩn hóa $L_2$ ký hiệu là $\mathbf{z}$ của từng ảnh. Độ tương đồng cosine gần nhất (Nearest-Neighbor Cosine Similarity) của một mẫu ảnh kiểm thử $x_i \in \mathcal{D}_{\text{test}}^{(m, c)}$ đối với tập huấn luyện $\mathcal{D}_{\text{train}}^{(m, c)}$ được tính toán bởi:
+To automate the selection of the optimal split configuration and minimize leakage risk in an objective manner, we implement a class-wise search procedure. For each species $c$, let $\mathcal{D}_{\text{train}}^{(m, c)}$ and $\mathcal{D}_{\text{test}}^{(m, c)}$ denote the training and test sets of species $c$ produced by strategy $m$. A frozen Swin-Large backbone extracts $L_2$-normalized embeddings $\mathbf{z}$. The nearest-neighbor cosine similarity of a test image $x_i \in \mathcal{D}_{\text{test}}^{(m, c)}$ to the training set is:
 \begin{equation}
 s_{\text{NN}}(x_i) = \max_{x_j \in \mathcal{D}_{\text{train}}^{(m, c)}} \frac{\mathbf{z}_i^T \mathbf{z}_j}{\|\mathbf{z}_i\|_2 \|\mathbf{z}_j\|_2}.
 \end{equation}
-Tiêu chí để xác định phương pháp chia tối ưu $m^*$ cho loài gỗ $c$ là cực tiểu hóa giá trị trung bình của độ tương đồng cosine gần nhất này trên toàn bộ tập mẫu kiểm thử:
+The optimal strategy $m^*$ for species $c$ minimizes the mean nearest-neighbor similarity over the test set:
 \begin{equation}
 m^* = \arg\min_{m} \frac{1}{|\mathcal{D}_{\text{test}}^{(m, c)}|} \sum_{x_i \in \mathcal{D}_{\text{test}}^{(m, c)}} s_{\text{NN}}(x_i).
 \end{equation}
-Phương pháp tối ưu $m^*$ này đại diện cho cấu hình phân chia tạo ra tập kiểm thử thách thức nhất và ít bị rò rỉ thông tin nhất về mặt không gian biểu diễn đặc trưng đối với tập huấn luyện. Kết quả tìm kiếm tối ưu hóa theo loài được trình bày chi tiết trong Bảng \ref{tab:cegs_split}. Quy trình này hoàn toàn tự động dựa trên tiêu chí đo lường tương đồng và không yêu cầu bất kỳ bước điều chỉnh hoặc hoán đổi tập thủ công nào.
+The selected configuration produces the test set that is most challenging in representation space and least susceptible to proximity-based leakage. Results of the class-wise optimization are listed in Table~\ref{tab:cegs_split}. The procedure is fully automated and requires no manual reassignment of images between splits.
 
 \begin{table}[htbp]
 \centering
@@ -150,7 +147,6 @@ Phương pháp tối ưu $m^*$ này đại diện cho cấu hình phân chia t�
 \textit{Guibourtia arnoldiana} & Hierarchical Clustering \\
 \textit{Guibourtia coleosperma} & Mahalanobis Fixed \\
 \textit{Guibourtia ehie} & Cosine Graph \\
-\textit{Peltogyne pubescens} & Mahalanobis Fixed \\
 \textit{Pterocarpus erinaceus} & Mahalanobis Fixed \\
 \textit{Pterocarpus indicus} & Agglomerative Stratified \\
 \textit{Pterocarpus macrocarpus} & Hierarchical Clustering \\
@@ -163,13 +159,13 @@ Phương pháp tối ưu $m^*$ này đại diện cho cấu hình phân chia t�
 \end{table}
 
 \subsubsection{Cross-Split Near-Duplicate Audit}
-Với một mẫu vật test $S_j$, độ tương đồng lớn nhất tới tập train được định nghĩa:
+For a test specimen $S_j$, the maximum similarity to the training set is defined as:
 \begin{equation}
 r_j=\max_{S_k\in\mathcal{S}_{\mathrm{train}}}
 \frac{h_j^\top h_k}{\|h_j\|_2\|h_k\|_2}.
 \label{eq:nn_audit}
 \end{equation}
-Các mẫu có $r_j$ thuộc đuôi cao của phân bố, hoặc có ảnh gần trùng lặp theo perceptual hash, được đưa vào audit list để đối chiếu lại \texttt{specimen\_id}, \texttt{session\_id}, nguồn thu thập và ảnh gốc. Nếu phát hiện cùng nguồn bị gán nhiều định danh, các bản ghi được sửa và split được tái tạo. Nếu nguồn khác nhau nhưng hợp lệ, mẫu được giữ lại và cờ audit được lưu trong manifest. Cách làm này sử dụng embedding như một công cụ audit, không biến độ tương đồng hình ảnh thành định nghĩa của rò rỉ.
+Specimens whose $r_j$ falls in the upper tail of the distribution, or whose images are flagged as near-duplicates by perceptual hashing, are placed on an audit list for manual verification of \texttt{specimen\_id}, \texttt{session\_id}, collection source, and original imagery. If the same source is found to carry multiple identifiers, the records are corrected and the split is regenerated. If sources are distinct and valid, the specimen is retained and the audit flag is recorded in the manifest. This approach treats embeddings as an audit instrument, not as a definition of leakage.
 
 \subsection{Generality of the Protocol}
-SCDP không phụ thuộc vào gỗ. Với ảnh da liễu, lát cắt y sinh, sản phẩm công nghiệp, ảnh vệ tinh đa thời điểm hoặc dữ liệu côn trùng, \texttt{specimen\_id} có thể được thay lần lượt bằng bệnh nhân, chi tiết sản phẩm, ô địa lý--thời gian hoặc cá thể. Nguyên tắc giữ nguyên là: xác định đơn vị mà hệ thống phải tổng quát hóa tới, ghi nhận provenance/origin relation trước khi training, và thực hiện split theo đơn vị đó.
+SCDP is not specific to wood imagery. For dermatology images, biomedical tissue sections, industrial products, multi-temporal satellite data, or insect specimens, the \texttt{specimen\_id} may be replaced by patient identifier, part serial number, spatio-temporal tile, or individual, respectively. The principle is invariant: identify the unit to which the system must generalize, record the provenance relation before training begins, and partition data according to that unit.

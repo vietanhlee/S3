@@ -1,116 +1,96 @@
 \section{Representation Learning and Classification Baselines}
 
 \subsection{Feature Backbone, Projection Head, and Classification Baseline}
-Sau khi tập test được đóng băng (frozen), bài toán nhận diện và học biểu diễn được phát triển dựa trên cấu trúc backbone và đầu chiếu (projection head) phi tuyến. Đối với downstream tasks sử dụng Metric Learning hoặc Self-Supervised Learning, mạng ConvNeXt-Tiny \cite{convnext} được sử dụng làm feature backbone để trích xuất đặc trưng $u_i$. Đặc trưng này đi qua một projection head gồm hai tầng fully-connected với hàm kích hoạt ReLU để sinh embedding chuẩn hóa $L_2$ ký hiệu là $v_i\in\mathbb{R}^{256}$:
+After the test set is frozen, recognition and representation learning are developed on a shared backbone and nonlinear projection head. For downstream tasks using metric learning or self-supervised learning, a ConvNeXt-Tiny network~\cite{convnext} serves as the feature backbone, producing a feature vector $u_i$. This vector is passed through a two-layer fully connected projection head with ReLU activations to produce an $L_2$-normalized embedding $v_i\in\mathbb{R}^{256}$:
 \begin{equation}
 \tilde{v}_i=W_2\,\mathrm{ReLU}(W_1u_i+b_1)+b_2,\qquad
 v_i=\frac{\tilde{v}_i}{\|\tilde{v}_i\|_2}.
 \label{eq:projection_head}
 \end{equation}
 
-Để thiết lập hệ quy chiếu so sánh, chúng tôi xây dựng mô hình Image Classification Baseline sử dụng ConvNeXt-Tiny làm backbone kết hợp với classifier head (gồm một lớp fully-connected trực tiếp) dự đoán trực tiếp xác suất phân loại của 18 loài gỗ. Nhằm giải quyết vấn đề class imbalance (mất cân bằng dữ liệu lớp) trong bộ dữ liệu, mô hình baseline được huấn luyện bằng hàm Focal Loss thay vì Cross Entropy thông thường. Công thức Focal Loss cho một batch kích thước $B$ được định nghĩa:
+As a classification reference, we train an Image Classification Baseline using ConvNeXt-Tiny with a direct fully connected classifier head predicting probabilities over 18 wood species. To address class imbalance, the model is trained with Focal Loss rather than standard cross-entropy:
 \begin{equation}
-L_{\text{Focal}} = -\frac{1}{B} \sum_{i=1}^{B} \alpha (1 - p_{t, i})^\gamma \log(p_{t, i})
+L_{\text{Focal}} = -\frac{1}{B} \sum_{i=1}^{B} \alpha (1 - p_{t,i})^\gamma \log(p_{t,i}),
 \label{eq:focal_loss}
 \end{equation}
-trong đó $p_{t, i}$ là xác suất dự đoán của mô hình đối với lớp đúng của mẫu $i$, $\gamma$ là focusing parameter giúp mô hình tập trung vào các mẫu khó phân loại, và $\alpha$ là hệ số cân bằng. Trong thực nghiệm, các tham số này được thiết lập lần lượt là $\gamma = 2.0$ và $\alpha = 0.25$. Mạng ConvNeXt-Tiny được freeze $90\%$ số lượng lớp để hạn chế overfitting trên tập dữ liệu gỗ có số lượng mẫu hạn chế. Bộ tối ưu hóa AdamW với learning rate khởi tạo $5\times 10^{-4}$ và weight decay $10^{-2}$ kết hợp với Cosine Annealing learning rate scheduler được sử dụng trong suốt quá trình training. Mọi thuật toán metric learning hoặc self-supervised learning thay thế loss function nhưng không thay đổi manifest, split, augmentation cơ sở hoặc quy tắc lựa chọn trên validation. Nhờ đó, khác biệt quan sát được giữa các phương pháp nhận diện không bị lẫn với khác biệt do split dữ liệu.
+where $p_{t,i}$ is the predicted probability for the ground-truth class of sample $i$, $\gamma$ is the focusing parameter that downweights easy samples, and $\alpha$ is a balancing factor. In all experiments, $\gamma = 2.0$ and $\alpha = 0.25$. Approximately 90\% of the backbone layers are frozen to limit overfitting on the limited-specimen dataset. The optimizer is AdamW with an initial learning rate of $5\times10^{-4}$ and weight decay $10^{-2}$, combined with a Cosine Annealing scheduler. All metric learning and self-supervised learning methods share the same manifest, split, augmentation pipeline, and validation selection rule; observed differences between methods therefore cannot be attributed to split variation.
 
-\subsection{Deep Metric Learning Loss Functions and Baselines}
-Để đánh giá khách quan các hướng học biểu diễn đặc trưng, chúng tôi thực nghiệm đối chiếu 4 hàm loss học khoảng cách cốt lõi trong cùng một quy trình huấn luyện thống nhất về mạng cơ sở, bộ đầu chiếu, tăng cường dữ liệu và giao thức CEGS-Split. Ký hiệu chung: $\mathbf{z}_i\in\mathbb{R}^{D}$ là đặc trưng nhúng đã chuẩn hóa $L_2$, $y_i$ là nhãn loài, $d_{ij}=\|\mathbf{z}_i-\mathbf{z}_j\|_2$ là khoảng cách Euclid, $S_{ij}=\mathbf{z}_i^T\mathbf{z}_j$ là cosine similarity và $[u]_+=\max(0,u)$.
+\subsection{Deep Metric Learning Loss Functions}
+To evaluate representation learning approaches, we benchmark four core distance-based loss functions under a unified training setup with the same backbone, projection head, augmentation, and CEGS-Split. Shared notation: $\mathbf{z}_i\in\mathbb{R}^{D}$ is the $L_2$-normalized embedding, $y_i$ is the species label, $d_{ij}=\|\mathbf{z}_i-\mathbf{z}_j\|_2$ is the Euclidean distance, $S_{ij}=\mathbf{z}_i^T\mathbf{z}_j$ is cosine similarity, and $[u]_+=\max(0,u)$.
 
 \subsubsection{Standard Contrastive Loss}
-Contrastive Loss tối ưu hóa khoảng cách trực tiếp trên từng cặp mẫu riêng lẻ:
+Contrastive Loss optimizes pairwise distances directly:
 \begin{equation}
-L_{\text{contrastive}}=(1-q_{ij})\frac{1}{2}d_{ij}^{2}+q_{ij}\frac{1}{2}[m-d_{ij}]_+^2.
+L_{\text{contrastive}}=(1-q_{ij})\tfrac{1}{2}d_{ij}^{2}+q_{ij}\tfrac{1}{2}[m-d_{ij}]_+^2,
 \end{equation}
-trong đó $q_{ij}=1$ nếu hai mẫu thuộc cùng một loài và $q_{ij}=0$ nếu khác loài.
+where $q_{ij}=1$ if the two samples belong to the same species and $q_{ij}=0$ otherwise.
 
 \subsubsection{Standard Triplet Loss}
-Triplet Loss tối ưu hóa mối quan hệ giữa bộ ba mẫu gồm mẫu neo (anchor) $a$, mẫu tích cực (positive) $p$ thuộc cùng loài và mẫu tiêu cực (negative) $n$ thuộc loài khác. Mục tiêu của hàm loss là thu hẹp khoảng cách giữa mẫu neo và mẫu tích cực, đồng thời đẩy mẫu tiêu cực ra xa hơn mẫu neo ít nhất một khoảng biên (margin) $\alpha$:
+Triplet Loss optimizes the relation among an anchor $a$, a positive $p$ from the same species, and a negative $n$ from a different species, enforcing a margin $\alpha$ between the positive and negative distances:
 \begin{equation}
 L_{\text{triplet}}=\frac{1}{|\mathcal{T}|}\sum_{(a,p,n)\in\mathcal{T}}\left[d(a,p)^2-d(a,n)^2+\alpha\right]_+.
 \end{equation}
 
 \subsubsection{Semi-hard Triplet Loss}
-Phương pháp Triplet bán khó (Semi-hard Triplet Loss) lựa chọn các mẫu tiêu cực (negative) không quá dễ nhưng cũng không quá nhiễu. Với một cặp mẫu neo và mẫu tích cực $(a,p)$, mẫu tiêu cực $n$ được chọn nếu thỏa mãn:
+Semi-hard Triplet Loss selects negatives that are neither trivial nor overly noisy. For an anchor--positive pair $(a,p)$, the negative $n$ is selected when:
 \begin{equation}
 d(a,p)^2<d(a,n)^2<d(a,p)^2+\alpha.
 \end{equation}
-Loss vẫn giữ dạng triplet chuẩn:
+The loss retains the standard triplet form over the semi-hard set $\mathcal{T}_{sh}$:
 \begin{equation}
 L_{\text{semi-hard}}=\frac{1}{|\mathcal{T}_{sh}|}\sum_{(a,p,n)\in\mathcal{T}_{sh}}\left[d(a,p)^2-d(a,n)^2+\alpha\right]_+.
 \end{equation}
 
 \subsubsection{Angular Loss}
-Hàm loss Angular (Angular Loss) tối ưu hóa quan hệ góc của tam giác được tạo bởi bộ ba mẫu (triplet) thay vì chỉ tối ưu hóa khoảng cách Euclid đơn thuần:
+Angular Loss optimizes the angular relationship within triplets rather than Euclidean distances alone:
 \begin{equation}
 L_{\text{angular}}=\frac{1}{|\mathcal{T}|}\sum_{(a,p,n)\in\mathcal{T}}\log\left[1+e^{\Delta_{\theta}(a,p,n)}\right],
 \end{equation}
-Trong đó:
+where:
 \begin{equation}
 \begin{aligned}
-\Delta_{\theta}(a,p,n) = &4\tan^2\alpha(\mathbf{z}_a+\mathbf{z}_p)^T\mathbf{z}_n \\
-&- 2(1+\tan^2\alpha)\mathbf{z}_a^T\mathbf{z}_p.
+\Delta_{\theta}(a,p,n) = &4\tan^2\!\alpha\,(\mathbf{z}_a+\mathbf{z}_p)^T\mathbf{z}_n \\
+&- 2(1+\tan^2\!\alpha)\,\mathbf{z}_a^T\mathbf{z}_p.
 \end{aligned}
 \end{equation}
 
 \subsection{Self-Supervised Learning Loss Functions}
-Trong học biểu diễn tự giám sát (Self-Supervised Learning - SSL), mô hình thực hiện tối ưu hóa đặc trưng thông qua các biến thể tăng cường ngẫu nhiên của hình ảnh mà không cần sử dụng nhãn lớp giám sát. Phần này trình bày các hàm loss của bốn phương pháp học tự giám sát được khảo sát trong nghiên cứu.
+In self-supervised learning (SSL), the model optimizes representations through randomly augmented views of each image without using class labels. We evaluate four SSL methods.
 
-\subsubsection{SimCLR Loss}
-Phương pháp SimCLR (Simple Framework for Contrastive Learning of Visual Representations) tối ưu hóa hàm loss tương phản InfoNCE trên các cặp ảnh tăng cường. Với kích thước lô dữ liệu là $N$, mỗi hình ảnh được tăng cường ngẫu nhiên thành 2 phiên bản (views), tạo thành một lô gồm $2N$ mẫu dữ liệu. Cặp mẫu tích cực (positive pair) là $(i,j)$ gồm hai phiên bản tăng cường khác nhau của cùng một hình ảnh gốc. Hàm loss cho mỗi cặp mẫu tích cực $(i,j)$ được phát biểu:
+\subsubsection{SimCLR}
+SimCLR~\cite{simclr} minimizes the InfoNCE contrastive loss over augmented pairs. For a batch of $N$ images, each augmented into two views, the loss for positive pair $(i,j)$ is:
 \begin{equation}
-\begin{aligned}
-\ell(i, j) = -\log \frac{e^{\mathbf{z}_i^T\mathbf{z}_j/\tau}}{\Omega_i},
-\end{aligned}
+\ell(i, j) = -\log \frac{e^{\mathbf{z}_i^T\mathbf{z}_j/\tau}}{\sum_{k=1}^{2N} \mathbb{I}_{[k \ne i]}\, e^{\mathbf{z}_i^T\mathbf{z}_k/\tau}},
 \end{equation}
-Trong đó:
-\begin{equation}
-\begin{aligned}
-\Omega_i = \sum_{k=1}^{2N} \mathbb{I}_{[k \ne i]} e^{\mathbf{z}_i^T\mathbf{z}_k/\tau}.
-\end{aligned}
-\end{equation}
-trong đó $\tau$ là siêu tham số nhiệt độ (temperature). Hàm loss tổng thể được tính bằng macro average của toàn bộ các cặp mẫu tích cực trong lô dữ liệu:
+where $\tau$ is the temperature hyperparameter. The overall loss averages over all positive pairs:
 \begin{equation}
 L_{\text{SimCLR}} = \frac{1}{2N} \sum_{k=1}^{N} \left[ \ell(2k-1, 2k) + \ell(2k, 2k-1) \right].
 \end{equation}
 
-\subsubsection{BYOL Loss}
-Phương pháp BYOL (Bootstrap Your Own Latent) sử dụng hai mạng nơ-ron song song: mạng học trực tiếp (online network) với tham số $\theta$ và target network với tham số $\xi$. Mạng học trực tiếp có nhiệm vụ dự đoán biểu diễn của mạng mục tiêu từ một phiên bản ảnh khác. BYOL tối ưu hóa sai số bình phương trung bình (MSE) giữa vector dự đoán đã chuẩn hóa của mạng trực tiếp và vector đặc trưng của mạng mục tiêu:
+\subsubsection{BYOL}
+BYOL~\cite{byol} uses an online network with parameters $\theta$ and a target network with parameters $\xi$. The online network predicts the target network's representation of a different augmented view. The loss is the mean squared error between normalized predictions:
 \begin{equation}
-L_{\text{MSE}}(q_\theta(z_\theta), z'_\xi) = \left\| \bar{q}_\theta - \bar{z}'_\xi \right\|_2^2 = 2 - 2 \bar{q}_\theta^T \bar{z}'_\xi,
+L_{\text{BYOL}} = \left\| \bar{q}_\theta - \bar{z}'_\xi \right\|_2^2 = 2 - 2\,\bar{q}_\theta^T \bar{z}'_\xi,
 \end{equation}
-Trong đó:
+where $\bar{q}_\theta$ and $\bar{z}'_\xi$ are $L_2$-normalized. Collapse is prevented by applying a stop-gradient to the target network, whose parameters are updated via exponential moving average:
 \begin{equation}
-\bar{q}_\theta = \frac{q_\theta(z_\theta)}{\|q_\theta(z_\theta)\|_2},\quad \bar{z}'_\xi = \frac{z'_\xi}{\|z'_\xi\|_2}.
-\end{equation}
-Việc ngăn chặn hiện tượng sụp đổ biểu diễn đặc trưng (representation collapse) được đảm bảo bằng cơ chế dừng cập nhật đạo hàm (\textit{stop-gradient}) đặt trên mạng mục tiêu:
-\begin{equation}
-L_{\text{BYOL}} = L_{\text{MSE}}(q_\theta(z_\theta), \text{stop\_gradient}(z'_\xi)).
-\end{equation}
-Tham số mạng mục tiêu $\xi$ được cập nhật chậm theo cơ chế trung bình trượt lũy thừa (EMA) từ $\theta$:
-\begin{equation}
-\xi \leftarrow m \xi + (1-m) \theta,
-\end{equation}
-trong đó $m \in [0, 1]$ là hệ số momentum.
-
-\subsubsection{SimSiam Loss}
-Phương pháp SimSiam (Simple Siamese) đơn giản hóa kiến trúc BYOL bằng cách loại bỏ hoàn toàn momentum target network (momentum target network, tức thiết lập $\xi = \theta$). SimSiam chứng minh rằng chỉ cần sử dụng cơ chế dừng cập nhật đạo hàm kết hợp với kiến trúc không đối xứng (bộ dự đoán predictor) là đủ để ngăn chặn sự sụp đổ biểu diễn đặc trưng. Hàm loss đối xứng được định nghĩa như sau:
-\begin{equation}
-L_{\text{SimSiam}} = \frac{1}{2} \mathcal{D}\big(p_1, \text{sg}(z_2)\big) + \frac{1}{2} \mathcal{D}\big(p_2, \text{sg}(z_1)\big),
-\end{equation}
-trong đó $p_1 = q_\theta(z_1)$ và $p_2 = q_\theta(z_2)$ là đầu ra của bộ dự đoán cho hai phiên bản ảnh, còn $z_1, z_2$ là đầu ra của bộ đầu chiếu. $\text{sg}$ biểu thị toán tử dừng đạo hàm (stop-gradient). $\mathcal{D}$ là cosine similarity âm:
-\begin{equation}
-\mathcal{D}(p, z) = -\frac{p^T z}{\|p\|_2 \|z\|_2}.
+\xi \leftarrow m\,\xi + (1-m)\,\theta,\quad m\in[0,1].
 \end{equation}
 
-\subsubsection{Barlow Twins Loss}
-Phương pháp Barlow Twins áp dụng nguyên lý giảm thiểu thông tin dư thừa (redundancy reduction) lên ma trận tương quan chéo thu được từ hai phiên bản ảnh tăng cường. Gọi $C$ là ma trận tương quan chéo kích thước $D \times D$ tính toán dọc theo chiều lô dữ liệu $B$ giữa hai tập đặc trưng chiếu $\mathbf{z}^A$ và $\mathbf{z}^B$:
+\subsubsection{SimSiam}
+SimSiam~\cite{simsiam} simplifies BYOL by removing the momentum target network (setting $\xi=\theta$) and relying solely on a stop-gradient operator and an asymmetric predictor to prevent collapse. The symmetric loss is:
 \begin{equation}
-C_{ij} = \frac{\sum_{b=1}^{B} z_{b,i}^A z_{b,j}^B}{\sqrt{\sum_{b=1}^{B} (z_{b,i}^A)^2} \sqrt{\sum_{b=1}^{B} (z_{b,j}^B)^2}},
+L_{\text{SimSiam}} = \tfrac{1}{2}\,\mathcal{D}(p_1, \mathrm{sg}(z_2)) + \tfrac{1}{2}\,\mathcal{D}(p_2, \mathrm{sg}(z_1)),
 \end{equation}
-trong đó $i, j$ đại diện cho các chiều của không gian đặc trưng nhúng. Hàm mất mát Barlow Twins được định nghĩa là:
+where $p_k=q_\theta(z_k)$ is the predictor output, $\mathrm{sg}$ denotes stop-gradient, and $\mathcal{D}(p,z)=-p^Tz/(\|p\|_2\|z\|_2)$.
+
+\subsubsection{Barlow Twins}
+Barlow Twins~\cite{barlow} applies a redundancy-reduction objective to the cross-correlation matrix $C$ of size $D\times D$, computed along the batch dimension between projections $\mathbf{z}^A$ and $\mathbf{z}^B$:
 \begin{equation}
-L_{\text{BarlowTwins}} = \sum_{i=1}^{D} (1 - C_{ii})^2 + \lambda \sum_{i=1}^{D} \sum_{j \neq i} C_{ij}^2,
+C_{ij} = \frac{\sum_{b=1}^{B} z_{b,i}^A z_{b,j}^B}{\sqrt{\sum_{b=1}^{B} (z_{b,i}^A)^2}\,\sqrt{\sum_{b=1}^{B} (z_{b,j}^B)^2}}.
 \end{equation}
-trong đó số hạng thứ nhất (invariance term) ép các hệ số tương quan chéo trên đường chéo chính tiến về 1 (tối đa hóa độ tương đồng giữa hai phiên bản ảnh), số hạng thứ hai (redundancy reduction term) ép các hệ số tương quan chéo ngoài đường chéo chính tiến về 0 với hệ số phạt $\lambda > 0$ (giảm thiểu sự trùng lặp thông tin giữa các chiều đặc trưng nhúng).
+The loss drives diagonal entries toward 1 (invariance term) and off-diagonal entries toward 0 (redundancy-reduction term):
+\begin{equation}
+L_{\text{BT}} = \sum_{i}(1 - C_{ii})^2 + \lambda \sum_{i}\sum_{j\neq i} C_{ij}^2,
+\end{equation}
+where $\lambda>0$ controls the relative weight of the redundancy term.

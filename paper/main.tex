@@ -1,7 +1,6 @@
 \documentclass[journal,twocolumn]{IEEEtran}
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage[T5]{fontenc}
-\usepackage[vietnamese,english]{babel}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
@@ -11,25 +10,30 @@
 \usepackage{multirow}
 \usepackage{array}
 \usepackage{float}
+\usepackage{microtype}
+\usepackage{balance}
 
 \setlength{\columnsep}{20pt}
 
 \begin{document}
 
-\title{Class-wise Embedding-Guided Specimen Splitting for Leakage-Free Fine-Grained Wood Species Identification}
+\title{Toward Auditable Benchmarks for Wood Species Identification: A Specimen-Centric Data Protocol and Representation Learning Study}
 
-\author{Viet-Anh Le, and Collaborators}
+\author{Viet-Anh Le\\
+\textit{Posts and Telecommunications Institute of Technology, Hanoi, Vietnam}\\
+\texttt{anhlv.b23kh002@stu.ptit.edu.vn}
+}
 
 \maketitle
 
 \begin{abstract}
-Nhận diện loài gỗ từ ảnh là một bài toán phân loại thị giác chi tiết có ý nghĩa đối với giám định lâm sản và kiểm soát thương mại gỗ. Trong các bộ dữ liệu thực địa, một mẫu vật thường sinh ra nhiều ảnh thông qua các lần chụp, vị trí quan sát hoặc lát cắt khác nhau. Nếu các ảnh này được chia ngẫu nhiên ở cấp ảnh, tập huấn luyện và tập kiểm thử có thể cùng chứa thông tin đặc thù của một mẫu vật, một phiên chụp hoặc một bề mặt gỗ. Khi đó, chỉ số đánh giá có thể phản ánh khả năng nhận lại nguồn ảnh thay vì khả năng nhận diện mẫu vật mới. Vấn đề vì vậy không chỉ nằm ở kiến trúc nhận diện mà còn ở cách dữ liệu được thu thập, lưu trữ, tổ chức và kiểm thử.
+Wood species identification from macroscopic images plays a critical role in timber forensics, legal supply-chain verification, and enforcing international trade agreements such as CITES. While computer vision models offer rapid and non-destructive identification, their empirical evaluation frequently suffers from unaddressed data structure artifacts. In field-collected datasets, multiple observations (images) are routinely derived from the same physical wood specimen across various surface cuts, lighting conditions, or capture sessions. When datasets are partitioned using conventional random image-level splits, observations originating from the identical physical specimen contaminate both training and test partitions. Consequently, model performance metrics reflect memorization of source-specific background cues rather than generalizability to unseen biological specimens.
 
-Nghiên cứu này đề xuất \emph{Specimen-Centric Data Protocol} (SCDP), một khung phương pháp tổng quát cho các bài toán ảnh có nhiều quan sát trên cùng một thực thể vật lý. SCDP quy định đơn vị mẫu vật, siêu dữ liệu truy vết, cấu trúc lưu trữ phân cấp, kiểm tra chất lượng và phân chia dữ liệu theo nhóm nguồn. Trên nền tảng đó, chúng tôi xây dựng \emph{Class-wise Embedding-Guided Specimen Split} (CEGS-Split). CEGS-Split bảo toàn tính rời nhau ở cấp mẫu vật, cân bằng nhãn theo loài và sử dụng embedding từ bộ trích xuất đặc trưng đóng băng để kiểm tra các cặp liên tập có độ gần bất thường. Độ gần trong embedding được xem là tín hiệu kiểm toán cần truy vết, không phải bằng chứng thay thế cho thông tin nguồn gốc. Khung này được áp dụng cho bộ dữ liệu S3 gồm 18 loài thuộc 5 chi. Kết quả đối chiếu giữa phép chia theo ảnh và phép chia theo mẫu vật cho thấy chỉ số KNN giảm khi thay đổi đơn vị phân chia, cho thấy kết quả đánh giá nhạy cảm đáng kể với giả định về tính độc lập của dữ liệu. SCDP tạo ra một giao thức tái lập được để phát triển và đánh giá các mô hình phân loại hoặc học biểu diễn trên mẫu vật chưa quan sát.
+To address this foundational challenge, this paper introduces the \emph{Specimen-Centric Data Protocol} (SCDP), a general data governance framework for image tasks characterized by repeated physical observations. SCDP establishes the physical specimen as the primary unit of analysis, mandating traceable provenance metadata, hierarchical data structures, rigorous pre-split auditing, and specimen-disjoint partitioning. Built upon this framework, we formulate \emph{Class-wise Embedding-Guided Specimen Split} (CEGS-Split), which enforces specimen-level isolation, maintains per-species balance, and uses frozen feature embeddings to audit cross-split pairs for subtle source leakage. Evaluated on the benchmark S3 wood dataset comprising 18 species across 5 genera, our experiments show a notable performance degradation when transitioning from random image splits to specimen-disjoint splits, establishing that standard image-level benchmarks severely overestimate real-world capability. Furthermore, we establish a standardized benchmark comparing fine-grained classification baselines, core metric learning objectives, and self-supervised algorithms on held-out specimens, highlighting the essential role of auditable data protocols in scientific machine learning.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Fine-grained visual classification, Wood species identification, Metric learning, Data leakage, Deep learning, Self-supervised learning, CITES.
+Wood species identification, timber forensics, fine-grained visual classification, data leakage, group-disjoint splitting, metric learning, self-supervised learning, CITES.
 \end{IEEEkeywords}
 
 \input{sections/introduction}
@@ -41,4 +45,5 @@ Fine-grained visual classification, Wood species identification, Metric learning
 \input{sections/conclusion}
 \input{sections/references}
 
+\balance
 \end{document}
