@@ -65,8 +65,8 @@ def random_split_wrapper(
 	seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 	"""Wrapper cho subfolder-based random split (với fallback sang image-level random split)."""
-	# Loại bỏ Pterocarpus sp trước
-	keep_mask = df["label"] != "Pterocarpus sp"
+	# Loại bỏ Pterocarpus sp và Peltogyne pubescens trước
+	keep_mask = ~df["label"].isin(["Pterocarpus sp", "Peltogyne pubescens"])
 	df_filtered = df[keep_mask].reset_index(drop=True)
 	
 	rng = random.Random(seed)
@@ -412,7 +412,8 @@ def main() -> None:
 		raise ValueError(f"Không tìm thấy ảnh nào trong {ROOT_DIR}")
 
 	df = build_dataframe(samples)
-	df_filtered = df[df["label"] != "Pterocarpus sp"].reset_index(drop=True)
+	EXCLUDED_CLASSES = ["Pterocarpus sp", "Peltogyne pubescens"]
+	df_filtered = df[~df["label"].isin(EXCLUDED_CLASSES)].reset_index(drop=True)
 	print(f"Tổng ảnh sau lọc: {len(df_filtered)}, Số class: {df_filtered['label'].nunique()}")
 
 	class_names = sorted(df_filtered["label"].unique().tolist())

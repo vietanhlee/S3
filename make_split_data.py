@@ -103,7 +103,9 @@ def main() -> None:
 		raise ValueError(f"Không tìm thấy ảnh nào tại đường dẫn: {data_dir}")
 
 	df = build_dataframe(samples)
-	print(f"Tổng số ảnh hợp lệ thu thập được (sau lọc ảnh lẻ): {len(df)}")
+	EXCLUDED_CLASSES = ["Pterocarpus sp", "Peltogyne pubescens"]
+	df = df[~df["label"].isin(EXCLUDED_CLASSES)].reset_index(drop=True)
+	print(f"Tổng số ảnh hợp lệ thu thập được (sau lọc ảnh lẻ & lớp loại trừ): {len(df)}")
 	print(f"Số lớp phân loại (class): {df['label'].nunique()}")
 
 	# 2. Extract Embeddings (chỉ chạy 1 lần duy nhất)

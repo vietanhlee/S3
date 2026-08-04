@@ -61,11 +61,11 @@ Tiêu chí: Chạy từ 0 đến 1. Giá trị càng gần 1 càng tốt.
 
 
 
-Pairwise losses: `Contrastive`
-Triplet-based: `Triplet`, Soft-Margin Triplet
-Proxy-based: SoftTripler, `proxy anchor`
-Angular margin: ArcFace, Circle Loss
-Mining-based: Multi-Similarity
+Pairwise losses: 
+Triplet-based: 
+Proxy-based: 
+Angular margin: 
+Mining-based: Multi-
 `Self-supervised: SimCLR, BYOL, SimSiam, Barlow Twins, SupCon`
 
 {

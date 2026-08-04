@@ -84,8 +84,8 @@ def main():
 		raise ValueError(f"Không tìm thấy ảnh tại: {ROOT_DIR}")
 
 	df = build_dataframe(samples)
-	df_filtered = df[df["label"] != "Pterocarpus sp"].reset_index(drop=True)
-	print(f"Tổng số ảnh sau khi lọc: {len(df_filtered)}")
+	df_filtered = df[~df["label"].isin(["Pterocarpus sp", "Peltogyne pubescens"])].reset_index(drop=True)
+	print(f"Tổng số ảnh sau khi lọc bỏ Pterocarpus sp và Peltogyne pubescens: {len(df_filtered)}")
 
 	class_names = sorted(df_filtered["label"].unique().tolist())
 	print(f"Số lượng lớp gỗ cần duyệt: {len(class_names)}")

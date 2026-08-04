@@ -113,7 +113,7 @@ def main() -> None:
 			if f.lower().endswith(extensions):
 				path = Path(root) / f
 				label = path.parent.name
-				if label != "Pterocarpus sp":  # Loại bỏ sp theo chuẩn
+				if label not in ["Pterocarpus sp", "Peltogyne pubescens"]:  # Loại bỏ các class không phù hợp theo chuẩn
 					genus, species = split_genus_species(label)
 					samples.append({"path": str(path.absolute()), "label": label, "genus": genus})
 

@@ -328,10 +328,12 @@ class BaseMetricTrainer(ABC):
 			raise ValueError(f"Không tìm thấy ảnh nào trong {cfg['ROOT_DIR']}")
 
 		df = build_dataframe(samples)
-		df_filtered = df[df["label"] != "Pterocarpus sp"].reset_index(drop=True)
+		EXCLUDED_CLASSES = ["Pterocarpus sp", "Peltogyne pubescens"]
+		df_filtered = df[~df["label"].isin(EXCLUDED_CLASSES)].reset_index(drop=True)
 		print(f"Tổng ảnh: {len(df_filtered)}, Số class: {df_filtered['label'].nunique()}")
 
 		class_names = sorted(df_filtered["label"].unique().tolist())
+		self.class_names = class_names
 		num_classes = len(class_names)
 		class_to_idx = {name: i for i, name in enumerate(class_names)}
 

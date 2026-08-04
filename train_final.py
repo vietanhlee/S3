@@ -80,7 +80,6 @@ SPLIT_CONFIG = {
     "Guibourtia arnoldiana": ("PP4", "test", "eff"),
     "Guibourtia coleosperma": ("PP1", "test", "eff"),
 	"Guibourtia ehie": ("PP5", "test", "swin"), # 58
-    "Peltogyne pubescens": ("PP1", "val", "eff"),
 	"Pterocarpus erinaceus": ("PP2", "test", "swin"), # 97,71
     "Pterocarpus indicus": ("PP9", "test", "eff"),
 	"Pterocarpus macrocarpus": ("PP2", "test", "swin"),# 76
@@ -826,8 +825,8 @@ def end_version_split(
 	theo cấu hình được định nghĩa trong todo1.md.
 	Loại bỏ hoàn toàn class 'Pterocarpus sp'.
 	"""
-	# 1. Loại bỏ class 'Pterocarpus sp'
-	keep_mask = df["label"] != "Pterocarpus sp"
+	# 1. Loại bỏ các class loại trừ ('Pterocarpus sp', 'Peltogyne pubescens')
+	keep_mask = ~df["label"].isin(["Pterocarpus sp", "Peltogyne pubescens"])
 	df_filtered = df[keep_mask].reset_index(drop=True)
 	emb_eff_filtered = embs_eff[keep_mask.values]
 	emb_swin_filtered = embs_swin[keep_mask.values]
@@ -977,9 +976,10 @@ def main() -> None:
 	df = build_dataframe(samples)
 	print(f"Tổng ảnh ban đầu: {len(df)}, Số class ban đầu: {df['label'].nunique()}")
 
-	# Lọc bỏ class Pterocarpus sp trước khi trích xuất embeddings để tối ưu hóa
-	df_filtered = df[df["label"] != "Pterocarpus sp"].reset_index(drop=True)
-	print(f"Tổng ảnh sau khi lọc bỏ Pterocarpus sp: {len(df_filtered)}, Số class: {df_filtered['label'].nunique()}")
+	# Lọc bỏ class Pterocarpus sp và Peltogyne pubescens trước khi trích xuất embeddings để tối ưu hóa
+	EXCLUDED_CLASSES = ["Pterocarpus sp", "Peltogyne pubescens"]
+	df_filtered = df[~df["label"].isin(EXCLUDED_CLASSES)].reset_index(drop=True)
+	print(f"Tổng ảnh sau khi lọc bỏ class loại trừ: {len(df_filtered)}, Số class: {df_filtered['label'].nunique()}")
 
 	class_names = sorted(df_filtered["label"].unique().tolist())
 	class_to_idx = {name: i for i, name in enumerate(class_names)}

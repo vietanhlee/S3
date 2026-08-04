@@ -319,8 +319,9 @@ def main() -> None:
 		raise ValueError(f"Không tìm thấy ảnh nào trong {ROOT_DIR}")
 
 	df = build_dataframe(samples)
-	df_filtered = df[df["label"] != "Pterocarpus sp"].reset_index(drop=True)
-	print(f"Tổng ảnh sau khi lọc bỏ Pterocarpus sp: {len(df_filtered)}, Số class: {df_filtered['label'].nunique()}")
+	EXCLUDED_CLASSES = ["Pterocarpus sp", "Peltogyne pubescens"]
+	df_filtered = df[~df["label"].isin(EXCLUDED_CLASSES)].reset_index(drop=True)
+	print(f"Tổng ảnh sau khi lọc bỏ class loại trừ: {len(df_filtered)}, Số class: {df_filtered['label'].nunique()}")
 
 	class_names = sorted(df_filtered["label"].unique().tolist())
 	class_to_idx = {name: i for i, name in enumerate(class_names)}
