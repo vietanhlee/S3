@@ -1,7 +1,7 @@
 """
 datasail_benchmark/evaluator.py
 ===============================
-Pipeline quản lý thực thi 9 thuật toán chia, Mục 5 Meta-Selector k^N, tính toán 12 chỉ số đo lường và xuất báo cáo.
+Pipeline quản lý thực thi 9 thuật toán chia, Mục 5 Meta-Selector k^N, tính toán 16 chỉ số đo lường và xuất báo cáo.
 """
 
 import json
@@ -19,7 +19,9 @@ from .metrics import (
 	compute_intra_split_cosine_sim,
 	compute_specimen_leakage_risk,
 	compute_pseudoreplication_index,
+	compute_class_coverage_rate,
 	compute_silhouette_separation,
+	compute_maximum_mean_discrepancy,
 	compute_nearest_neighbor_stats,
 	compute_wasserstein_divergence,
 	compute_knn_metrics,
@@ -37,6 +39,7 @@ def run_benchmark_pipeline(
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], str]:
 	"""
 	Thực thi pipeline benchmark toàn diện trên 9 thuật toán chia x 5 seeds + Meta-Selector Mục 5.
+	Bảo đảm 100% Class Coverage và lưu đầy đủ 16 chỉ số đo lường.
 	"""
 	output_dir.mkdir(parents=True, exist_ok=True)
 	path_to_idx = {path: i for i, path in enumerate(df_filtered["path"])}
@@ -59,13 +62,15 @@ def run_benchmark_pipeline(
 				va_idx = [path_to_idx[p] for p in df_va["path"]]
 				te_idx = [path_to_idx[p] for p in df_te["path"]]
 
-				# Tính toán 12 chỉ số đo lường
+				# Tính toán đầy đủ 16 chỉ số đo lường
 				datasail_loss = compute_datasail_loss(embeddings, tr_idx, va_idx, te_idx)
 				inter_sim = compute_inter_split_cosine_sim(embeddings, tr_idx, va_idx, te_idx)
 				intra_sim = compute_intra_split_cosine_sim(embeddings, tr_idx, va_idx, te_idx)
 				slr = compute_specimen_leakage_risk(df_tr, df_va, df_te)
 				pri = compute_pseudoreplication_index(df_tr, df_te)
+				ccr = compute_class_coverage_rate(df_filtered, df_tr, df_va, df_te)
 				sil_score = compute_silhouette_separation(embeddings, tr_idx, va_idx, te_idx)
+				mmd_dist = compute_maximum_mean_discrepancy(embeddings, tr_idx, te_idx)
 				nn_stats = compute_nearest_neighbor_stats(embeddings, tr_idx, te_idx)
 				w1_dist = compute_wasserstein_divergence(df_filtered, df_tr, df_va, df_te)
 				knn_res = compute_knn_metrics(embeddings, df_tr, df_te, class_to_idx, path_to_idx)
@@ -78,15 +83,20 @@ def run_benchmark_pipeline(
 					"intra_cosine_sim": intra_sim,
 					"slr_percent": slr,
 					"pri_percent": pri,
+					"ccr_percent": ccr,
 					"silhouette_score": sil_score,
+					"mmd_distance": mmd_dist,
 					"nn_sim_mean": nn_stats["nn_sim_mean"],
 					"nn_sim_max": nn_stats["nn_sim_max"],
 					"nn_sim_p90": nn_stats["nn_sim_p90"],
 					"nn_sim_std": nn_stats["nn_sim_std"],
 					"wasserstein_dist": w1_dist,
 					"knn_accuracy": knn_res["knn_accuracy"],
+					"knn_top3_accuracy": knn_res["knn_top3_accuracy"],
+					"knn_balanced_accuracy": knn_res["knn_balanced_accuracy"],
 					"knn_f1_macro": knn_res["knn_f1_macro"],
 					"knn_f1_weighted": knn_res["knn_f1_weighted"],
+					"hardest_class_f1": knn_res["hardest_class_f1"],
 					"num_train": len(df_tr),
 					"num_val": len(df_va),
 					"num_test": len(df_te),
@@ -101,7 +111,6 @@ def run_benchmark_pipeline(
 	print(f"\n-> Đang thực thi Mục 5: Tối ưu hóa Tổ hợp k^N (Meta-Selector cho {len(class_names)} loài gỗ)...")
 	
 	optimal_classwise_pp = {}
-	meta_tr_indices, meta_va_indices, meta_te_indices = [], [], []
 	meta_tr_dfs, meta_va_dfs, meta_te_dfs = [], [], []
 
 	for label in class_names:
@@ -115,7 +124,6 @@ def run_benchmark_pipeline(
 		best_class_loss = float("inf")
 		best_splits = None
 
-		# Thử tất cả 9 phương pháp ứng viên cho loài gỗ này
 		for proto_name, solver_fn in ALL_SOLVERS.items():
 			try:
 				tr_sub, va_sub, te_sub = solver_fn(sub_df, sub_embs, seed=42)
@@ -146,13 +154,14 @@ def run_benchmark_pipeline(
 	meta_va_idx = [path_to_idx[p] for p in df_meta_va["path"]]
 	meta_te_idx = [path_to_idx[p] for p in df_meta_te["path"]]
 
-	# Tính toán 12 chỉ số cho Meta-Selector
 	meta_datasail_loss = compute_datasail_loss(embeddings, meta_tr_idx, meta_va_idx, meta_te_idx)
 	meta_inter_sim = compute_inter_split_cosine_sim(embeddings, meta_tr_idx, meta_va_idx, meta_te_idx)
 	meta_intra_sim = compute_intra_split_cosine_sim(embeddings, meta_tr_idx, meta_va_idx, meta_te_idx)
 	meta_slr = compute_specimen_leakage_risk(df_meta_tr, df_meta_va, df_meta_te)
 	meta_pri = compute_pseudoreplication_index(df_meta_tr, df_meta_te)
+	meta_ccr = compute_class_coverage_rate(df_filtered, df_meta_tr, df_meta_va, df_meta_te)
 	meta_sil = compute_silhouette_separation(embeddings, meta_tr_idx, meta_va_idx, meta_te_idx)
+	meta_mmd = compute_maximum_mean_discrepancy(embeddings, meta_tr_idx, meta_te_idx)
 	meta_nn = compute_nearest_neighbor_stats(embeddings, meta_tr_idx, meta_te_idx)
 	meta_w1 = compute_wasserstein_divergence(df_filtered, df_meta_tr, df_meta_va, df_meta_te)
 	meta_knn = compute_knn_metrics(embeddings, df_meta_tr, df_meta_te, class_to_idx, path_to_idx)
@@ -165,40 +174,42 @@ def run_benchmark_pipeline(
 		"intra_cosine_sim": meta_intra_sim,
 		"slr_percent": meta_slr,
 		"pri_percent": meta_pri,
+		"ccr_percent": meta_ccr,
 		"silhouette_score": meta_sil,
+		"mmd_distance": meta_mmd,
 		"nn_sim_mean": meta_nn["nn_sim_mean"],
 		"nn_sim_max": meta_nn["nn_sim_max"],
 		"nn_sim_p90": meta_nn["nn_sim_p90"],
 		"nn_sim_std": meta_nn["nn_sim_std"],
 		"wasserstein_dist": meta_w1,
 		"knn_accuracy": meta_knn["knn_accuracy"],
+		"knn_top3_accuracy": meta_knn["knn_top3_accuracy"],
+		"knn_balanced_accuracy": meta_knn["knn_balanced_accuracy"],
 		"knn_f1_macro": meta_knn["knn_f1_macro"],
 		"knn_f1_weighted": meta_knn["knn_f1_weighted"],
+		"hardest_class_f1": meta_knn["hardest_class_f1"],
 		"num_train": len(df_meta_tr),
 		"num_val": len(df_meta_va),
 		"num_test": len(df_meta_te),
 	}
 	raw_benchmark_records.append(meta_rec)
 
-	# Lưu file dữ liệu thô CSV & JSON
 	df_all_results = pd.DataFrame(raw_benchmark_records)
 	df_all_results.to_csv(output_dir / "all_splits_results.csv", index=False)
 
 	with open(output_dir / "optimal_k_n_classwise_config.json", "w", encoding="utf-8") as f:
 		json.dump(optimal_classwise_pp, f, indent=2, ensure_ascii=False)
 
-	# =========================================================================
-	# Tổng hợp Bảng Thống kê Học thuật (Mean +- Std & Stat Tests)
-	# =========================================================================
+	# Bảng Thống kê Học thuật (Mean +- Std)
 	lines = []
-	lines.append("=" * 135)
-	lines.append(" BẢNG TỔNG HỢP KẾT QUẢ BENCHMARK DATA LEAKAGE VÀ TỐI ƯU HÓA DATASAIL (MEAN ± STD QUA 5 SEEDS)")
-	lines.append("=" * 135)
+	lines.append("=" * 155)
+	lines.append(" BẢNG TỔNG HỢP KẾT QUẢ BENCHMARK DATA LEAKAGE Q1/Q2 (MEAN ± STD QUA 5 SEEDS, 100% CLASS COVERAGE)")
+	lines.append("=" * 155)
 
 	header = f"{'Protocol':<32} {'KNN Test Acc':<16} {'F1-Macro':<16} {'DataSAIL Loss':<18} " \
-	         f"{'S_inter':<14} {'SLR (%)':<10} {'NN_Sim Mean':<14} {'p-val vs R-Split':<16}"
+	         f"{'S_inter':<12} {'SLR (%)':<10} {'CCR (%)':<10} {'NN_Sim Mean':<14} {'p-val vs R-Split':<16}"
 	lines.append(header)
-	lines.append("-" * 135)
+	lines.append("-" * 155)
 
 	random_acc_scores = [r["knn_accuracy"] for r in raw_benchmark_records if r["protocol"] == "PP1_Image_Random"]
 
@@ -212,6 +223,7 @@ def run_benchmark_pipeline(
 		loss_vals = [r["datasail_loss"] for r in subset]
 		s_inter_vals = [r["inter_cosine_sim"] for r in subset]
 		slr_vals = [r["slr_percent"] for r in subset]
+		ccr_vals = [r["ccr_percent"] for r in subset]
 		nn_vals = [r["nn_sim_mean"] for r in subset]
 
 		acc_str = f"{np.mean(acc_vals):.4f} ± {np.std(acc_vals):.4f}" if len(acc_vals) > 1 else f"{acc_vals[0]:.4f}"
@@ -219,16 +231,16 @@ def run_benchmark_pipeline(
 		loss_str = f"{np.mean(loss_vals):.1f} ± {np.std(loss_vals):.1f}" if len(loss_vals) > 1 else f"{loss_vals[0]:.1f}"
 		s_inter_str = f"{np.mean(s_inter_vals):.4f}"
 		slr_str = f"{np.mean(slr_vals):.1f}%"
+		ccr_str = f"{np.mean(ccr_vals):.1f}%"
 		nn_str = f"{np.mean(nn_vals):.4f}"
 
-		# Tính p-value kiểm định so với PP1_Image_Random
 		if proto != "PP1_Image_Random" and len(acc_vals) > 1 and len(random_acc_scores) > 1:
 			stat_res = compute_statistical_significance(random_acc_scores, acc_vals)
 			pval_str = f"{stat_res['p_value']:.4e}"
 		else:
 			pval_str = "Baseline"
 
-		lines.append(f"{proto:<32} {acc_str:<16} {f1_str:<16} {loss_str:<18} {s_inter_str:<14} {slr_str:<10} {nn_str:<14} {pval_str:<16}")
+		lines.append(f"{proto:<32} {acc_str:<16} {f1_str:<16} {loss_str:<18} {s_inter_str:<12} {slr_str:<10} {ccr_str:<10} {nn_str:<14} {pval_str:<16}")
 
 		summary_rows[proto] = {
 			"acc_mean": float(np.mean(acc_vals)),
@@ -238,10 +250,11 @@ def run_benchmark_pipeline(
 			"datasail_loss_mean": float(np.mean(loss_vals)),
 			"inter_sim_mean": float(np.mean(s_inter_vals)),
 			"slr_mean": float(np.mean(slr_vals)),
+			"ccr_mean": float(np.mean(ccr_vals)),
 			"nn_sim_mean": float(np.mean(nn_vals)),
 		}
 
-	lines.append("=" * 135)
+	lines.append("=" * 155)
 	summary_txt = "\n".join(lines)
 	print("\n" + summary_txt)
 

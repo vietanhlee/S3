@@ -1,7 +1,7 @@
 """
 datasail_benchmark/metrics.py
 =============================
-Bộ 12 chỉ số định lượng đánh giá rò rỉ dữ liệu (Data Leakage) và hiệu suất phân loại đạt chuẩn Q1/Q2.
+Bộ 16 chỉ số định lượng đánh giá rò rỉ dữ liệu (Data Leakage) và hiệu suất phân loại đạt chuẩn Q1/Q2.
 """
 
 from typing import Dict, Any, List, Tuple
@@ -9,8 +9,15 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.stats import wasserstein_distance
-from sklearn.metrics import classification_report, accuracy_score, f1_score, silhouette_score
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import (
+	classification_report,
+	accuracy_score,
+	f1_score,
+	balanced_accuracy_score,
+	silhouette_score,
+	top_k_accuracy_score,
+)
+from sklearn.metrics.pairwise import cosine_similarity, rbf_kernel
 from sklearn.neighbors import KNeighborsClassifier
 
 
@@ -32,28 +39,20 @@ def compute_datasail_loss(
 	if weights is None:
 		weights = np.ones(n, dtype=np.float32)
 
-	# Nhãn tập chia: 0=Train, 1=Val, 2=Test
 	split_labels = np.full(n, -1, dtype=int)
 	split_labels[train_indices] = 0
 	split_labels[val_indices] = 1
 	split_labels[test_indices] = 2
 
-	# Ma trận tương đồng Cosine
 	sim_matrix = cosine_similarity(embeddings)
 	np.fill_diagonal(sim_matrix, 0.0)
 	sim_matrix = np.maximum(sim_matrix, 0.0)
 
-	# Ma trận trọng số κ(x) * κ(x')
 	weight_matrix = np.outer(weights, weights)
-
-	# Ma trận chỉ thị I[π(x) != π(x')]
 	diff_split_mask = split_labels[:, None] != split_labels[None, :]
-	
-	# Loại bỏ các cặp không thuộc tập nào (nếu có)
 	valid_mask = (split_labels[:, None] >= 0) & (split_labels[None, :] >= 0)
 	mask = diff_split_mask & valid_mask
 
-	# Tính tổng loss (chia 2 vì ma trận đối xứng)
 	total_loss = float(np.sum(sim_matrix[mask] * weight_matrix[mask]) / 2.0)
 	return total_loss
 
@@ -152,6 +151,28 @@ def compute_pseudoreplication_index(
 	return float((leaked_pairs / total_possible_pairs) * 100.0)
 
 
+def compute_class_coverage_rate(
+	df_all: pd.DataFrame,
+	df_train: pd.DataFrame,
+	df_val: pd.DataFrame,
+	df_test: pd.DataFrame,
+) -> float:
+	"""
+	Tính Class Coverage Rate (CCR):
+	Tỷ lệ % các class có mặt đầy đủ ở cả 3 tập (Train, Val, Test).
+	"""
+	all_classes = set(df_all["label"].unique())
+	if not all_classes:
+		return 100.0
+
+	tr_classes = set(df_train["label"].unique())
+	va_classes = set(df_val["label"].unique())
+	te_classes = set(df_test["label"].unique())
+
+	covered_classes = tr_classes & va_classes & te_classes
+	return float((len(covered_classes) / len(all_classes)) * 100.0)
+
+
 def compute_silhouette_separation(
 	embeddings: np.ndarray,
 	train_indices: List[int],
@@ -177,6 +198,29 @@ def compute_silhouette_separation(
 		return float(score)
 	except Exception:
 		return 0.0
+
+
+def compute_maximum_mean_discrepancy(
+	embeddings: np.ndarray,
+	train_indices: List[int],
+	test_indices: List[int],
+	gamma: float = 1.0,
+) -> float:
+	"""
+	Tính Maximum Mean Discrepancy (MMD) đo độ lệch phân phối không gian đặc trưng giữa Train và Test.
+	"""
+	if not train_indices or not test_indices:
+		return 0.0
+
+	X_tr = embeddings[train_indices]
+	X_te = embeddings[test_indices]
+
+	K_xx = rbf_kernel(X_tr, X_tr, gamma=gamma)
+	K_yy = rbf_kernel(X_te, X_te, gamma=gamma)
+	K_xy = rbf_kernel(X_tr, X_te, gamma=gamma)
+
+	mmd2 = float(np.mean(K_xx) + np.mean(K_yy) - 2.0 * np.mean(K_xy))
+	return float(np.sqrt(max(0.0, mmd2)))
 
 
 def compute_nearest_neighbor_stats(
@@ -241,10 +285,17 @@ def compute_knn_metrics(
 ) -> Dict[str, float]:
 	"""
 	Đánh giá khả năng phân loại Zero-Training bằng K-Nearest Neighbors (KNN) trên frozen embeddings.
-	Sử dụng path_to_idx để trích xuất chính xác row index trong matrix embeddings gốc.
+	Tính Accuracy Top-1, Top-3, Balanced Accuracy, F1 Macro, Weighted-F1, và Hardest Class F1.
 	"""
 	if len(df_train) == 0 or len(df_test) == 0:
-		return {"knn_accuracy": 0.0, "knn_f1_macro": 0.0, "knn_f1_weighted": 0.0}
+		return {
+			"knn_accuracy": 0.0,
+			"knn_top3_accuracy": 0.0,
+			"knn_balanced_accuracy": 0.0,
+			"knn_f1_macro": 0.0,
+			"knn_f1_weighted": 0.0,
+			"hardest_class_f1": 0.0,
+		}
 
 	train_indices = [path_to_idx[p] for p in df_train["path"]]
 	test_indices = [path_to_idx[p] for p in df_test["path"]]
@@ -255,20 +306,38 @@ def compute_knn_metrics(
 	X_test = embeddings[test_indices]
 	y_test = np.array([class_to_idx[lbl] for lbl in df_test["label"]])
 
-	# Fit KNN với Cosine metric
 	knn = KNeighborsClassifier(n_neighbors=k_neighbors, metric="cosine", n_jobs=-1)
 	knn.fit(X_train, y_train)
 
 	y_pred = knn.predict(X_test)
+	probs = knn.predict_proba(X_test)
 
 	acc = float(accuracy_score(y_test, y_pred))
+	balanced_acc = float(balanced_accuracy_score(y_test, y_pred))
+
+	# Top-3 Accuracy
+	try:
+		if probs.shape[1] >= 3:
+			top3_acc = float(top_k_accuracy_score(y_test, probs, k=3, labels=np.arange(len(class_to_idx))))
+		else:
+			top3_acc = acc
+	except Exception:
+		top3_acc = acc
+
 	f1_macro = float(f1_score(y_test, y_pred, average="macro", zero_division=0))
 	f1_weighted = float(f1_score(y_test, y_pred, average="weighted", zero_division=0))
 
+	# Hardest Class F1 (F1 nhỏ nhất trong các loài)
+	per_class_f1 = f1_score(y_test, y_pred, average=None, zero_division=0)
+	hardest_f1 = float(np.min(per_class_f1)) if len(per_class_f1) > 0 else 0.0
+
 	return {
 		"knn_accuracy": acc,
+		"knn_top3_accuracy": top3_acc,
+		"knn_balanced_accuracy": balanced_acc,
 		"knn_f1_macro": f1_macro,
 		"knn_f1_weighted": f1_weighted,
+		"hardest_class_f1": hardest_f1,
 	}
 
 

@@ -2,7 +2,7 @@
 datasail_benchmark/solvers.py
 =============================
 Triển khai 9 thuật toán chia dữ liệu (Splitting Protocols) cho Benchmark Data Leakage & DataSAIL.
-Bảo đảm duy trì chính xác tỷ lệ phân bổ target (60% Train / 20% Val / 20% Test).
+Bảo đảm duy trì phân phối class, tỷ lệ target (60/20/20) và TUYỆT ĐỐI NGUYÊN VẸN KHỐI MẪU VẬT (không xé lẻ subfolder).
 """
 
 import random
@@ -55,42 +55,117 @@ def compute_split_counts(n_total: int, train_ratio: float = 0.60, val_ratio: flo
 	return train_count, val_count, test_count
 
 
+def validate_and_fix_class_coverage_subfolder(
+	df_all: pd.DataFrame,
+	df_train: pd.DataFrame,
+	df_val: pd.DataFrame,
+	df_test: pd.DataFrame,
+	seed: int = 42,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+	"""
+	Đảm bảo Class Coverage tối đa ở cấp độ MẪU VẬT NGUYÊN VẸN (SUBFOLDER LEVEL).
+	TUYỆT ĐỐI KHÔNG XÉ LẺ ẢNH TRONG SUBFOLDER.
+	Nếu một tập thiếu class c, điều chuyển TOÀN BỘ 1 SUBFOLDER của class c từ tập có dư sang.
+	"""
+	all_classes = set(df_all["label"].unique())
+	tr_classes = set(df_train["label"].unique())
+	va_classes = set(df_val["label"].unique())
+	te_classes = set(df_test["label"].unique())
+
+	if tr_classes == all_classes and va_classes == all_classes and te_classes == all_classes:
+		return _shuffle_df(df_train, seed), _shuffle_df(df_val, seed), _shuffle_df(df_test, seed)
+
+	df_tr_list, df_va_list, df_te_list = [], [], []
+
+	for cls in all_classes:
+		sub_all = df_all[df_all["label"] == cls]
+		sub_tr = df_train[df_train["label"] == cls]
+		sub_va = df_val[df_val["label"] == cls]
+		sub_te = df_test[df_test["label"] == cls]
+
+		sfs_tr = list(sub_tr["subfolder"].unique()) if len(sub_tr) > 0 else []
+		sfs_va = list(sub_va["subfolder"].unique()) if len(sub_va) > 0 else []
+		sfs_te = list(sub_te["subfolder"].unique()) if len(sub_te) > 0 else []
+
+		if not sfs_tr:
+			if len(sfs_te) > 1:
+				sfs_tr.append(sfs_te.pop())
+			elif len(sfs_va) > 1:
+				sfs_tr.append(sfs_va.pop())
+		if not sfs_va:
+			if len(sfs_tr) > 1:
+				sfs_va.append(sfs_tr.pop())
+			elif len(sfs_te) > 1:
+				sfs_va.append(sfs_te.pop())
+		if not sfs_te:
+			if len(sfs_tr) > 1:
+				sfs_te.append(sfs_tr.pop())
+			elif len(sfs_va) > 1:
+				sfs_te.append(sfs_va.pop())
+
+		if sfs_tr:
+			df_tr_list.append(sub_all[sub_all["subfolder"].isin(sfs_tr)])
+		if sfs_va:
+			df_va_list.append(sub_all[sub_all["subfolder"].isin(sfs_va)])
+		if sfs_te:
+			df_te_list.append(sub_all[sub_all["subfolder"].isin(sfs_te)])
+
+	new_tr = pd.concat(df_tr_list).reset_index(drop=True) if df_tr_list else df_train
+	new_va = pd.concat(df_va_list).reset_index(drop=True) if df_va_list else df_val
+	new_te = pd.concat(df_te_list).reset_index(drop=True) if df_te_list else df_test
+
+	return _shuffle_df(new_tr, seed), _shuffle_df(new_va, seed), _shuffle_df(new_te, seed)
+
+
 def _allocate_groups_by_ratio(
 	groups_indices: List[List[int]],
 	train_ratio: float = 0.60,
 	val_ratio: float = 0.20,
 ) -> Tuple[List[int], List[int], List[int]]:
 	"""
-	Phân bổ danh sách các nhóm chỉ số (groups_indices) vào Train, Val, Test
-	sao cho duy trì tỷ lệ phân bổ target (~60% Train, ~20% Val, ~20% Test).
+	Phân bổ các nhóm chỉ số (khối subfolder nguyên vẹn) theo tỷ lệ target (60/20/20).
+	TUYỆT ĐỐI giữ nguyên 100% khối subfolder.
 	"""
-	n_total = sum(len(g) for g in groups_indices)
-	if n_total == 0:
+	n_groups = len(groups_indices)
+	if n_groups == 0:
 		return [], [], []
 
-	target_tr = int(n_total * train_ratio)
-	target_va = int(n_total * val_ratio)
+	total_images = sum(len(g) for g in groups_indices)
+	target_tr = int(total_images * train_ratio)
+	target_va = int(total_images * val_ratio)
 
 	train_idx, val_idx, test_idx = [], [], []
-	curr_tr, curr_va = 0, 0
 
-	for g in groups_indices:
-		g_len = len(g)
-		if curr_tr < target_tr or (curr_tr == 0 and len(groups_indices) >= 3):
-			train_idx.extend(g)
-			curr_tr += g_len
-		elif curr_va < target_va or (curr_va == 0 and len(groups_indices) >= 2):
-			val_idx.extend(g)
-			curr_va += g_len
-		else:
-			test_idx.extend(g)
+	if n_groups == 1:
+		train_idx.extend(groups_indices[0])
+		val_idx.extend(groups_indices[0])
+		test_idx.extend(groups_indices[0])
+	elif n_groups == 2:
+		train_idx.extend(groups_indices[0])
+		test_idx.extend(groups_indices[1])
+		val_idx.extend(groups_indices[0])
+	else:
+		test_idx.extend(groups_indices[0])
+		val_idx.extend(groups_indices[1])
 
-	# Đảm bảo không tập nào bị trống nếu số nhóm >= 3
-	if len(groups_indices) >= 3:
-		if len(val_idx) == 0 and len(train_idx) > 1:
-			val_idx.append(train_idx.pop())
-		if len(test_idx) == 0 and len(train_idx) > 1:
-			test_idx.append(train_idx.pop())
+		curr_tr = 0
+		curr_va = len(groups_indices[1])
+		curr_te = len(groups_indices[0])
+
+		for g in groups_indices[2:]:
+			g_len = len(g)
+			if curr_tr < target_tr:
+				train_idx.extend(g)
+				curr_tr += g_len
+			elif curr_va < target_va:
+				val_idx.extend(g)
+				curr_va += g_len
+			else:
+				test_idx.extend(g)
+				curr_te += g_len
+
+		if len(train_idx) == 0 and len(groups_indices) >= 3:
+			train_idx.extend(groups_indices[2])
 
 	return train_idx, val_idx, test_idx
 
@@ -144,7 +219,7 @@ def pp2_group_random_split(
 		val_idx.extend(va_g)
 		test_idx.extend(te_g)
 
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
+	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
 # ============================================================
@@ -178,7 +253,7 @@ def pp3_stratified_group_split(
 		val_idx = df_trainval.index[va_i].tolist()
 		break
 
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
+	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
 # ============================================================
@@ -193,9 +268,7 @@ def _run_datasail_solver(
 	max_iters: int = 1500,
 ) -> Tuple[List[int], List[int], List[int]]:
 	"""
-	Giải bài toán tối ưu DataSAIL (Integer Linear Programming / Graph Cut heuristic):
-	Tối thiểu hóa L(π) = Σ Σ [π(x) != π(x')] * sim(x, x') * κ(x) * κ(x')
-	kết hợp ràng buộc tỷ lệ nghiêm ngặt (60/20/20).
+	Giải bài toán tối ưu DataSAIL (Integer Linear Programming / Graph Cut heuristic).
 	"""
 	n = len(item_embeddings)
 	if n == 0:
@@ -214,7 +287,6 @@ def _run_datasail_solver(
 	target_va = total_weight * val_ratio
 	target_te = total_weight * (1.0 - train_ratio - val_ratio)
 
-	# Khởi tạo phân bổ ban đầu dựa trên Spectral / KMeans clustering
 	k_init = min(n, 3)
 	kmeans = KMeans(n_clusters=k_init, random_state=seed, n_init="auto")
 	cluster_labels = kmeans.fit_predict(item_embeddings)
@@ -228,19 +300,18 @@ def _run_datasail_solver(
 			cluster_dists.append((c, c_dist))
 
 	cluster_dists.sort(key=lambda x: -x[1])
-	split_assignment = np.zeros(n, dtype=int)  # 0=Train, 1=Val, 2=Test
+	split_assignment = np.zeros(n, dtype=int)
 
 	if len(cluster_dists) >= 3:
-		split_assignment[cluster_labels == cluster_dists[0][0]] = 2  # Test xa nhất
-		split_assignment[cluster_labels == cluster_dists[1][0]] = 1  # Val xa nhì
-		split_assignment[cluster_labels == cluster_dists[2][0]] = 0  # Train gần nhất
+		split_assignment[cluster_labels == cluster_dists[0][0]] = 2
+		split_assignment[cluster_labels == cluster_dists[1][0]] = 1
+		split_assignment[cluster_labels == cluster_dists[2][0]] = 0
 	elif len(cluster_dists) == 2:
 		split_assignment[cluster_labels == cluster_dists[0][0]] = 2
 		split_assignment[cluster_labels == cluster_dists[1][0]] = 0
 
 	rng = np.random.RandomState(seed)
 
-	# Hàm tính loss DataSAIL kết hợp phạt lệch tỷ lệ
 	def calc_loss(assign: np.ndarray) -> float:
 		diff_mask = assign[:, None] != assign[None, :]
 		weight_outer = np.outer(item_weights, item_weights)
@@ -323,7 +394,7 @@ def pp4_datasail_specimen_split(
 		for pos in te_sf:
 			test_idx.extend(subfolder_groups.get_group(subfolder_names[pos]).index.tolist())
 
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
+	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
 # ============================================================
@@ -397,7 +468,7 @@ def pp6_mahalanobis_centroid_split(
 
 		diff = sf_embs - mean
 		dists = np.sqrt(np.maximum(np.einsum("ij,jk,ik->i", diff, cov_inv, diff), 0.0))
-		sorted_pos = np.argsort(dists)  # Sắp xếp tăng dần: Gần trước (Train), Xa sau (Test)
+		sorted_pos = np.argsort(dists)
 
 		sorted_groups_indices = [subfolder_groups.get_group(subfolder_names[pos]).index.tolist() for pos in sorted_pos]
 		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
@@ -406,7 +477,7 @@ def pp6_mahalanobis_centroid_split(
 		val_idx.extend(va_g)
 		test_idx.extend(te_g)
 
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
+	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
 # ============================================================
@@ -451,7 +522,6 @@ def pp7_hierarchical_clustering_split(
 					sf_indices.extend(subfolder_groups.get_group(subfolder_names[idx_sf]).index.tolist())
 			cluster_info.append((cid, c_dist, sf_indices))
 
-		# Sắp xếp tăng dần theo khoảng cách (gần tâm nhất vào Train trước)
 		cluster_info.sort(key=lambda x: x[1])
 		sorted_groups_indices = [info[2] for info in cluster_info]
 
@@ -460,7 +530,7 @@ def pp7_hierarchical_clustering_split(
 		val_idx.extend(va_g)
 		test_idx.extend(te_g)
 
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
+	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
 # ============================================================
@@ -506,7 +576,6 @@ def pp8_cosine_graph_split(
 					c_indices.extend(subfolder_groups.get_group(subfolder_names[idx_sf]).index.tolist())
 			comp_info.append((cid, c_dist, c_indices))
 
-		# Sắp xếp tăng dần theo khoảng cách (gần tâm nhất vào Train trước)
 		comp_info.sort(key=lambda x: x[1])
 		sorted_groups_indices = [info[2] for info in comp_info]
 
@@ -515,7 +584,7 @@ def pp8_cosine_graph_split(
 		val_idx.extend(va_g)
 		test_idx.extend(te_g)
 
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
+	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
 # ============================================================
@@ -578,7 +647,7 @@ def pp9_adversarial_validation_split(
 			scores = discriminator(X_t).squeeze().cpu().numpy()
 
 		difficulty = np.abs(scores - 0.5)
-		sorted_pos = np.argsort(difficulty)  # Dị biệt ít hơn (gần 0.5) vào Train trước, dị biệt nhất vào Test
+		sorted_pos = np.argsort(difficulty)
 
 		sorted_groups_indices = [subfolder_groups.get_group(subfolder_names[pos]).index.tolist() for pos in sorted_pos]
 		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
@@ -587,10 +656,9 @@ def pp9_adversarial_validation_split(
 		val_idx.extend(va_g)
 		test_idx.extend(te_g)
 
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
+	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
-# Registry chứa toàn bộ 9 thuật toán chia
 ALL_SOLVERS: Dict[str, Callable] = {
 	"PP1_Image_Random": pp1_image_random_split,
 	"PP2_Group_Random": pp2_group_random_split,
