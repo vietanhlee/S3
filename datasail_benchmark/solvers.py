@@ -1,7 +1,8 @@
 """
 datasail_benchmark/solvers.py
 =============================
-Triển khai 9 thuật toán chia dữ liệu (Splitting Protocols) cho Benchmark Data Leakage & DataSAIL.
+Triển khai các thuật toán chia dữ liệu (Splitting Protocols) cho Benchmark Data Leakage & DataSAIL.
+Tự động import và đồng bộ hóa trực tiếp từ từ điển `SPLIT_METHODS` trong `split_methods.py`.
 Bảo đảm duy trì phân phối class, tỷ lệ target (60/20/20) và TUYỆT ĐỐI NGUYÊN VẸN KHỐI MẪU VẬT (không xé lẻ subfolder).
 """
 
@@ -12,47 +13,17 @@ import pandas as pd
 
 import torch
 import torch.nn as nn
-from scipy.cluster.hierarchy import linkage, fcluster
-from scipy.sparse.csgraph import connected_components
-from scipy.sparse import csr_matrix
 from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.model_selection import StratifiedGroupKFold
 
-from .config import TRAIN_RATIO, VAL_RATIO, COSINE_THRESHOLD
+from .config import TRAIN_RATIO, VAL_RATIO
+
+# Import trực tiếp từ điển SPLIT_METHODS từ split_methods.py
+import split_methods as sm
 
 
 def _shuffle_df(df: pd.DataFrame, seed: int) -> pd.DataFrame:
 	return df.sample(frac=1, random_state=seed).reset_index(drop=True)
-
-
-def compute_split_counts(n_total: int, train_ratio: float = 0.60, val_ratio: float = 0.20) -> Tuple[int, int, int]:
-	if n_total <= 0:
-		return 0, 0, 0
-	test_ratio = 1.0 - train_ratio - val_ratio
-	val_count = int(n_total * val_ratio)
-	test_count = int(n_total * test_ratio)
-	train_count = n_total - val_count - test_count
-
-	if n_total >= 3:
-		if val_count == 0:
-			if train_count > 1:
-				train_count -= 1
-				val_count = 1
-			elif test_count > 1:
-				test_count -= 1
-				val_count = 1
-
-		if test_count == 0:
-			if train_count > 1:
-				train_count -= 1
-				test_count = 1
-			elif val_count > 1:
-				val_count -= 1
-				test_count = 1
-
-	return train_count, val_count, test_count
 
 
 def validate_and_fix_class_coverage_subfolder(
@@ -117,145 +88,6 @@ def validate_and_fix_class_coverage_subfolder(
 	return _shuffle_df(new_tr, seed), _shuffle_df(new_va, seed), _shuffle_df(new_te, seed)
 
 
-def _allocate_groups_by_ratio(
-	groups_indices: List[List[int]],
-	train_ratio: float = 0.60,
-	val_ratio: float = 0.20,
-) -> Tuple[List[int], List[int], List[int]]:
-	"""
-	Phân bổ các nhóm chỉ số (khối subfolder nguyên vẹn) theo tỷ lệ target (60/20/20).
-	TUYỆT ĐỐI giữ nguyên 100% khối subfolder.
-	"""
-	n_groups = len(groups_indices)
-	if n_groups == 0:
-		return [], [], []
-
-	total_images = sum(len(g) for g in groups_indices)
-	target_tr = int(total_images * train_ratio)
-	target_va = int(total_images * val_ratio)
-
-	train_idx, val_idx, test_idx = [], [], []
-
-	if n_groups == 1:
-		train_idx.extend(groups_indices[0])
-		val_idx.extend(groups_indices[0])
-		test_idx.extend(groups_indices[0])
-	elif n_groups == 2:
-		train_idx.extend(groups_indices[0])
-		test_idx.extend(groups_indices[1])
-		val_idx.extend(groups_indices[0])
-	else:
-		test_idx.extend(groups_indices[0])
-		val_idx.extend(groups_indices[1])
-
-		curr_tr = 0
-		curr_va = len(groups_indices[1])
-		curr_te = len(groups_indices[0])
-
-		for g in groups_indices[2:]:
-			g_len = len(g)
-			if curr_tr < target_tr:
-				train_idx.extend(g)
-				curr_tr += g_len
-			elif curr_va < target_va:
-				val_idx.extend(g)
-				curr_va += g_len
-			else:
-				test_idx.extend(g)
-				curr_te += g_len
-
-		if len(train_idx) == 0 and len(groups_indices) >= 3:
-			train_idx.extend(groups_indices[2])
-
-	return train_idx, val_idx, test_idx
-
-
-# ============================================================
-# PP1: Image-Level Random Split (Flatten Random)
-# ============================================================
-def pp1_image_random_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP1: Chia ngẫu nhiên cấp độ Ảnh (Flatten Random) — Rò rỉ tối đa."""
-	rng = random.Random(seed)
-	train_idx, val_idx, test_idx = [], [], []
-
-	for _, group in df.groupby("label"):
-		indices = sorted(group.index.tolist())
-		rng.shuffle(indices)
-		n_total = len(indices)
-		tr_c, va_c, te_c = compute_split_counts(n_total, TRAIN_RATIO, VAL_RATIO)
-
-		train_idx.extend(indices[:tr_c])
-		val_idx.extend(indices[tr_c:tr_c + va_c])
-		test_idx.extend(indices[tr_c + va_c:])
-
-	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
-
-
-# ============================================================
-# PP2: Group-Level Random Split (GroupKFold)
-# ============================================================
-def pp2_group_random_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP2: Chia ngẫu nhiên cấp độ Mẫu vật (GroupKFold) — Bảo toàn khối mẫu vật."""
-	rng = random.Random(seed)
-	train_idx, val_idx, test_idx = [], [], []
-
-	for _, group in df.groupby("label"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolders = list(subfolder_groups.groups.keys())
-		rng.shuffle(subfolders)
-
-		groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolders]
-		tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
-
-		train_idx.extend(tr_g)
-		val_idx.extend(va_g)
-		test_idx.extend(te_g)
-
-	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
-
-
-# ============================================================
-# PP3: Stratified Group Split (StratifiedGroupKFold)
-# ============================================================
-def pp3_stratified_group_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP3: Phân tầng nhóm (StratifiedGroupKFold) — Bảo toàn khối mẫu vật + cân bằng loài."""
-	sgkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=seed)
-
-	groups = (df["label"] + "___" + df["subfolder"]).values
-	labels = df["label"].values
-
-	trainval_idx, test_idx = None, None
-	for tv_i, te_i in sgkf.split(df.index, labels, groups):
-		trainval_idx = df.index[tv_i].tolist()
-		test_idx = df.index[te_i].tolist()
-		break
-
-	df_trainval = df.loc[trainval_idx]
-	groups_tv = (df_trainval["label"] + "___" + df_trainval["subfolder"]).values
-	labels_tv = df_trainval["label"].values
-
-	sgkf_val = StratifiedGroupKFold(n_splits=4, shuffle=True, random_state=seed)
-	train_idx, val_idx = None, None
-	for tr_i, va_i in sgkf_val.split(df_trainval.index, labels_tv, groups_tv):
-		train_idx = df_trainval.index[tr_i].tolist()
-		val_idx = df_trainval.index[va_i].tolist()
-		break
-
-	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
-
-
 # ============================================================
 # Core DataSAIL Optimization Solver Engine
 # ============================================================
@@ -267,9 +99,6 @@ def _run_datasail_solver(
 	seed: int = 42,
 	max_iters: int = 1500,
 ) -> Tuple[List[int], List[int], List[int]]:
-	"""
-	Giải bài toán tối ưu DataSAIL (Integer Linear Programming / Graph Cut heuristic).
-	"""
 	n = len(item_embeddings)
 	if n == 0:
 		return [], [], []
@@ -359,33 +188,19 @@ def _run_datasail_solver(
 
 
 # ============================================================
-# PP4: DataSAIL Specimen-Level Split (Subfolder Level)
+# Additional Solvers: DataSAIL Specimen & DataSAIL Image
 # ============================================================
-def pp4_datasail_specimen_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP4: DataSAIL ở cấp độ Mẫu vật — Giữ nguyên khối mẫu vật, tối thiểu hóa L(π)."""
+def pp10_datasail_specimen_split(df: pd.DataFrame, embeddings: np.ndarray, seed: int = 42):
 	train_idx, val_idx, test_idx = [], [], []
-
 	for _, group in df.groupby("label"):
 		subfolder_groups = group.groupby("subfolder")
 		subfolder_names = list(subfolder_groups.groups.keys())
-
-		sf_embs = []
-		sf_weights = []
-		for sf in subfolder_names:
-			indices = subfolder_groups.get_group(sf).index.tolist()
-			sf_embs.append(embeddings[indices].mean(axis=0))
-			sf_weights.append(len(indices))
-
+		sf_embs = [embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names]
+		sf_weights = [len(subfolder_groups.get_group(sf)) for sf in subfolder_names]
 		sf_embs = np.array(sf_embs)
 		sf_weights = np.array(sf_weights, dtype=np.float32)
 
-		tr_sf, va_sf, te_sf = _run_datasail_solver(
-			sf_embs, sf_weights, train_ratio=TRAIN_RATIO, val_ratio=VAL_RATIO, seed=seed
-		)
+		tr_sf, va_sf, te_sf = _run_datasail_solver(sf_embs, sf_weights, train_ratio=TRAIN_RATIO, val_ratio=VAL_RATIO, seed=seed)
 
 		for pos in tr_sf:
 			train_idx.extend(subfolder_groups.get_group(subfolder_names[pos]).index.tolist())
@@ -397,25 +212,14 @@ def pp4_datasail_specimen_split(
 	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
 
 
-# ============================================================
-# PP5: DataSAIL Image-Level Split (Flatten Image Level)
-# ============================================================
-def pp5_datasail_image_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP5: DataSAIL ở cấp độ Ảnh — Tối thiểu hóa L(π) trên từng ảnh đơn lẻ."""
+def pp11_datasail_image_split(df: pd.DataFrame, embeddings: np.ndarray, seed: int = 42):
 	train_idx, val_idx, test_idx = [], [], []
-
 	for _, group in df.groupby("label"):
 		indices = sorted(group.index.tolist())
 		img_embs = embeddings[indices]
 		img_weights = np.ones(len(indices), dtype=np.float32)
 
-		tr_img, va_img, te_img = _run_datasail_solver(
-			img_embs, img_weights, train_ratio=TRAIN_RATIO, val_ratio=VAL_RATIO, seed=seed
-		)
+		tr_img, va_img, te_img = _run_datasail_solver(img_embs, img_weights, train_ratio=TRAIN_RATIO, val_ratio=VAL_RATIO, seed=seed)
 
 		for pos in tr_img:
 			train_idx.append(indices[pos])
@@ -427,246 +231,27 @@ def pp5_datasail_image_split(
 	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
 
 
-# ============================================================
-# PP6: Mahalanobis Centroid Outlier Split
-# ============================================================
-def pp6_mahalanobis_centroid_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-	eps: float = 1e-6,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP6: Chia theo khoảng cách Mahalanobis từ centroid — Mẫu dị biệt nhất vào Test."""
-	train_idx, val_idx, test_idx = [], [], []
-
-	for _, group in df.groupby("label"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-
-		sf_embs = [embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names]
-		sf_embs = np.array(sf_embs)
-		n_sf = len(sf_embs)
-
-		if n_sf <= 2:
-			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
-			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
-			train_idx.extend(tr_g)
-			val_idx.extend(va_g)
-			test_idx.extend(te_g)
-			continue
-
-		if n_sf >= 5:
-			d_prime = min(n_sf - 2, 128)
-			if d_prime >= 2:
-				pca = PCA(n_components=d_prime, random_state=seed)
-				sf_embs = pca.fit_transform(sf_embs)
-
-		cov = np.cov(sf_embs, rowvar=False)
-		cov = np.atleast_2d(cov) + np.eye(sf_embs.shape[1]) * eps
-		cov_inv = np.linalg.pinv(cov)
-		mean = sf_embs.mean(axis=0)
-
-		diff = sf_embs - mean
-		dists = np.sqrt(np.maximum(np.einsum("ij,jk,ik->i", diff, cov_inv, diff), 0.0))
-		sorted_pos = np.argsort(dists)
-
-		sorted_groups_indices = [subfolder_groups.get_group(subfolder_names[pos]).index.tolist() for pos in sorted_pos]
-		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
-
-		train_idx.extend(tr_g)
-		val_idx.extend(va_g)
-		test_idx.extend(te_g)
-
-	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
+def wrap_stratified_random(df: pd.DataFrame, embeddings: np.ndarray, seed: int = 42):
+	tr, va, te = sm.stratified_random_split(df, embeddings, train_ratio=TRAIN_RATIO, val_ratio=VAL_RATIO, seed=seed)
+	return _shuffle_df(tr, seed), _shuffle_df(va, seed), _shuffle_df(te, seed)
 
 
-# ============================================================
-# PP7: Hierarchical Agglomerative Clustering Split
-# ============================================================
-def pp7_hierarchical_clustering_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP7: Agglomerative Ward Clustering trên cụm mẫu vật."""
-	train_idx, val_idx, test_idx = [], [], []
+# Tự động đóng gói tất cả phương pháp từ từ điển SPLIT_METHODS của split_methods.py
+SPLIT_METHODS_WRAPPED: Dict[str, Callable] = {}
 
-	for _, group in df.groupby("label"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_sf = len(subfolder_names)
-
-		if n_sf < 3:
-			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
-			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
-			train_idx.extend(tr_g)
-			val_idx.extend(va_g)
-			test_idx.extend(te_g)
-			continue
-
-		sf_embs = np.array([embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names])
-		n_clusters = min(3, n_sf)
-		Z = linkage(sf_embs, method="ward")
-		cluster_labels = fcluster(Z, t=n_clusters, criterion="maxclust")
-
-		global_centroid = sf_embs.mean(axis=0)
-		cluster_info = []
-
-		for cid in sorted(set(cluster_labels)):
-			mask = cluster_labels == cid
-			c_centroid = sf_embs[mask].mean(axis=0)
-			c_dist = float(np.linalg.norm(c_centroid - global_centroid))
-			sf_indices = []
-			for idx_sf, lbl in enumerate(cluster_labels):
-				if lbl == cid:
-					sf_indices.extend(subfolder_groups.get_group(subfolder_names[idx_sf]).index.tolist())
-			cluster_info.append((cid, c_dist, sf_indices))
-
-		cluster_info.sort(key=lambda x: x[1])
-		sorted_groups_indices = [info[2] for info in cluster_info]
-
-		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
-		train_idx.extend(tr_g)
-		val_idx.extend(va_g)
-		test_idx.extend(te_g)
-
-	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
+for name, fn in sm.SPLIT_METHODS.items():
+	def _make_wrapper(func):
+		def _wrapper(df: pd.DataFrame, embeddings: np.ndarray, seed: int = 42):
+			tr, va, te = func(df, embeddings, train_ratio=TRAIN_RATIO, val_ratio=VAL_RATIO, seed=seed)
+			return validate_and_fix_class_coverage_subfolder(df, tr, va, te, seed)
+		return _wrapper
+	SPLIT_METHODS_WRAPPED[name] = _make_wrapper(fn)
 
 
-# ============================================================
-# PP8: Cosine Similarity Graph Connected Components Split
-# ============================================================
-def pp8_cosine_graph_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP8: Đồ thị Cosine Similarity + Connected Components — Ngăn rò rỉ gián tiếp."""
-	train_idx, val_idx, test_idx = [], [], []
-
-	for _, group in df.groupby("label"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_sf = len(subfolder_names)
-
-		if n_sf < 3:
-			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
-			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
-			train_idx.extend(tr_g)
-			val_idx.extend(va_g)
-			test_idx.extend(te_g)
-			continue
-
-		sf_embs = np.array([embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names])
-		sim_matrix = cosine_similarity(sf_embs)
-		np.fill_diagonal(sim_matrix, 0.0)
-
-		adj = (sim_matrix >= COSINE_THRESHOLD).astype(np.float32)
-		n_comp, comp_labels = connected_components(csr_matrix(adj), directed=False)
-
-		global_centroid = sf_embs.mean(axis=0)
-		comp_info = []
-		for cid in range(n_comp):
-			mask = comp_labels == cid
-			c_centroid = sf_embs[mask].mean(axis=0)
-			c_dist = float(np.linalg.norm(c_centroid - global_centroid))
-			c_indices = []
-			for idx_sf, lbl in enumerate(comp_labels):
-				if lbl == cid:
-					c_indices.extend(subfolder_groups.get_group(subfolder_names[idx_sf]).index.tolist())
-			comp_info.append((cid, c_dist, c_indices))
-
-		comp_info.sort(key=lambda x: x[1])
-		sorted_groups_indices = [info[2] for info in comp_info]
-
-		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
-		train_idx.extend(tr_g)
-		val_idx.extend(va_g)
-		test_idx.extend(te_g)
-
-	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
-
-
-# ============================================================
-# PP9: Adversarial MLP Discriminator Split
-# ============================================================
-def pp9_adversarial_validation_split(
-	df: pd.DataFrame,
-	embeddings: np.ndarray,
-	seed: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-	"""PP9: Adversarial MLP Discriminator — Subfolder dị biệt nhất vào Test."""
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	rng = np.random.RandomState(seed)
-	train_idx, val_idx, test_idx = [], [], []
-
-	for _, group in df.groupby("label"):
-		subfolder_groups = group.groupby("subfolder")
-		subfolder_names = list(subfolder_groups.groups.keys())
-		n_sf = len(subfolder_names)
-
-		if n_sf < 3:
-			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
-			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
-			train_idx.extend(tr_g)
-			val_idx.extend(va_g)
-			test_idx.extend(te_g)
-			continue
-
-		sf_embs = np.array([embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names])
-
-		perm = rng.permutation(n_sf)
-		half = n_sf // 2
-		y = np.zeros(n_sf, dtype=np.float32)
-		y[perm[half:]] = 1.0
-
-		emb_dim = sf_embs.shape[1]
-		discriminator = nn.Sequential(
-			nn.Linear(emb_dim, 128),
-			nn.ReLU(),
-			nn.Dropout(0.3),
-			nn.Linear(128, 1),
-			nn.Sigmoid(),
-		).to(device)
-
-		X_t = torch.from_numpy(sf_embs).float().to(device)
-		y_t = torch.from_numpy(y).float().to(device)
-
-		opt = torch.optim.Adam(discriminator.parameters(), lr=1e-3)
-		crit = nn.BCELoss()
-
-		discriminator.train()
-		for _ in range(25):
-			opt.zero_grad()
-			loss = crit(discriminator(X_t).squeeze(), y_t)
-			loss.backward()
-			opt.step()
-
-		discriminator.eval()
-		with torch.no_grad():
-			scores = discriminator(X_t).squeeze().cpu().numpy()
-
-		difficulty = np.abs(scores - 0.5)
-		sorted_pos = np.argsort(difficulty)
-
-		sorted_groups_indices = [subfolder_groups.get_group(subfolder_names[pos]).index.tolist() for pos in sorted_pos]
-		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
-
-		train_idx.extend(tr_g)
-		val_idx.extend(va_g)
-		test_idx.extend(te_g)
-
-	return validate_and_fix_class_coverage_subfolder(df, df.loc[train_idx], df.loc[val_idx], df.loc[test_idx], seed)
-
-
+# Registry tổng hợp đầy đủ các phương pháp
 ALL_SOLVERS: Dict[str, Callable] = {
-	"PP1_Image_Random": pp1_image_random_split,
-	"PP2_Group_Random": pp2_group_random_split,
-	"PP3_Stratified_Group": pp3_stratified_group_split,
-	"PP4_DataSAIL_Specimen": pp4_datasail_specimen_split,
-	"PP5_DataSAIL_Image": pp5_datasail_image_split,
-	"PP6_Mahalanobis_Centroid": pp6_mahalanobis_centroid_split,
-	"PP7_Hierarchical_Clustering": pp7_hierarchical_clustering_split,
-	"PP8_Cosine_Graph": pp8_cosine_graph_split,
-	"PP9_Adversarial_Validation": pp9_adversarial_validation_split,
+	"PP0_Stratified_Random": wrap_stratified_random,
+	**SPLIT_METHODS_WRAPPED,
+	"PP10_DataSAIL_Specimen": pp10_datasail_specimen_split,
+	"PP11_DataSAIL_Image": pp11_datasail_image_split,
 }
