@@ -118,12 +118,12 @@ We solve this combinatorial optimization problem using **Simulated Annealing (SA
 
 \begin{enumerate}[label=\textbf{Step \arabic*:}, leftmargin=*]
 \item \textbf{Pre-computation}: Candidate splits $\mathcal{D}_c(m_c)$ for all 18 taxa across all 11 solvers are pre-computed and cached.
-\item \textbf{Initialization}: An initial configuration $\boldsymbol{m}^{(0)} = (m_1^{(0)}, \dots, m_{18}^{(0)})$ is selected randomly. The initial temperature is set to $T_0 = 10.0$ with a cooling rate $\alpha = 0.97$.
+\item \textbf{Initialization}: An initial configuration $\boldsymbol{m}^{(0)} = (m_1^{(0)}, \dots, m_{18}^{(0)})$ is selected randomly. The initial temperature is set to $T_0 = 30.0$ with a cooling rate $\alpha = 0.999$.
 \item \textbf{Neighbor Mutation}: At step $t$, a random taxon $c$ is selected, and its solver is mutated to a random alternative $m_c' \in \{1, \dots, K\}$.
 \item \textbf{Global Evaluation}: The assembled global dataset $\mathcal{D}(\boldsymbol{m}_{\text{cand}})$ is constructed, and $\Delta \mathrm{Fitness} = \mathrm{Fitness}(\boldsymbol{m}_{\text{cand}}) - \mathrm{Fitness}(\boldsymbol{m}^{(t)})$ is evaluated.
 \item \textbf{Boltzmann Acceptance}: The candidate configuration is accepted with probability:
 \begin{equation}
 P(\text{accept}) = \begin{cases} 1.0 & \text{if } \Delta \mathrm{Fitness} < 0, \\ \exp\left(-\frac{\Delta \mathrm{Fitness}}{T_t}\right) & \text{if } \Delta \mathrm{Fitness} \ge 0. \end{cases}
 \end{equation}
-\item \textbf{Cooling}: Temperature is updated via $T_{t+1} = T_t \times 0.97$. The algorithm terminates after 400 iterations ($\approx 3$ seconds), returning the Pareto-optimal configuration $\boldsymbol{m}^*$.
+\item \textbf{Cooling}: Temperature is updated via $T_{t+1} = T_t \times 0.999$. The algorithm terminates after 10,000 iterations ($\approx 60$ seconds), returning the Pareto-optimal configuration $\boldsymbol{m}^*$.
 \end{enumerate}

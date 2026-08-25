@@ -98,7 +98,7 @@ def optimize_multi_objective_datasail_sa(
 	w_datasail: float = 1.0,
 	w_mmd: float = 0.5,
 	w_hardest_f1: float = 0.5,
-	n_iters: int = 400,
+	n_iters: int = 10000,
 	seed: int = 42,
 ) -> Tuple[Dict[str, str], Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
 	"""
@@ -158,8 +158,10 @@ def optimize_multi_objective_datasail_sa(
 	best_fitness = curr_fitness
 	best_splits = curr_splits
 
-	temp = 10.0
-	cooling_rate = 0.97
+	temp = 30.0
+	cooling_rate = 0.999
+
+
 
 	for _ in range(n_iters):
 		target_label = rng.choice(class_names)

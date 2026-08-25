@@ -49,7 +49,7 @@ Evaluating all $11^{18}$ candidate datasets by brute-force search is computation
 ### 3.2 Global Multi-Objective Fitness Function & Simulated Annealing
 $$\mathrm{Fitness}(\boldsymbol{m}) = w_1 \cdot \left( \frac{L_{\text{DataSAIL}}(\boldsymbol{m})}{1000} \right) - w_2 \cdot \left( 10 \cdot MMD(\boldsymbol{m}) \right) - w_3 \cdot \left( 10 \cdot \mathrm{F1}_{\text{Hardest}}(\boldsymbol{m}) \right)$$
 
-where $w_1 = 1.0$, $w_2 = 0.5$, and $w_3 = 0.5$. Simulated Annealing evaluates candidate global datasets in ~3 seconds, achieving Boltzmann acceptance over 400 iterations.
+where $w_1 = 1.0$, $w_2 = 0.5$, and $w_3 = 0.5$. Simulated Annealing ($T_0 = 20.0, \alpha = 0.998$) evaluates candidate global datasets in ~35 seconds, achieving Boltzmann acceptance over 5,000 iterations.
 
 ---
 
