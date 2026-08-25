@@ -341,6 +341,18 @@ def run_benchmark_pipeline(
 	with open(output_dir / "optimal_k_n_classwise_config.json", "w", encoding="utf-8") as f:
 		json.dump(configs_dict, f, indent=2, ensure_ascii=False)
 
+	# IN CẤU HÌNH THUẬT TOÁN TỐI ƯU SONG SONG CHO PP12 VÀ PP13 RA TERMINAL
+	print("\n" + "=" * 115)
+	print(" BẢNG CẤU HÌNH PHÂN BỔ THUẬT TOÁN TỐI ƯU THEO TỪNG LOÀI GỖ (PP12 vs PP13)")
+	print("=" * 115)
+	print(f"{'Loài Gỗ (Species Label)':<35} | {'Single-Obj Loss Selector (PP12)':<36} | {'Multi-Obj SA Meta-Selector (PP13)':<36}")
+	print("-" * 115)
+	for sp in class_names:
+		m12 = opt_classwise_config.get(sp, "N/A")
+		m13 = opt_sa_config.get(sp, "N/A")
+		print(f"{sp:<35} | {m12:<36} | {m13:<36}")
+	print("=" * 115 + "\n")
+
 	# BẢNG THỐNG KÊ HỌC THUẬT
 	lines = []
 	lines.append("=" * 155)
