@@ -105,7 +105,8 @@ def _run_datasail_solver(
 	if n == 1:
 		return [0], [], []
 	if n == 2:
-		return [0], [1], [] if val_ratio > 0 else [0], [], [1]
+		return ([0], [1], []) if val_ratio > 0 else ([0], [], [1])
+
 
 	sim_matrix = cosine_similarity(item_embeddings)
 	np.fill_diagonal(sim_matrix, 0.0)

@@ -17,6 +17,7 @@ from sklearn.metrics import (
 	silhouette_score,
 )
 from sklearn.metrics.pairwise import cosine_similarity, rbf_kernel
+from sklearn.neighbors import KNeighborsClassifier
 
 
 def compute_datasail_loss(
@@ -305,8 +306,10 @@ def compute_knn_metrics(
 
 	# Hardest Class F1
 	rep = classification_report(y_te, preds, output_dict=True, zero_division=0)
-	class_f1s = [v["f1-score"] for k_cls, v in rep.items() if k_cls.isdigit()]
+	summary_keys = {"accuracy", "macro avg", "weighted avg", "micro avg"}
+	class_f1s = [v["f1-score"] for k_cls, v in rep.items() if isinstance(v, dict) and "f1-score" in v and k_cls not in summary_keys]
 	hardest_f1 = float(min(class_f1s)) if class_f1s else 0.0
+
 
 	return {
 		"knn_accuracy": acc,
