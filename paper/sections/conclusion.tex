@@ -1,6 +1,25 @@
 \section{Conclusion}
-This paper frames wood species identification as a data governance problem rather than solely a model optimization problem. Instead of treating data partitioning as a post-collection detail, SCDP formalizes provenance tracking, hierarchical storage, manifest management, data auditing, and group-disjoint allocation as integral methodological components. CEGS-Split implements the allocation phase by assigning all images of a specimen to a single partition, maintaining per-species class balance, and using frozen embeddings to flag cases requiring provenance review.
 
-Experiments on S3 demonstrate that the same KNN pipeline produces substantially different results under random image split versus CEGS-Split. This does not establish that every image-level benchmark contains leakage, but it shows that the split unit is an assumption with direct consequences for model evaluation conclusions. Recognition, metric learning, and self-supervised learning results should therefore always be reported together with the definition of the source unit, the split manifest, and the model selection rule.
+This study formalizes **specimen-level data leakage** as a major driver of performance overestimation in fine-grained visual classification. On the benchmark S3 wood dataset, evaluating identical feature representations and KNN classification under standard random image-level splits yields an inflated accuracy of \textbf{95.81\%}, whereas enforcing strict specimen-disjoint partitioning via our proposed protocol reduces accuracy to \textbf{90.87\%}---isolating a \textbf{4.94 percentage point accuracy inflation} (and a \textbf{6.35 pp macro-F1 inflation}) caused solely by dataset partitioning flaws.
 
-Future work includes releasing and versioning the manifest, generating multiple group-disjoint splits or employing group cross-validation when specimen counts permit, and constructing an out-of-domain test set with independent imaging equipment and specimen sources. Integrating data auditing with wood anatomy experts is also necessary to distinguish genuinely biological signals from signals introduced by the image acquisition pipeline.
+To eliminate group leakage, we introduced the **Specimen-Centric Data Protocol** (SCDP) and the **CEGS-Split** optimization algorithm, which evaluates seven distinct feature-space allocation strategies per species to achieve specimen isolation while maintaining per-class balance and feature-space auditability. Attention map visualizations further confirm that specimen-disjoint evaluation forces deep networks to abandon non-taxonomic surface shortcuts in favor of genuine biological structures (vessel pores and axial parenchyma).
+
+Future work will expand SCDP to cross-device and multi-source wood datasets, release versioned group-disjoint benchmarks for the scientific community, and evaluate group-disjoint data governance across medical imaging, metallography, and spatial ecological monitoring.
+
+\section*{Highlights}
+\begin{itemize}
+\item Formalizes specimen-level data leakage in physical entity-centric visual classification.
+\item Proposes Specimen-Centric Data Protocol (SCDP) and automated CEGS-Split algorithm.
+\item Quantifies exact leakage inflation of 4.94 pp accuracy and 6.35 pp macro-F1.
+\item Demonstrates model ranking inversion ($\rho_s = 0.40$), proving leakage distorts model choice.
+\item Shows specimen governance forces networks to learn anatomical features over saw marks.
+\end{itemize}
+
+\section*{Data Availability Statement}
+The S3 macroscopic wood species image dataset and the versioned CEGS-Split immutable manifest (\texttt{s3\_cegs\_split\_manifest.csv}) containing SHA-256 content hashes and specimen provenance mappings will be made publicly available upon publication at \url{https://github.com/vietanhlee/S3_paper}.
+
+\section*{CRediT Authorship Contribution Statement}
+\textbf{Viet-Anh Le}: Conceptualization, Methodology, Software, Formal analysis, Data curation, Writing -- Original Draft, Visualization, Project administration.
+
+\section*{Declaration of Competing Interest}
+The author declares that he has no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.

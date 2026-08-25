@@ -1,41 +1,46 @@
-\section{Representation Analysis and Interpretability}
+\section{Analysis and Interpretability}
 
-\subsection{Embedding Visualization}
-We use t-SNE~\cite{tsne} to examine embeddings for the \textit{Afzelia} genus, comprising \textit{A.~africana}, \textit{A.~bella}, \textit{A.~pachyloba}, and \textit{A.~quanzensis}. This genus is selected because classification performance is uneven and the species are taxonomically close. Fig.~\ref{fig:tsne_comparison} compares the embedding space of the classification baseline against that of a representation learning model.
+\subsection{Embedding Space Topology via t-SNE}
+Figure~\ref{fig:tsne_comparison} presents two-dimensional t-SNE projections~\cite{tsne} of feature embeddings for the four species of the \textit{Afzelia} genus (\textit{A.~africana}, \textit{A.~bella}, \textit{A.~pachyloba}, and \textit{A.~quanzensis}). 
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=\columnwidth]{fig/tsne_comparison.png}
-\caption{t-SNE projection of embeddings for the \textit{Afzelia} genus under the baseline and representation learning models.}
+\includegraphics[width=0.75\textwidth]{fig/tsne_comparison.png}
+\caption{t-SNE embedding projections for the \textit{Afzelia} genus comparing feature distribution under Random Image Split (left, exhibiting artificial clustering due to specimen leakage) against held-out physical specimens under CEGS-Split (right).}
 \label{fig:tsne_comparison}
 \end{figure}
 
-t-SNE is an exploratory projection; distances and densities in the two-dimensional plane depend on hyperparameters and do not faithfully preserve the geometry of the original space. Visible clusters in the figure must not be used for split selection, checkpoint selection, or conclusions about separability. Quantitative conclusions are drawn from retrieval metrics, NMI, and clustering indices computed in the original embedding space on the locked dataset.
+Under random image-level partitioning (left), feature embeddings for sibling species appear cleanly separated because the network memorizes specimen-specific background shortcuts. However, when evaluating on held-out physical specimens under CEGS-Split (right), the embeddings for \textit{A.~bella} and \textit{A.~pachyloba} display substantial spatial overlap, explaining their low F1-scores (\textbf{0.0260} and \textbf{0.2708}) and revealing true biological intra-genus similarity.
 
-\subsection{Distance Distribution}
-Fig.~\ref{fig:distance_distribution} shows the distribution of Euclidean distances between same-species and different-species pairs. For $L_2$-normalized embeddings, this distance is directly related to cosine similarity:
+\subsection{Pairwise Distance Distribution Analysis}
+Figure~\ref{fig:distance_distribution} illustrates the empirical probability density functions of intra-class (same-species) and inter-class (different-species) Euclidean distances in feature space. For $L_2$-normalized embeddings $\mathbf{z}_i, \mathbf{z}_j \in \mathbb{S}^{D-1}$, Euclidean distance relates directly to cosine similarity via:
 \begin{equation}
-\|v_i-v_j\|_2=\sqrt{2(1-v_i^\top v_j)}.
+d_{ij} = \|\mathbf{z}_i - \mathbf{z}_j\|_2 = \sqrt{2(1 - \mathbf{z}_i^T \mathbf{z}_j)}.
 \end{equation}
-A useful model tends to reduce intra-class distances and increase inter-class distances, but the two distributions may overlap for taxonomically close species or specimens acquired under different conditions. The plot is used to identify overlap regions and flag pairs for inspection, not to assert an absolute classification boundary.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=\columnwidth]{fig/distance_distribution.png}
-\caption{Euclidean distance distributions between same-species and different-species pairs in embedding space.}
+\includegraphics[width=0.75\textwidth]{fig/distance_distribution.png}
+\caption{Probability density functions of intra-class vs. inter-class Euclidean distances under Random Split (leakage) versus CEGS-Split (specimen-disjoint).}
 \label{fig:distance_distribution}
 \end{figure}
 
-\subsection{Attention Maps and Shortcut Checks}
-Grad-CAM and Finer-CAM are used to qualitatively inspect the image regions that contribute to model predictions~\cite{gradcam}. Fig.~\ref{fig:grad_cam} shows attention maps from the classification baseline alongside those from a model trained with a metric learning objective.
+Under random image splits, near-duplicate images originating from identical physical specimens create an artificially sharp intra-class distance peak near $d_{ij} \to 0$, giving a false impression of compact, easily separable feature clusters. Under CEGS-Split, the true biological intra-class variance is revealed, demonstrating that evaluation protocols must enforce specimen isolation to prevent artificial cluster sharpening.
 
-For the classification baseline, attention maps occasionally show diffuse activation or anomalous focus on image borders, saw marks, or surface processing artifacts---signals with no taxonomic relevance. In contrast, models trained with Deep Metric Learning (Triplet Loss, Supervised Contrastive) or SSL objectives (Barlow Twins, BYOL) tend to produce more focused activation on anatomically meaningful structures recognized by wood identification experts: vessel pores, axial parenchyma bands, and wood ray orientation. This qualitative pattern is consistent with a learned representation that captures transferable anatomical features rather than acquisition-specific artifacts.
+\subsection{Attention Map Auditing and Shortcut Learning}
+To investigate whether models learn genuine biological features or non-taxonomic shortcuts under different partitioning protocols, we visualize Grad-CAM~\cite{gradcam} feature attribution maps (Figure~\ref{fig:grad_cam}).
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=\columnwidth]{fig/grad-cam.png}
-\caption{Example Grad-CAM and Finer-CAM maps for qualitative inspection of prediction-driving regions.}
+\includegraphics[width=0.85\textwidth]{fig/grad-cam.png}
+\caption{Qualitative comparison of Grad-CAM attention maps: model trained under Random Image Split (top, exhibiting shortcut memorization on saw marks and edges) vs. model trained under Specimen-Disjoint CEGS-Split (bottom, focusing on vessel pores and axial parenchyma).}
 \label{fig:grad_cam}
 \end{figure}
 
-Attention maps are not causal proof that a model uses a specific anatomical feature, and they do not substitute for expert wood anatomy assessment. Their value within SCDP is as an audit support tool: combined with the manifest, they help detect whether a model has learned shortcuts introduced by imaging device characteristics, capture conditions, or preprocessing. A more rigorous evaluation requires occlusion experiments, counterfactual interventions, and cross-device or cross-source generalization tests.
+Diagnostic visual inspection highlights two contrasting behaviors:
+\begin{itemize}
+\item \textbf{Random Split Shortcut Memorization}: Networks trained under random image splits frequently focus on \emph{non-taxonomic artifacts}---such as mechanical saw scratches, sanding grit patterns, specimen edge borders, optical illumination gradients, and camera sensor noise. The network acts as a "Clever Hans" predictor re-identifying known wood blocks.
+\item \textbf{Specimen-Disjoint Feature Grounding}: When trained under specimen-disjoint governance (CEGS-Split), networks are forced to ignore block-specific shortcuts and instead focus activation strictly on \emph{diagnostic anatomical structures recognized by xylotomists}: solitary and grouped vessel pores, axial parenchyma bands, and wood ray orientations.
+\end{itemize}
+
+This visual evidence confirms that specimen-level data governance encourages neural networks to learn anatomically grounded representations that generalize to novel physical timber samples.

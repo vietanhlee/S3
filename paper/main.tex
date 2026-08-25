@@ -1,49 +1,68 @@
-\documentclass[journal,twocolumn]{IEEEtran}
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
+\documentclass[a4paper,fleqn]{cas-sc}
+
+\usepackage[numbers,sort&compress]{natbib}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
 \usepackage{graphicx}
-\usepackage{textcomp}
 \usepackage{booktabs}
 \usepackage{hyperref}
+\usepackage{url}
 \usepackage{multirow}
 \usepackage{array}
 \usepackage{float}
 \usepackage{microtype}
-\usepackage{balance}
+\microtypesetup{expansion=false}
+\usepackage{xcolor}
 
-\setlength{\columnsep}{20pt}
+% ── Remove footer "Preprint submitted to Elsevier" ─────────────────
+\ExplSyntaxOn
+\cs_set:Npn \__first_footerline: { }
+\ExplSyntaxOff
+
+% ── Float Barrier: Khóa hình ảnh đứng đúng trong Section ───────────
+\usepackage[section]{placeins}
+\usepackage{float}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{10}
+\setcounter{bottomnumber}{10}
+\setcounter{totalnumber}{20}
+
+\shorttitle{Addressing Specimen-Level Data Leakage in Fine-Grained Image Classification}
+\shortauthors{Viet-Anh Le}
 
 \begin{document}
+\let\WriteBookmarks\relax
 
-\title{Toward Auditable Benchmarks for Wood Species Identification: A Specimen-Centric Data Protocol and Representation Learning Study}
+\title[mode=title]{Addressing Specimen-Level Data Leakage in Fine-Grained Image Classification: A Case Study on Wood Species Identification}
 
-\author{Viet-Anh Le\\
-\textit{Posts and Telecommunications Institute of Technology, Hanoi, Vietnam}\\
-\texttt{anhlv.b23kh002@stu.ptit.edu.vn}
-}
+\author[1]{Viet-Anh Le}[type=editor, auid=001, bioid=1]
+\cormark[1]
+\ead{anhlv.b23kh002@stu.ptit.edu.vn}
+
+\address[1]{Posts and Telecommunications Institute of Technology, Faculty of Information Technology, Hanoi, Vietnam}
+
+\cortext[1]{Corresponding author}
+
+\begin{abstract}
+Computer vision models deployed on physical specimen imagery (e.g., botanical identification, medical imaging, metallography) frequently suffer from catastrophic real-world failure despite achieving reported accuracies exceeding 95\% to 99\%. A primary driver of this deployment failure is that existing dataset generation workflows remain ad-hoc and unstandardized, storing cropped images in unindexed directory trees and relying on conventional random image-level splits. When multiple image observations originate from the same physical specimen, random splitting unintentionally distributes observations from identical physical entities across training and evaluation partitions, inducing severe \emph{specimen-level data leakage}. Under leaked splits, deep neural networks act as "Clever Hans" predictors, exploiting non-taxonomic surface scratches, optical vignetting, and sensor noise fingerprints to re-identify known physical samples rather than learning true biological features. To solve this systemic vulnerability, we propose the \emph{Specimen-Centric Data Protocol} (SCDP)---a generalized, end-to-end data governance framework encompassing physical acquisition logging, immutable metadata schemas, automated group-disjoint partitioning, cross-split proximity auditing, and leak-free evaluation. Within SCDP, we introduce \emph{Class-wise Embedding-Guided Specimen Split} (CEGS-Split), an automated algorithm that evaluates seven feature-space allocation strategies per class to guarantee specimen isolation while preserving per-class balance and evaluation difficulty. We validate SCDP on the benchmark S3 wood dataset (18 species, 5 genera). Under controlled classification experiments, switching from random splits to specimen-disjoint splits reduces accuracy from 95.81\% to 90.87\% ($-$4.94~pp) and macro-F1 from 94.93\% to 88.58\% ($-$6.35~pp), isolating the exact empirical inflation caused by data leakage. Diagnostic auditing via Grad-CAM further reveals that random splits conceal severe intra-genus failure modes, whereas SCDP forces deep networks to learn genuine anatomical structures (vessel pores and axial parenchyma). These results establish end-to-end specimen-level data governance as a mandatory prerequisite for trustworthy computer vision across all physical specimen domains.
+\end{abstract}
+
+\begin{keywords}
+Data governance \sep Data leakage \sep Specimen-level isolation \sep Fine-grained visual classification \sep Wood species identification \sep Group-disjoint splitting \sep Reproducibility
+\end{keywords}
 
 \maketitle
 
-\begin{abstract}
-Wood species identification from macroscopic images plays a critical role in timber forensics, legal supply-chain verification, and enforcing international trade agreements such as CITES. While computer vision models offer rapid and non-destructive identification, their empirical evaluation frequently suffers from unaddressed data structure artifacts. In field-collected datasets, multiple observations (images) are routinely derived from the same physical wood specimen across various surface cuts, lighting conditions, or capture sessions. When datasets are partitioned using conventional random image-level splits, observations originating from the identical physical specimen contaminate both training and test partitions. Consequently, model performance metrics reflect memorization of source-specific background cues rather than generalizability to unseen biological specimens.
-
-To address this foundational challenge, this paper introduces the \emph{Specimen-Centric Data Protocol} (SCDP), a general data governance framework for image tasks characterized by repeated physical observations. SCDP establishes the physical specimen as the primary unit of analysis, mandating traceable provenance metadata, hierarchical data structures, rigorous pre-split auditing, and specimen-disjoint partitioning. Built upon this framework, we formulate \emph{Class-wise Embedding-Guided Specimen Split} (CEGS-Split), which enforces specimen-level isolation, maintains per-species balance, and uses frozen feature embeddings to audit cross-split pairs for subtle source leakage. Evaluated on the benchmark S3 wood dataset comprising 18 species across 5 genera, our experiments show a notable performance degradation when transitioning from random image splits to specimen-disjoint splits, establishing that standard image-level benchmarks severely overestimate real-world capability. Furthermore, we establish a standardized benchmark comparing fine-grained classification baselines, core metric learning objectives, and self-supervised algorithms on held-out specimens, highlighting the essential role of auditable data protocols in scientific machine learning.
-\end{abstract}
-
-\begin{IEEEkeywords}
-Wood species identification, timber forensics, fine-grained visual classification, data leakage, group-disjoint splitting, metric learning, self-supervised learning, CITES.
-\end{IEEEkeywords}
-
 \input{sections/introduction}
+\input{sections/related_work}
 \input{sections/methodology}
-\input{sections/baselines}
 \input{sections/experiments}
 \input{sections/results}
 \input{sections/explainability}
 \input{sections/conclusion}
+
 \input{sections/references}
 
-\balance
 \end{document}

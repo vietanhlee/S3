@@ -1,96 +1,31 @@
-\section{Representation Learning and Classification Baselines}
+\section{Vision Backbones and Evaluation Protocols}
 
-\subsection{Feature Backbone, Projection Head, and Classification Baseline}
-After the test set is frozen, recognition and representation learning are developed on a shared backbone and nonlinear projection head. For downstream tasks using metric learning or self-supervised learning, a ConvNeXt-Tiny network~\cite{convnext} serves as the feature backbone, producing a feature vector $u_i$. This vector is passed through a two-layer fully connected projection head with ReLU activations to produce an $L_2$-normalized embedding $v_i\in\mathbb{R}^{256}$:
-\begin{equation}
-\tilde{v}_i=W_2\,\mathrm{ReLU}(W_1u_i+b_1)+b_2,\qquad
-v_i=\frac{\tilde{v}_i}{\|\tilde{v}_i\|_2}.
-\label{eq:projection_head}
-\end{equation}
+To isolate the empirical effect of specimen-level data leakage from architectural variances, we evaluate representative deep vision backbones under controlled classification conditions. This section details the feature extraction architectures, the classification objective function, and the formal definitions of dataset partitioning protocols.
 
-As a classification reference, we train an Image Classification Baseline using ConvNeXt-Tiny with a direct fully connected classifier head predicting probabilities over 18 wood species. To address class imbalance, the model is trained with Focal Loss rather than standard cross-entropy:
-\begin{equation}
-L_{\text{Focal}} = -\frac{1}{B} \sum_{i=1}^{B} \alpha (1 - p_{t,i})^\gamma \log(p_{t,i}),
-\label{eq:focal_loss}
-\end{equation}
-where $p_{t,i}$ is the predicted probability for the ground-truth class of sample $i$, $\gamma$ is the focusing parameter that downweights easy samples, and $\alpha$ is a balancing factor. In all experiments, $\gamma = 2.0$ and $\alpha = 0.25$. Approximately 90\% of the backbone layers are frozen to limit overfitting on the limited-specimen dataset. The optimizer is AdamW with an initial learning rate of $5\times10^{-4}$ and weight decay $10^{-2}$, combined with a Cosine Annealing scheduler. All metric learning and self-supervised learning methods share the same manifest, split, augmentation pipeline, and validation selection rule; observed differences between methods therefore cannot be attributed to split variation.
+\subsection{Deep Vision Backbones}
+We evaluate four modern convolutional and Transformer feature extraction architectures spanning distinct visual representation paradigms:
 
-\subsection{Deep Metric Learning Loss Functions}
-To evaluate representation learning approaches, we benchmark four core distance-based loss functions under a unified training setup with the same backbone, projection head, augmentation, and CEGS-Split. Shared notation: $\mathbf{z}_i\in\mathbb{R}^{D}$ is the $L_2$-normalized embedding, $y_i$ is the species label, $d_{ij}=\|\mathbf{z}_i-\mathbf{z}_j\|_2$ is the Euclidean distance, $S_{ij}=\mathbf{z}_i^T\mathbf{z}_j$ is cosine similarity, and $[u]_+=\max(0,u)$.
+\begin{enumerate}[label=\textbf{(\arabic*)}, leftmargin=*]
+\item \textbf{ConvNeXt-Tiny}~\cite{convnext}: A modernized pure convolutional architecture incorporating design elements from Vision Transformers (such as $7\times 7$ depthwise separable convolutions, inverted bottlenecks, and Layer Normalization) while maintaining convolutional inductive biases.
+\item \textbf{Swin-Large}~\cite{swin}: A hierarchical Vision Transformer that computes self-attention within shifted local windows, capturing both fine-grained microscopic wood textures and global anatomical patterns across shifting spatial receptive fields.
+\item \textbf{EfficientNetV2-M}~\cite{efficientnetv2}: An efficient convolutional backbone optimized via neural architecture search (NAS) that utilizes Fused-MBConv layers to balance parameter efficiency with high representation capacity.
+\item \textbf{ResNet-50}~\cite{resnet}: A classic residual network baseline serving as a standard reference point across computer vision literature.
+\end{enumerate}
 
-\subsubsection{Standard Contrastive Loss}
-Contrastive Loss optimizes pairwise distances directly:
+\subsection{Classification Objective and Imbalance Handling}
+To address class imbalance across wood species in the S3 benchmark, models are trained using **Focal Loss**~\cite{focal}:
 \begin{equation}
-L_{\text{contrastive}}=(1-q_{ij})\tfrac{1}{2}d_{ij}^{2}+q_{ij}\tfrac{1}{2}[m-d_{ij}]_+^2,
+L_{\mathrm{Focal}}(p_t) = -\alpha_t (1 - p_t)^\gamma \log(p_t),
 \end{equation}
-where $q_{ij}=1$ if the two samples belong to the same species and $q_{ij}=0$ otherwise.
+where $p_t$ is the model's estimated probability for the ground-truth class, $\gamma \ge 0$ is the focusing parameter that down-weights easy examples, and $\alpha_t \in [0, 1]$ balances positive versus negative class frequencies. Throughout all classification experiments, we set $\gamma = 2.0$ and $\alpha = 0.25$.
 
-\subsubsection{Standard Triplet Loss}
-Triplet Loss optimizes the relation among an anchor $a$, a positive $p$ from the same species, and a negative $n$ from a different species, enforcing a margin $\alpha$ between the positive and negative distances:
-\begin{equation}
-L_{\text{triplet}}=\frac{1}{|\mathcal{T}|}\sum_{(a,p,n)\in\mathcal{T}}\left[d(a,p)^2-d(a,n)^2+\alpha\right]_+.
-\end{equation}
+\subsection{Formalization of Dataset Partitioning Protocols}
+To rigorously quantify data leakage inflation, we define three distinct dataset partitioning protocols:
 
-\subsubsection{Semi-hard Triplet Loss}
-Semi-hard Triplet Loss selects negatives that are neither trivial nor overly noisy. For an anchor--positive pair $(a,p)$, the negative $n$ is selected when:
-\begin{equation}
-d(a,p)^2<d(a,n)^2<d(a,p)^2+\alpha.
-\end{equation}
-The loss retains the standard triplet form over the semi-hard set $\mathcal{T}_{sh}$:
-\begin{equation}
-L_{\text{semi-hard}}=\frac{1}{|\mathcal{T}_{sh}|}\sum_{(a,p,n)\in\mathcal{T}_{sh}}\left[d(a,p)^2-d(a,n)^2+\alpha\right]_+.
-\end{equation}
+\begin{enumerate}[label=\textbf{Protocol \Alph*:}, leftmargin=*]
+\item \textbf{Random Image-Level Split (R-Split)}: Images are assigned randomly to training, validation, and testing sets according to fixed target ratios (e.g., 80\% train, 10\% val, 10\% test) without regard to physical specimen origin. In this protocol, images $x_i, x_j$ harvested from the same physical block $S_k$ routinely co-occur in both $\mathcal{D}_{\mathrm{train}}$ and $\mathcal{D}_{\mathrm{test}}$, creating severe specimen-level data leakage.
 
-\subsubsection{Angular Loss}
-Angular Loss optimizes the angular relationship within triplets rather than Euclidean distances alone:
-\begin{equation}
-L_{\text{angular}}=\frac{1}{|\mathcal{T}|}\sum_{(a,p,n)\in\mathcal{T}}\log\left[1+e^{\Delta_{\theta}(a,p,n)}\right],
-\end{equation}
-where:
-\begin{equation}
-\begin{aligned}
-\Delta_{\theta}(a,p,n) = &4\tan^2\!\alpha\,(\mathbf{z}_a+\mathbf{z}_p)^T\mathbf{z}_n \\
-&- 2(1+\tan^2\!\alpha)\,\mathbf{z}_a^T\mathbf{z}_p.
-\end{aligned}
-\end{equation}
+\item \textbf{Naive GroupKFold Split (G-Split)}: Enforces specimen disjointness at the dataset level by grouping images strictly by `specimen_id`. However, naive GroupKFold ignores per-species class balance, causing severe sample size imbalance and complete absence of minority classes in validation or test partitions for rare species.
 
-\subsection{Self-Supervised Learning Loss Functions}
-In self-supervised learning (SSL), the model optimizes representations through randomly augmented views of each image without using class labels. We evaluate four SSL methods.
-
-\subsubsection{SimCLR}
-SimCLR~\cite{simclr} minimizes the InfoNCE contrastive loss over augmented pairs. For a batch of $N$ images, each augmented into two views, the loss for positive pair $(i,j)$ is:
-\begin{equation}
-\ell(i, j) = -\log \frac{e^{\mathbf{z}_i^T\mathbf{z}_j/\tau}}{\sum_{k=1}^{2N} \mathbb{I}_{[k \ne i]}\, e^{\mathbf{z}_i^T\mathbf{z}_k/\tau}},
-\end{equation}
-where $\tau$ is the temperature hyperparameter. The overall loss averages over all positive pairs:
-\begin{equation}
-L_{\text{SimCLR}} = \frac{1}{2N} \sum_{k=1}^{N} \left[ \ell(2k-1, 2k) + \ell(2k, 2k-1) \right].
-\end{equation}
-
-\subsubsection{BYOL}
-BYOL~\cite{byol} uses an online network with parameters $\theta$ and a target network with parameters $\xi$. The online network predicts the target network's representation of a different augmented view. The loss is the mean squared error between normalized predictions:
-\begin{equation}
-L_{\text{BYOL}} = \left\| \bar{q}_\theta - \bar{z}'_\xi \right\|_2^2 = 2 - 2\,\bar{q}_\theta^T \bar{z}'_\xi,
-\end{equation}
-where $\bar{q}_\theta$ and $\bar{z}'_\xi$ are $L_2$-normalized. Collapse is prevented by applying a stop-gradient to the target network, whose parameters are updated via exponential moving average:
-\begin{equation}
-\xi \leftarrow m\,\xi + (1-m)\,\theta,\quad m\in[0,1].
-\end{equation}
-
-\subsubsection{SimSiam}
-SimSiam~\cite{simsiam} simplifies BYOL by removing the momentum target network (setting $\xi=\theta$) and relying solely on a stop-gradient operator and an asymmetric predictor to prevent collapse. The symmetric loss is:
-\begin{equation}
-L_{\text{SimSiam}} = \tfrac{1}{2}\,\mathcal{D}(p_1, \mathrm{sg}(z_2)) + \tfrac{1}{2}\,\mathcal{D}(p_2, \mathrm{sg}(z_1)),
-\end{equation}
-where $p_k=q_\theta(z_k)$ is the predictor output, $\mathrm{sg}$ denotes stop-gradient, and $\mathcal{D}(p,z)=-p^Tz/(\|p\|_2\|z\|_2)$.
-
-\subsubsection{Barlow Twins}
-Barlow Twins~\cite{barlow} applies a redundancy-reduction objective to the cross-correlation matrix $C$ of size $D\times D$, computed along the batch dimension between projections $\mathbf{z}^A$ and $\mathbf{z}^B$:
-\begin{equation}
-C_{ij} = \frac{\sum_{b=1}^{B} z_{b,i}^A z_{b,j}^B}{\sqrt{\sum_{b=1}^{B} (z_{b,i}^A)^2}\,\sqrt{\sum_{b=1}^{B} (z_{b,j}^B)^2}}.
-\end{equation}
-The loss drives diagonal entries toward 1 (invariance term) and off-diagonal entries toward 0 (redundancy-reduction term):
-\begin{equation}
-L_{\text{BT}} = \sum_{i}(1 - C_{ii})^2 + \lambda \sum_{i}\sum_{j\neq i} C_{ij}^2,
-\end{equation}
-where $\lambda>0$ controls the relative weight of the redundancy term.
+\item \textbf{Class-wise Embedding-Guided Specimen Split (CEGS-Split)}: Enforces absolute specimen disjointness per species ($\mathcal{S}_{\mathrm{train}}^{(c)} \cap \mathcal{S}_{\mathrm{test}}^{(c)} = \varnothing$) while evaluating seven feature-space partitioning strategies per species (Section~\ref{sec:cegs_split}) to preserve target class proportions and maximize evaluation difficulty.
+\end{enumerate}

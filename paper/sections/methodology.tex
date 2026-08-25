@@ -1,171 +1,120 @@
-\section{Proposed Specimen-Centric Data Protocol (SCDP)}
+\section{Generalized Specimen-Centric Data Protocol (SCDP)}
 
-\subsection{Overall Framework}
-SCDP is a protocol for settings in which a single physical entity generates multiple correlated image observations. The protocol comprises five ordered phases: (i) defining the source unit and collection plan; (ii) traceable storage; (iii) data auditing; (iv) group-disjoint splitting and test set freezing; and (v) training, model selection, and reporting. This ordering has a methodological basis: provenance information must exist before data are split, and it must not be inferred retrospectively from model outputs.
+To address the methodological deficiencies of ad-hoc dataset creation in physical computer vision domains, we propose the **Specimen-Centric Data Protocol (SCDP)**. SCDP is a generalized data governance framework that standardizes every stage of dataset lifecycle management---from physical sample acquisition and immutable metadata storage to automated group-disjoint partitioning and cross-split auditing. Figure~\ref{fig:scdp_workflow} illustrates the five sequential phases of the SCDP framework.
 
-In the wood identification setting, images are typically organized in a hierarchical directory structure where the root level represents species and each subdirectory contains macro-scale images from one or more specimens. In the dataset used here, each subdirectory corresponds to a single independent physical specimen---the minimal source unit that must be kept wholly within one split to prevent leakage. However, SCDP does not assume this correspondence as given; the mapping between subdirectories and specimen identifiers (\texttt{specimen\_id}) must be verified and formally recorded in a manifest file.
+\subsection{Phase 1: Physical Acquisition Logging and Provenance Standards}
+Existing dataset collection pipelines routinely discard sample provenance, recording only target class labels. SCDP mandates that every image acquisition event must be bound to immutable physical provenance attributes at the moment of capture:
 
-\subsection{Collection, Storage, and Traceability}
-\subsubsection{Data Units and Required Metadata}
-Each specimen is assigned a persistent \texttt{specimen\_id}. Each acquisition session receives a \texttt{session\_id}, and each image file is assigned an \texttt{image\_id} together with its path or content hash. Species labels must be accompanied by the identification source and confidence level; records identified only to genus level are excluded from species-level supervision and must not be silently merged with species labels. Table~\ref{tab:manifest} lists the minimum required fields. These fields allow the split to be reproduced without relying on file names or local directory structures that may change over time.
+\begin{enumerate}[label=\textbf{(\arabic*)}, leftmargin=*]
+\item \textbf{Physical Specimen Identifier ($\mathrm{SID}$)}: A unique, deterministic alphanumeric identifier assigned to each distinct physical sample (e.g., individual wood log block, biological core, patient sample). All images harvested from the same physical entity inherit identical $\mathrm{SID}$ tags.
+\item \textbf{Acquisition Session Identifier ($\mathrm{AID}$)}: An identifier tracking photo capture sessions, camera hardware settings, operator IDs, and environmental lighting conditions.
+\item \textbf{Surface Preparation State}: Metadata recording mechanical treatment (e.g., saw cut, planed surface, sanded grit level, anatomical cross-section orientation).
+\end{enumerate}
+
+By capturing physical provenance at harvest time, SCDP establishes an auditable chain of custody that prevents accidental physical source co-occurrence during downstream partitioning.
+
+\subsection{Phase 2: Immutable Storage Schema and Data Organization}
+To decouple dataset management from transient local directory structures or arbitrary file naming conventions, SCDP replaces unindexed file trees with an **Immutable Manifest Architecture**. Let $\mathcal{X} = \{x_i\}_{i=1}^{M}$ denote the dataset of $M$ image observations, and let $\mathcal{S} = \{S_j\}_{j=1}^{N}$ represent the set of $N$ physical specimens ($M \gg N$). Every image $x_i$ is registered in a version-controlled manifest file containing the schema attributes outlined in Table~\ref{tab:manifest}.
 
 \begin{table}[htbp]
 \centering
-\caption{Minimum fields of the traceable manifest.}
+\caption{Standardized SCDP Metadata Schema for Physical Image Datasets.}
 \label{tab:manifest}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{p{0.30\columnwidth}p{0.62\columnwidth}}
+\small
+\begin{tabular}{lll}
 \toprule
-\textbf{Field group} & \textbf{Content and purpose} \\
+\textbf{Attribute Field} & \textbf{Data Type} & \textbf{Governance Description} \\
 \midrule
-Identifiers & \texttt{image\_id}, \texttt{specimen\_id}, \texttt{session\_id}, path, and content hash; defines the one-image-one-source relation. \\
-Biological identity & Standardized species name, identification level, expert source, confirmation date, and uncertainty flag. \\
-Acquisition & Device, magnification, section plane, capture location, lighting condition, and collector or collection protocol. \\
-Governance & Dataset version, validation status, exclusion reason, \texttt{split\_id}, and seed after the split is frozen. \\
+\texttt{image\_id} & String (UUIDv4) & Global unique identifier for the image observation \\
+\texttt{content\_hash} & String (SHA-256) & Cryptographic hash ensuring image binary integrity \\
+\texttt{specimen\_id} & String & Deterministic identifier of the physical source entity \\
+\texttt{session\_id} & String & Photo acquisition session and camera rig tag \\
+\texttt{taxonomy\_label} & String / Int & Ground-truth biological or physical class label \\
+\texttt{surface\_state} & String & Mechanical surface treatment and section orientation \\
+\texttt{split\_assignment} & String & Assigned partition (\texttt{train}, \texttt{val}, or \texttt{test}) \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
-Regarding storage, raw images are kept immutable; normalized, cropped, or augmented versions are derived from originals and do not replace the source files. A practical directory structure is \texttt{raw/specimen\_id/session\_id/image\_id}, combined with a dataset-level manifest in CSV or Parquet format. The directory structure facilitates navigation, while the manifest serves as the ground truth for labels and provenance relations. This approach avoids inferring \texttt{specimen\_id} solely from naming conventions, which are prone to change over time.
+The physical source mapping function $s: \mathcal{X} \to \mathcal{S}$ is explicitly defined via the manifest field \texttt{specimen\_id}: $s(x_i) = S_{x_i.\texttt{specimen\_id}}$. The manifest is cryptographically hashed (SHA-256) to ensure full auditability and reproducibility.
 
-\subsubsection{Audit Before Split}
-Before any training split is created, SCDP performs four audit steps. First, a schema check verifies that every image has a valid identifier, label, and status. Second, a group integrity check confirms that no \texttt{specimen\_id} carries contradictory labels, except for records explicitly flagged for expert review. Third, perceptual hashing and image similarity are used to detect duplicate or re-cropped images appearing under multiple names. Fourth, per-species specimen and image counts are computed to identify classes with insufficient groups for a valid train--validation--test partition.
+\subsection{Phase 3: Automated CEGS-Split Partitioning Algorithm}
+\label{sec:cegs_split}
+Given an immutable manifest, dataset partitioning must guarantee absolute specimen disjointness while preserving per-class sample balance and representation difficulty. Standard `GroupKFold` enforces group isolation but ignores class distribution, often producing severe sample size imbalance or missing minority classes.
 
-These steps distinguish two situations. Images that are similar because they originate from the same specimen constitute a partitioning error if they appear in different splits. Images that are similar because two distinct specimens share biological traits may represent valid intra-species variation, but should be noted when interpreting benchmark difficulty. No embedding-based check replaces well-maintained provenance information.
+To solve this multi-objective optimization problem, we introduce **Class-wise Embedding-Guided Specimen Split (CEGS-Split)**. For each class $c \in \{1, \dots, C\}$, CEGS-Split extracts specimen feature centroids using a frozen feature backbone $f_\theta$:
+\begin{equation}
+h_j = \frac{1}{|S_j|} \sum_{x_i \in S_j} f_\theta(x_i), \quad S_j \in \mathcal{S}_c,
+\end{equation}
+where $\mathcal{S}_c = \{S_j \in \mathcal{S} : y(S_j) = c\}$ is the set of specimens belonging to class $c$.
 
-\subsection{Embedding-Aware Class-wise Specimen Split (CEGS-Split)}
-\subsubsection{Allocation Constraints}
-After the manifest has been audited, CEGS-Split partitions data at the specimen level. Let $a_{j,t}$ be a binary variable indicating that specimen $S_j$ is assigned to split $t\in\{\mathrm{train},\mathrm{val},\mathrm{test}\}$. The primary constraint is
-\begin{equation}
-\sum_t a_{j,t}=1,\qquad \forall\, S_j\in\mathcal{S}.
-\label{eq:one_split}
-\end{equation}
-Combined with the image-to-specimen mapping, (\ref{eq:one_split}) enforces the disjointness condition in (\ref{eq:group_disjoint}). For each species $c$, the number of images or specimens in split $t$ is kept near the prescribed ratio $p_t$:
-\begin{equation}
-\left|n_{c,t}-p_t n_c\right|\leq \delta_c,
-\label{eq:class_balance}
-\end{equation}
-where $n_{c,t}$ is the count of units selected to maintain balance, $n_c$ is the total specimen count for species $c$, and $\delta_c$ reflects discretization due to the limited specimen count. When a species has too few specimens, the protocol reports this limitation rather than splitting images of a single specimen to meet a notional ratio.
+CEGS-Split evaluates seven distinct feature-space allocation strategies per species:
+\begin{enumerate}[label=\textbf{Strategy \arabic*:}, leftmargin=*]
+\item \textbf{Fixed Mahalanobis Stratification}: Computes the class mean $\bar{h}_c$ and static covariance matrix $\mathbf{\Sigma}_c$, allocating tail-end Mahalanobis outliers to held-out test splits to enforce evaluation difficulty.
+\item \textbf{Iterative Mahalanobis Allocation}: Re-estimates the dynamic class covariance matrix after assigning each specimen, preventing outlier masking in skewed distributions.
+\item \textbf{Hierarchical Agglomerative Partitioning}: Applies Ward's linkage clustering on specimen centroids $\{h_j\}$ and assigns intact sub-trees to splits, preserving natural cluster structures.
+\item \textbf{Cosine Feature Graph Partitioning}: Constructs a $k$-nearest neighbor similarity graph across specimen centroids and finds spectral min-cut partitions to minimize cross-split similarity.
+\item \textbf{Adversarial Density Validation}: Trains an auxiliary domain classifier (e.g., LightGBM) to distinguish candidate splits, selecting partitions where adversarial $\mathrm{AUC} \to 0.50$ (maximum distributional overlap).
+\item \textbf{Stratified Group Allocation}: Extends multi-objective GroupKFold optimization to balance exact per-species target sample ratios while enforcing specimen disjointness.
+\item \textbf{Agglomerative Stratified Banding}: Combines hierarchical clustering with distance-band stratification (Near, Mid, Far shells from class centroid), ensuring representative split compositions.
+\end{enumerate}
 
-\subsubsection{Specimen-Level Representation}
-To examine image structure beyond metadata, CEGS-Split uses a frozen reference feature extractor $f_0$ that has not been fine-tuned on the target dataset. For image $x_i$, the $L_2$-normalized embedding is
+For each species $c$, the optimal strategy $m^*$ is selected automatically by minimizing cross-split nearest-neighbor cosine similarity on candidate test partitions:
 \begin{equation}
-z_i=\frac{f_0(x_i)}{\|f_0(x_i)\|_2}.
+m^* = \arg\min_{m} \frac{1}{|\mathcal{D}_{\mathrm{test}}^{(m,c)}|} \sum_{x_i \in \mathcal{D}_{\mathrm{test}}^{(m,c)}} \max_{x_j \in \mathcal{D}_{\mathrm{train}}^{(m,c)}} \left( \frac{z_i^T z_j}{\|z_i\|_2 \|z_j\|_2} \right).
+\label{eq:strategy_selection_formal}
 \end{equation}
-The representative embedding for specimen $S_j$ (specimen centroid) is the mean of its image embeddings:
-\begin{equation}
-h_j=\frac{1}{|S_j|}\sum_{x_i\in S_j}z_i.
-\label{eq:specimen_centroid}
-\end{equation}
-If covariance estimation is needed with small specimen counts, PCA is fitted only on the development set and the number of components is restricted to avoid singular matrices.
 
-\subsubsection{Allocation Strategies and Selection Criteria}
-CEGS-Split implements four group-level allocation strategies: (i)~\emph{Mahalanobis stratification}, which ranks specimens by typicality with respect to the class distribution; (ii)~\emph{hierarchical allocation}, which preserves naturally occurring specimen clusters; (iii)~\emph{stratified group allocation}, which optimizes per-species balance; and (iv)~\emph{agglomerative stratified allocation}, which combines clustering with balance across distance bands. All strategies satisfy~(\ref{eq:one_split}); they differ in how they handle class imbalance and multi-modal structure within a species.
-
-The strategy is selected using predefined criteria evaluated on the development set: the balance deviation in~(\ref{eq:class_balance}), the minimum specimen count per species, stability across seeds, and embedding audit metrics. No split is chosen solely to raise or lower recognition scores. Once the seed and configuration are selected, the split manifest is frozen before any target model is trained; any subsequent revision must produce a new benchmark version.
-
-\paragraph{(i) Mahalanobis Distance-based Split:}
-This strategy treats specimens far from the class centroid as semantic outliers and allocates them preferentially to the test or validation set. For the set of unassigned specimens $U$ with centroid $\mu_U$ and covariance $\Sigma_U$:
-\begin{equation}
-\mu_U=\frac{1}{|U|}\sum_{j\in U} z_j,
-\end{equation}
-\begin{equation}
-\Sigma_U=\frac{1}{|U|-1}\sum_{j\in U}(z_j-\mu_U)(z_j-\mu_U)^T+\epsilon I.
-\end{equation}
-The Mahalanobis distance of specimen $j$ to the current centroid is:
-\begin{equation}
-d_{\text{Mahal}}(z_j,\mu_U)=\sqrt{(z_j-\mu_U)^T\Sigma_U^{-1}(z_j-\mu_U)}.
-\end{equation}
-At each iteration, the most distant specimen $j^*=\arg\max_{j\in U}d_{\text{Mahal}}(z_j,\mu_U)$ is selected according to the remaining capacity of the target split; remaining specimens are held for subsequent rounds.
-
-\paragraph{(ii) Hierarchical Clustering-based Split:}
-This strategy detects natural specimen groups within each species using agglomerative hierarchical clustering with Ward linkage. The optimal cluster count $K^*$ is determined by the elbow method on within-cluster sum of squares:
-\begin{equation}
-\text{WCSS}(K)=\sum_{k=1}^{K}\sum_{z_j\in\mathcal{C}_k}\|z_j-\mu_{\mathcal{C}_k}\|_2^2.
-\end{equation}
-After scaling $K$ and $\text{WCSS}(K)$ to $[0,1]$, the elbow point is selected by:
-\begin{equation}
-K^*=\arg\max_K \frac{|x_K+y_K-1|}{\sqrt{2}}.
-\end{equation}
-Each cluster $\mathcal{C}_k$ is kept intact when assigned to a split, preventing specimens with similar surface texture from being separated.
-
-\paragraph{(iii) Stratified Group-based Split:}
-This strategy optimizes simultaneously for group isolation and class balance across splits. Let $w_{g,c}$ denote the image count of species $c$ in group $g$; the target count for split $f$ is:
-\begin{equation}
-T_{f,c}=\frac{1}{K}\sum_{g=1}^{G}w_{g,c}.
-\end{equation}
-A greedy assignment selects the split:
-\begin{equation}
-f^*=\arg\min_f \sum_{c=1}^{C}\left(\frac{C_{f,c}+w_{g,c}}{T_{f,c}}-1\right)^2,
-\end{equation}
-where $C_{f,c}$ is the current image count of species $c$ in split $f$.
-
-\paragraph{(iv) Agglomerative Stratified Split:}
-This strategy combines feature-space clustering with stratification based on geometric distance bands. After clustering, the distance from each cluster centroid $\mu_{\mathcal{C}_k}$ to the global species centroid $\mu_{\text{global}}$ is computed as:
-\begin{equation}
-d(\mathcal{C}_k) = \sqrt{ D^2(\mu_{\mathcal{C}_k}, \mu_{\text{global}}) },
-\end{equation}
-\begin{equation}
-D^2(\mu_{\mathcal{C}_k}, \mu_{\text{global}}) = (\mu_{\mathcal{C}_k}-\mu_{\text{global}})^T\Sigma_{\text{global}}^{-1}(\mu_{\mathcal{C}_k}-\mu_{\text{global}}).
-\end{equation}
-Clusters are grouped into three distance bands: Near, Mid, and Far. During allocation, the split with the largest shortfall relative to its target receives priority:
-\begin{equation}
-\Delta_s=\max(0,N_s^{\text{target}}-N_s^{\text{current}}),\quad s\in\{\text{train},\text{val},\text{test}\}.
-\end{equation}
-This ensures that all three splits contain representative, intermediate, and atypical specimens.
-
-\subsubsection{CEGS-Split Optimization and Configuration}
-To automate the selection of the optimal split configuration and minimize leakage risk in an objective manner, we implement a class-wise search procedure. For each species $c$, let $\mathcal{D}_{\text{train}}^{(m, c)}$ and $\mathcal{D}_{\text{test}}^{(m, c)}$ denote the training and test sets of species $c$ produced by strategy $m$. A frozen Swin-Large backbone extracts $L_2$-normalized embeddings $\mathbf{z}$. The nearest-neighbor cosine similarity of a test image $x_i \in \mathcal{D}_{\text{test}}^{(m, c)}$ to the training set is:
-\begin{equation}
-s_{\text{NN}}(x_i) = \max_{x_j \in \mathcal{D}_{\text{train}}^{(m, c)}} \frac{\mathbf{z}_i^T \mathbf{z}_j}{\|\mathbf{z}_i\|_2 \|\mathbf{z}_j\|_2}.
-\end{equation}
-The optimal strategy $m^*$ for species $c$ minimizes the mean nearest-neighbor similarity over the test set:
-\begin{equation}
-m^* = \arg\min_{m} \frac{1}{|\mathcal{D}_{\text{test}}^{(m, c)}|} \sum_{x_i \in \mathcal{D}_{\text{test}}^{(m, c)}} s_{\text{NN}}(x_i).
-\end{equation}
-The selected configuration produces the test set that is most challenging in representation space and least susceptible to proximity-based leakage. Results of the class-wise optimization are listed in Table~\ref{tab:cegs_split}. The procedure is fully automated and requires no manual reassignment of images between splits.
+Table~\ref{tab:cegs_split} details the optimal per-species split configuration determined by CEGS-Split on the benchmark S3 wood dataset.
 
 \begin{table}[htbp]
 \centering
-\caption{Class-specific optimal split configuration of the CEGS-Split protocol.}
+\caption{Optimal per-species split configuration determined by CEGS-Split on the S3 dataset.}
 \label{tab:cegs_split}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{ll}
+\small
+\begin{tabular}{l l c c}
 \toprule
-\textbf{Species} & \textbf{Split Strategy} \\
+\textbf{Genus / Botanical Species} & \textbf{Strategy Name} & \textbf{Target Split} & \textbf{Backbone} \\
 \midrule
-\textit{Afzelia africana} & Hierarchical Clustering \\
-\textit{Afzelia bella} & Hierarchical Clustering \\
-\textit{Afzelia pachyloba} & Mahalanobis Fixed \\
-\textit{Afzelia quanzensis} & Hierarchical Clustering \\
-\textit{Dalbergia cochinchinensis} & Mahalanobis Fixed \\
-\textit{Dalbergia melanoxylon} & Stratified Group K-Fold \\
-\textit{Dalbergia oliveri} & Mahalanobis Fixed \\
-\textit{Dalbergia rimosa} & Mahalanobis Fixed \\
-\textit{Dalbergia tonkinensis} & Stratified Group K-Fold \\
-\textit{Guibourtia arnoldiana} & Hierarchical Clustering \\
-\textit{Guibourtia coleosperma} & Mahalanobis Fixed \\
-\textit{Guibourtia ehie} & Cosine Graph \\
-\textit{Pterocarpus erinaceus} & Mahalanobis Fixed \\
-\textit{Pterocarpus indicus} & Agglomerative Stratified \\
-\textit{Pterocarpus macrocarpus} & Hierarchical Clustering \\
-\textit{Pterocarpus soyauxii} & Mahalanobis Fixed \\
-\textit{Sindora cochinchinensis} & Mahalanobis Iterative \\
-\textit{Sindora tonkinensis} & Adversarial Validation \\
+\multicolumn{4}{l}{\textbf{\textit{Afzelia} Genus}} \\
+\quad \textit{Afzelia africana}      & Strategy 7 (Agglomerative Stratified) & Test & EfficientNetV2-M \\
+\quad \textit{Afzelia bella}          & Strategy 3 (Hierarchical Partitioning) & Validation & Swin-Large \\
+\quad \textit{Afzelia pachyloba}      & Strategy 3 (Hierarchical Partitioning) & Validation & EfficientNetV2-M \\
+\quad \textit{Afzelia quanzensis}     & Strategy 7 (Agglomerative Stratified) & Test & EfficientNetV2-M \\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Dalbergia} Genus (CITES Protected)}} \\
+\quad \textit{Dalbergia cochinchinensis} & Strategy 7 (Agglomerative Stratified) & Validation & Swin-Large \\
+\quad \textit{Dalbergia melanoxylon}    & Strategy 2 (Iterative Mahalanobis) & Validation & EfficientNetV2-M \\
+\quad \textit{Dalbergia oliveri}        & Strategy 1 (Fixed Mahalanobis) & Test & Swin-Large \\
+\quad \textit{Dalbergia rimosa}         & Strategy 6 (Stratified Group) & Test & Swin-Large \\
+\quad \textit{Dalbergia tonkinensis}    & Strategy 5 (Adversarial Validation) & Test & Swin-Large \\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Guibourtia} Genus}} \\
+\quad \textit{Guibourtia arnoldiana}     & Strategy 3 (Hierarchical Partitioning) & Test & EfficientNetV2-M \\
+\quad \textit{Guibourtia coleosperma}    & Strategy 1 (Fixed Mahalanobis) & Test & EfficientNetV2-M \\
+\quad \textit{Guibourtia ehie}           & Strategy 4 (Cosine Graph) & Test & Swin-Large \\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Pterocarpus} Genus}} \\
+\quad \textit{Pterocarpus erinaceus}      & Strategy 2 (Iterative Mahalanobis) & Test & Swin-Large \\
+\quad \textit{Pterocarpus indicus}        & Strategy 7 (Agglomerative Stratified) & Test & EfficientNetV2-M \\
+\quad \textit{Pterocarpus macrocarpus}    & Strategy 2 (Iterative Mahalanobis) & Test & Swin-Large \\
+\quad \textit{Pterocarpus soyauxii}       & Strategy 3 (Hierarchical Partitioning) & Test & EfficientNetV2-M \\
+\midrule
+\multicolumn{4}{l}{\textbf{\textit{Sindora} Genus}} \\
+\quad \textit{Sindora cochinchinensis} & Strategy 6 (Stratified Group) & Validation & Swin-Large \\
+\quad \textit{Sindora tonkinensis}    & Strategy 5 (Adversarial Validation) & Validation & Swin-Large \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
 
-\subsubsection{Cross-Split Near-Duplicate Audit}
-For a test specimen $S_j$, the maximum similarity to the training set is defined as:
+\subsection{Phase 4: Cross-Split Near-Duplicate and Proximity Audit}
+Following split generation, CEGS-Split audits the maximum cross-split feature proximity for every test specimen $S_j \in \mathcal{S}_{\mathrm{test}}$:
 \begin{equation}
-r_j=\max_{S_k\in\mathcal{S}_{\mathrm{train}}}
-\frac{h_j^\top h_k}{\|h_j\|_2\|h_k\|_2}.
-\label{eq:nn_audit}
+r_j = \max_{S_k \in \mathcal{S}_{\mathrm{train}}} \left( \frac{h_j^T h_k}{\|h_j\|_2 \|h_k\|_2} \right).
+\label{eq:nn_audit_formal}
 \end{equation}
-Specimens whose $r_j$ falls in the upper tail of the distribution, or whose images are flagged as near-duplicates by perceptual hashing, are placed on an audit list for manual verification of \texttt{specimen\_id}, \texttt{session\_id}, collection source, and original imagery. If the same source is found to carry multiple identifiers, the records are corrected and the split is regenerated. If sources are distinct and valid, the specimen is retained and the audit flag is recorded in the manifest. This approach treats embeddings as an audit instrument, not as a definition of leakage.
 
-\subsection{Generality of the Protocol}
-SCDP is not specific to wood imagery. For dermatology images, biomedical tissue sections, industrial products, multi-temporal satellite data, or insect specimens, the \texttt{specimen\_id} may be replaced by patient identifier, part serial number, spatio-temporal tile, or individual, respectively. The principle is invariant: identify the unit to which the system must generalize, record the provenance relation before training begins, and partition data according to that unit.
+Specimens falling in the upper 95th percentile of $r_j$ are flagged for manual provenance verification. If physical harvest logs indicate that two high-similarity specimen IDs originate from the same physical tree trunk, the manifest is corrected and the split regenerated. If physical logs confirm distinct biological origin, the pair is retained as a valid intra-species benchmark challenge.
+
+\subsection{Phase 5: Auditable and Leak-Free Downstream Evaluation Protocol}
+Under SCDP, downstream model evaluation is conducted on frozen manifest partitions ($\mathcal{D}_{\mathrm{train}}, \mathcal{D}_{\mathrm{val}}, \mathcal{D}_{\mathrm{test}}$). Once locked, test sets are strictly held out from hyperparameter optimization, threshold tuning, or feature scaler fitting. Performance metrics reported under SCDP reflect genuine model capacity to recognize unobserved physical entities.

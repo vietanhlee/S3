@@ -1,0 +1,167 @@
+{
+  "strategy_definitions": {
+    "Strategy 1": {
+      "code": "PP1",
+      "name": "Fixed Mahalanobis Stratification",
+      "description": "Computes Mahalanobis distance of specimen centroids to a static class centroid and assigns tail-end outliers to test/val splits to enforce difficulty."
+    },
+    "Strategy 2": {
+      "code": "PP2",
+      "name": "Iterative Mahalanobis Allocation",
+      "description": "Iteratively re-estimates the class covariance matrix and centroid after assigning each specimen, preventing outlier masking in skewed distributions."
+    },
+    "Strategy 3": {
+      "code": "PP4",
+      "name": "Hierarchical Agglomerative Partitioning",
+      "description": "Applies Ward's linkage clustering on specimen centroids and allocates intact sub-trees to splits based on an elbow criterion on WCSS."
+    },
+    "Strategy 4": {
+      "code": "PP5",
+      "name": "Cosine Feature Graph Partitioning",
+      "description": "Constructs a k-nearest neighbor cosine similarity graph across specimen centroids and finds min-cut graph partitions to minimize inter-split similarity."
+    },
+    "Strategy 5": {
+      "code": "PP7",
+      "name": "Adversarial Density Validation",
+      "description": "Trains a domain classifier to distinguish candidate splits and selects partitions where adversarial AUC is nearest 0.5 (maximum distributional overlap)."
+    },
+    "Strategy 6": {
+      "code": "PP8",
+      "name": "Stratified Group Allocation",
+      "description": "Extends GroupKFold to optimize multi-objective group-disjointness while minimizing per-species sample size imbalance."
+    },
+    "Strategy 7": {
+      "code": "PP9",
+      "name": "Agglomerative Stratified Banding",
+      "description": "Combines feature-space clustering with geometric distance-band stratification (Near, Mid, Far) to ensure uniform representation across splits."
+    }
+  },
+  "species_split_config": {
+    "Afzelia africana": {
+      "strategy_id": "Strategy 7",
+      "strategy_name": "Agglomerative Stratified Banding",
+      "original_pp": "PP9",
+      "swap_target": "test",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Afzelia bella": {
+      "strategy_id": "Strategy 3",
+      "strategy_name": "Hierarchical Agglomerative Partitioning",
+      "original_pp": "PP4",
+      "swap_target": "val",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Afzelia pachyloba": {
+      "strategy_id": "Strategy 3",
+      "strategy_name": "Hierarchical Agglomerative Partitioning",
+      "original_pp": "PP4",
+      "swap_target": "val",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Afzelia quanzensis": {
+      "strategy_id": "Strategy 7",
+      "strategy_name": "Agglomerative Stratified Banding",
+      "original_pp": "PP9",
+      "swap_target": "test",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Dalbergia cochinchinensis": {
+      "strategy_id": "Strategy 7",
+      "strategy_name": "Agglomerative Stratified Banding",
+      "original_pp": "PP9",
+      "swap_target": "val",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Dalbergia melanoxylon": {
+      "strategy_id": "Strategy 2",
+      "strategy_name": "Iterative Mahalanobis Allocation",
+      "original_pp": "PP2",
+      "swap_target": "val",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Dalbergia oliveri": {
+      "strategy_id": "Strategy 1",
+      "strategy_name": "Fixed Mahalanobis Stratification",
+      "original_pp": "PP1",
+      "swap_target": "test",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Dalbergia rimosa": {
+      "strategy_id": "Strategy 6",
+      "strategy_name": "Stratified Group Allocation",
+      "original_pp": "PP8",
+      "swap_target": "test",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Dalbergia tonkinensis": {
+      "strategy_id": "Strategy 5",
+      "strategy_name": "Adversarial Density Validation",
+      "original_pp": "PP7",
+      "swap_target": "test",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Guibourtia arnoldiana": {
+      "strategy_id": "Strategy 3",
+      "strategy_name": "Hierarchical Agglomerative Partitioning",
+      "original_pp": "PP4",
+      "swap_target": "test",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Guibourtia coleosperma": {
+      "strategy_id": "Strategy 1",
+      "strategy_name": "Fixed Mahalanobis Stratification",
+      "original_pp": "PP1",
+      "swap_target": "test",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Guibourtia ehie": {
+      "strategy_id": "Strategy 4",
+      "strategy_name": "Cosine Feature Graph Partitioning",
+      "original_pp": "PP5",
+      "swap_target": "test",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Pterocarpus erinaceus": {
+      "strategy_id": "Strategy 2",
+      "strategy_name": "Iterative Mahalanobis Allocation",
+      "original_pp": "PP2",
+      "swap_target": "test",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Pterocarpus indicus": {
+      "strategy_id": "Strategy 7",
+      "strategy_name": "Agglomerative Stratified Banding",
+      "original_pp": "PP9",
+      "swap_target": "test",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Pterocarpus macrocarpus": {
+      "strategy_id": "Strategy 2",
+      "strategy_name": "Iterative Mahalanobis Allocation",
+      "original_pp": "PP2",
+      "swap_target": "test",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Pterocarpus soyauxii": {
+      "strategy_id": "Strategy 3",
+      "strategy_name": "Hierarchical Agglomerative Partitioning",
+      "original_pp": "PP4",
+      "swap_target": "test",
+      "feature_extractor": "tf_efficientnetv2_m_in21k"
+    },
+    "Sindora cochinchinensis": {
+      "strategy_id": "Strategy 6",
+      "strategy_name": "Stratified Group Allocation",
+      "original_pp": "PP8",
+      "swap_target": "val",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    },
+    "Sindora tonkinensis": {
+      "strategy_id": "Strategy 5",
+      "strategy_name": "Adversarial Density Validation",
+      "original_pp": "PP7",
+      "swap_target": "val",
+      "feature_extractor": "swin_large_patch4_window7_224"
+    }
+  }
+}

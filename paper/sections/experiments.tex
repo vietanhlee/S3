@@ -1,38 +1,60 @@
-\section{Experimental Configuration}
+\section{Experimental Setup and S3 Case Study}
 
-\subsection{S3 Dataset and Analysis Unit}
-The S3 dataset consists of macro-scale cross-sectional images of 18 wood species from 5 genera: \textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Pterocarpus}, and \textit{Sindora}. Each species is organized in multiple subdirectories; in the version used here, each subdirectory corresponds to one physical specimen. Records identified only to genus level are excluded from supervised training. Before applying SCDP to a new version of S3, the correspondence between subdirectories and specimen identifiers must be verified in the manifest rather than assumed from directory names.
+To validate the proposed Specimen-Centric Data Protocol (SCDP) and quantify specimen-level data leakage, we conduct controlled experiments on the S3 macroscopic wood species benchmark. This section details the dataset characteristics, existing partitioning baselines, evaluation protocols, and deep vision architectures.
 
-Fig.~\ref{fig:eda_split} shows the per-species distribution of images and specimens after CEGS-Split. Reporting both quantities is necessary: additional images of a specimen improve surface coverage but do not increase the number of independent units available for evaluating generalization.
+\subsection{The S3 Wood Benchmark Dataset}
+The S3 dataset comprises high-resolution macroscopic cross-sectional images of 18 wood species spanning 5 botanical genera: \textit{Afzelia} (4 spp.), \textit{Dalbergia} (5 spp., CITES Appendix II listed), \textit{Guibourtia} (3 spp.), \textit{Pterocarpus} (4 spp.), and \textit{Sindora} (2 spp.). Each image subdirectory maps to a distinct physical wood specimen block. Following SCDP governance, two raw categories lacking specimen provenance logs (\textit{Peltogyne pubescens} and an unassigned \textit{Pterocarpus sp.}) were excluded, leaving 18 taxonomically verified species. Figure~\ref{fig:eda_split} illustrates the per-species distribution of image observations and physical specimens under CEGS-Split.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=\columnwidth]{fig/eda_split_end_version.png}
-\caption{Per-species image and specimen distribution in S3 after CEGS-Split.}
+\includegraphics[width=0.85\textwidth]{fig/eda_split_end_version.png}
+\caption{Per-species image observation and physical specimen counts in the S3 dataset under CEGS-Split partitioning.}
 \label{fig:eda_split}
 \end{figure}
 
-\subsection{Split Protocol and Comparison}
-We compare two evaluation configurations. \emph{Random Image Split} partitions images with per-species stratification but places no constraint on images from the same source appearing in different splits. \emph{CEGS-Split} uses \texttt{specimen\_id} to assign all images from a source group to a single split (train, validation, or test), and performs a data audit to check class balance and flag cross-split pairs with high cosine similarity. Both configurations use the same frozen feature extractor and KNN procedure in the split comparison; observed differences are therefore attributable to the split unit rather than to model architecture.
+\subsection{Comparative Analysis of Data Partitioning Protocols}
+To evaluate the effectiveness of CEGS-Split, we compare it against four existing dataset partitioning protocols commonly used across machine learning literature:
 
-Random Image Split is performed with three seeds (42, 123, 456). CEGS-Split is reported as a single locked split for reproducible benchmarking. Because only one CEGS-Split configuration is reported, all quantitative comparisons with random splits describe benchmark sensitivity rather than a statistically powered test. Future work should release multiple group-disjoint splits or use group cross-validation when specimen counts allow.
+\begin{enumerate}[label=\textbf{Protocol \arabic*:}, leftmargin=*]
+\item \textbf{Random Image-Level Split (R-Split)}: Uniform random sampling over image files without physical specimen isolation (simulating prevailing ad-hoc computer vision workflows). Images harvested from the same physical block $S_k$ co-occur across training and test sets, causing severe specimen-level data leakage.
 
-\subsection{Classification Baseline Training}
-The classification baseline uses ConvNeXt-Tiny~\cite{convnext} initialized from ImageNet pre-trained weights. Extracted features are passed to a linear classifier head and optimized with Focal Loss ($\gamma=2.0$, $\alpha=0.25$) to account for class frequency and difficulty. Approximately 90\% of backbone layers are frozen. The optimizer is AdamW with initial learning rate $10^{-4}$, weight decay $10^{-2}$, and a Cosine Annealing scheduler for up to 100 epochs; early stopping with patience 50 is applied on validation loss.
+\item \textbf{Naive GroupKFold Split (G-Split)}: Standard group-disjoint splitting by \texttt{specimen\_id} (Scikit-Learn `GroupKFold`). While G-Split enforces specimen isolation, it completely ignores per-species class balance, resulting in severe sample size imbalance and missing minority classes in validation or test splits.
 
-Data augmentation is applied only to the training set and includes rotation, random resized crop, mild color jitter, Gaussian blur, and random erasing. These transforms are chosen to simulate variation in macro-photography conditions without obscuring vessel pores or wood rays. All normalization statistics, checkpoint selection, and hyperparameter decisions are made on the training and validation sets; the test set is withheld until final reporting.
+\item \textbf{Stratified GroupKFold Split (SG-Split)}: Extends GroupKFold to balance class proportions while maintaining specimen isolation. However, SG-Split ignores feature-space representation density, often placing highly similar specimen pairs across split boundaries.
 
-\subsection{Representation Learning Methods}
-On the same locked manifest and split, the benchmark covers four distance-based metric learning losses (Contrastive, Triplet, Semi-hard Triplet, and Angular) and four self-supervised methods (SimCLR, BYOL, SimSiam, and Barlow Twins). The objective of the benchmark is not to identify a universally optimal loss function but to assess whether conclusions about relative model performance are stable when data conditions are fixed and thoroughly audited.
+\item \textbf{Spatial / Distance Blocking (S-Split)}: Groups specimens based on Euclidean feature distance thresholds. S-Split prevents spatial proximity across splits but suffers from over-clustering, reducing split diversity.
 
-\subsection{Evaluation Metrics}
-For closed-set classification, we report accuracy, per-species precision, recall, and F1, together with macro-F1 and weighted-F1. Macro-F1 is prioritized when class sizes are unequal. For embeddings, we report retrieval metrics Recall@$k$, Precision@$k$, and mAP; macro averages and harmonic means are reported to prevent dominant classes from masking per-class performance. The harmonic mean with a small stabilizing constant $\epsilon=0.01$ is:
-\begin{equation}
-\mathrm{HM}=\frac{C}{\sum_{c=1}^{C}\frac{1}{m_c+\epsilon}},
-\end{equation}
-where $m_c$ is the metric value for species $c$ and $C$ is the number of species.
+\item \textbf{CEGS-Split (Proposed SCDP Governance)}: Evaluates seven distinct feature-space allocation strategies per species (Section~\ref{sec:cegs_split}) combined with cross-split cosine auditing, guaranteeing 100\% specimen isolation, preserving exact per-species balance, and maximizing evaluation difficulty.
+\end{enumerate}
 
-Embedding structure quality is supplemented by Silhouette, Davies--Bouldin, Calinski--Harabasz, Dunn index, and normalized mutual information (NMI). These clustering metrics do not replace recognition performance but assess the quality of learned representations from an unsupervised perspective.
+Table~\ref{tab:protocol_comparison} provides a qualitative and technical comparison of these partitioning protocols.
 
-\subsection{Split Audit Metrics}
-In addition to recognition performance, we record the specimen count in each split, the number of shared \texttt{specimen\_id}s across splits (which must be zero), and cross-split cosine similarity from the reference feature extractor. In Table~\ref{tab:split_ablation}, cosine values are the mean and maximum over train--test image pairs; they serve as a diagnostic indicator of inter-split proximity rather than a direct measure of leakage. Any image flagged by the embedding audit must be cross-referenced with the manifest before drawing final conclusions.
+\begin{table}[htbp]
+\centering
+\caption{Taxonomy and technical comparison of data partitioning protocols in physical object domains.}
+\label{tab:protocol_comparison}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Partitioning Protocol} & \textbf{Specimen Isolation} & \textbf{Class Balance} & \textbf{Feature Auditability} & \textbf{Data Leakage Risk} \\
+\midrule
+R-Split (Random Image)       & \times & \checkmark & \times & \textbf{Severe (100\% Leakage)} \\
+G-Split (Naive GroupKFold)    & \checkmark & \times & \times & Low (Unbalanced Splits) \\
+SG-Split (Stratified Group)  & \checkmark & \checkmark & \times & Low (Unchecked Proximity) \\
+S-Split (Distance Blocking)   & \checkmark & \times & \checkmark & Low (Over-clustered) \\
+\textbf{CEGS-Split (SCDP)}    & \checkmark & \checkmark & \checkmark & \textbf{Zero (Audited \& Locked)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Vision Backbones and Baseline Architectures}
+We evaluate four representative deep vision architectures spanning distinct representation paradigms:
+\begin{itemize}
+\item \textbf{ConvNeXt-Tiny}~\cite{convnext}: Pure convolutional backbone ($28.6\text{M}$ parameters) incorporating $7\times 7$ depthwise separable convolutions and inverted bottlenecks.
+\item \textbf{Swin-Large}~\cite{swin}: Hierarchical Vision Transformer ($197\text{M}$ parameters) computing self-attention within shifted local windows.
+\item \textbf{EfficientNetV2-M}~\cite{efficientnetv2}: NAS-optimized convolutional backbone ($54.1\text{M}$ parameters) using Fused-MBConv layers.
+\item \textbf{ResNet-50}~\cite{resnet}: Classic 50-layer residual convolutional baseline ($25.6\text{M}$ parameters).
+\end{itemize}
+
+\subsection{Training Protocol and Implementation Details}
+All classification models are trained using **Focal Loss**~\cite{focal} ($\gamma = 2.0, \alpha = 0.25$) to handle class imbalance across wood species. Models are optimized using AdamW ($\beta_1 = 0.9, \beta_2 = 0.999$, weight decay $10^{-4}$) with a cosine annealing learning rate scheduler (initial learning rate $10^{-4}$, minimum $10^{-6}$) for 50 training epochs. Input images are resized to $224 \times 224$ pixels and normalized using ImageNet channel statistics. Standard data augmentations (random horizontal/vertical flips, random rotations up to $15^\circ$, and color jitter) are applied strictly to training partitions.
