@@ -2,6 +2,7 @@
 datasail_benchmark/solvers.py
 =============================
 Triển khai 9 thuật toán chia dữ liệu (Splitting Protocols) cho Benchmark Data Leakage & DataSAIL.
+Bảo đảm duy trì chính xác tỷ lệ phân bổ target (60% Train / 20% Val / 20% Test).
 """
 
 import random
@@ -54,6 +55,46 @@ def compute_split_counts(n_total: int, train_ratio: float = 0.60, val_ratio: flo
 	return train_count, val_count, test_count
 
 
+def _allocate_groups_by_ratio(
+	groups_indices: List[List[int]],
+	train_ratio: float = 0.60,
+	val_ratio: float = 0.20,
+) -> Tuple[List[int], List[int], List[int]]:
+	"""
+	Phân bổ danh sách các nhóm chỉ số (groups_indices) vào Train, Val, Test
+	sao cho duy trì tỷ lệ phân bổ target (~60% Train, ~20% Val, ~20% Test).
+	"""
+	n_total = sum(len(g) for g in groups_indices)
+	if n_total == 0:
+		return [], [], []
+
+	target_tr = int(n_total * train_ratio)
+	target_va = int(n_total * val_ratio)
+
+	train_idx, val_idx, test_idx = [], [], []
+	curr_tr, curr_va = 0, 0
+
+	for g in groups_indices:
+		g_len = len(g)
+		if curr_tr < target_tr or (curr_tr == 0 and len(groups_indices) >= 3):
+			train_idx.extend(g)
+			curr_tr += g_len
+		elif curr_va < target_va or (curr_va == 0 and len(groups_indices) >= 2):
+			val_idx.extend(g)
+			curr_va += g_len
+		else:
+			test_idx.extend(g)
+
+	# Đảm bảo không tập nào bị trống nếu số nhóm >= 3
+	if len(groups_indices) >= 3:
+		if len(val_idx) == 0 and len(train_idx) > 1:
+			val_idx.append(train_idx.pop())
+		if len(test_idx) == 0 and len(train_idx) > 1:
+			test_idx.append(train_idx.pop())
+
+	return train_idx, val_idx, test_idx
+
+
 # ============================================================
 # PP1: Image-Level Random Split (Flatten Random)
 # ============================================================
@@ -96,17 +137,12 @@ def pp2_group_random_split(
 		subfolders = list(subfolder_groups.groups.keys())
 		rng.shuffle(subfolders)
 
-		n_sf = len(subfolders)
-		tr_sf, va_sf, te_sf = compute_split_counts(n_sf, TRAIN_RATIO, VAL_RATIO)
+		groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolders]
+		tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
 
-		for i, sf in enumerate(subfolders):
-			sf_indices = subfolder_groups.get_group(sf).index.tolist()
-			if i < te_sf:
-				test_idx.extend(sf_indices)
-			elif i < te_sf + va_sf:
-				val_idx.extend(sf_indices)
-			else:
-				train_idx.extend(sf_indices)
+		train_idx.extend(tr_g)
+		val_idx.extend(va_g)
+		test_idx.extend(te_g)
 
 	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
 
@@ -159,6 +195,7 @@ def _run_datasail_solver(
 	"""
 	Giải bài toán tối ưu DataSAIL (Integer Linear Programming / Graph Cut heuristic):
 	Tối thiểu hóa L(π) = Σ Σ [π(x) != π(x')] * sim(x, x') * κ(x) * κ(x')
+	kết hợp ràng buộc tỷ lệ nghiêm ngặt (60/20/20).
 	"""
 	n = len(item_embeddings)
 	if n == 0:
@@ -172,7 +209,7 @@ def _run_datasail_solver(
 	np.fill_diagonal(sim_matrix, 0.0)
 	sim_matrix = np.maximum(sim_matrix, 0.0)
 
-	total_weight = np.sum(item_weights)
+	total_weight = float(np.sum(item_weights))
 	target_tr = total_weight * train_ratio
 	target_va = total_weight * val_ratio
 	target_te = total_weight * (1.0 - train_ratio - val_ratio)
@@ -182,7 +219,6 @@ def _run_datasail_solver(
 	kmeans = KMeans(n_clusters=k_init, random_state=seed, n_init="auto")
 	cluster_labels = kmeans.fit_predict(item_embeddings)
 
-	# Sắp xếp các cluster theo khoảng cách đến centroid chung
 	global_centroid = item_embeddings.mean(axis=0)
 	cluster_dists = []
 	for c in range(k_init):
@@ -204,13 +240,23 @@ def _run_datasail_solver(
 
 	rng = np.random.RandomState(seed)
 
-	# Hàm tính loss DataSAIL
+	# Hàm tính loss DataSAIL kết hợp phạt lệch tỷ lệ
 	def calc_loss(assign: np.ndarray) -> float:
 		diff_mask = assign[:, None] != assign[None, :]
 		weight_outer = np.outer(item_weights, item_weights)
-		return float(np.sum(sim_matrix[diff_mask] * weight_outer[diff_mask]) / 2.0)
+		inter_sim_loss = float(np.sum(sim_matrix[diff_mask] * weight_outer[diff_mask]) / 2.0)
 
-	# Local Search & Greedy Swap Optimization
+		w_tr = float(np.sum(item_weights[assign == 0]))
+		w_va = float(np.sum(item_weights[assign == 1]))
+		w_te = float(np.sum(item_weights[assign == 2]))
+
+		dev_tr = (w_tr - target_tr) / total_weight
+		dev_va = (w_va - target_va) / total_weight
+		dev_te = (w_te - target_te) / total_weight
+
+		ratio_penalty = 1e5 * (dev_tr**2 + dev_va**2 + dev_te**2)
+		return inter_sim_loss + ratio_penalty
+
 	best_assign = split_assignment.copy()
 	best_loss = calc_loss(best_assign)
 
@@ -222,7 +268,6 @@ def _run_datasail_solver(
 		cand_assign = best_assign.copy()
 		cand_assign[idx_to_move] = new_split
 
-		# Kiểm tra ràng buộc tỷ lệ (không làm tập nào bị trống)
 		w_tr = np.sum(item_weights[cand_assign == 0])
 		w_va = np.sum(item_weights[cand_assign == 1])
 		w_te = np.sum(item_weights[cand_assign == 2])
@@ -332,15 +377,11 @@ def pp6_mahalanobis_centroid_split(
 		n_sf = len(sf_embs)
 
 		if n_sf <= 2:
-			tr_c, va_c, te_c = compute_split_counts(n_sf, TRAIN_RATIO, VAL_RATIO)
-			for i, sf in enumerate(subfolder_names):
-				sf_indices = subfolder_groups.get_group(sf).index.tolist()
-				if i < te_c:
-					test_idx.extend(sf_indices)
-				elif i < te_c + va_c:
-					val_idx.extend(sf_indices)
-				else:
-					train_idx.extend(sf_indices)
+			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
+			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
+			train_idx.extend(tr_g)
+			val_idx.extend(va_g)
+			test_idx.extend(te_g)
 			continue
 
 		if n_sf >= 5:
@@ -356,18 +397,14 @@ def pp6_mahalanobis_centroid_split(
 
 		diff = sf_embs - mean
 		dists = np.sqrt(np.maximum(np.einsum("ij,jk,ik->i", diff, cov_inv, diff), 0.0))
-		sorted_pos = np.argsort(-dists)
+		sorted_pos = np.argsort(dists)  # Sắp xếp tăng dần: Gần trước (Train), Xa sau (Test)
 
-		tr_c, va_c, te_c = compute_split_counts(n_sf, TRAIN_RATIO, VAL_RATIO)
-		for i, pos in enumerate(sorted_pos):
-			sf = subfolder_names[pos]
-			sf_indices = subfolder_groups.get_group(sf).index.tolist()
-			if i < te_c:
-				test_idx.extend(sf_indices)
-			elif i < te_c + va_c:
-				val_idx.extend(sf_indices)
-			else:
-				train_idx.extend(sf_indices)
+		sorted_groups_indices = [subfolder_groups.get_group(subfolder_names[pos]).index.tolist() for pos in sorted_pos]
+		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
+
+		train_idx.extend(tr_g)
+		val_idx.extend(va_g)
+		test_idx.extend(te_g)
 
 	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
 
@@ -389,14 +426,11 @@ def pp7_hierarchical_clustering_split(
 		n_sf = len(subfolder_names)
 
 		if n_sf < 3:
-			for i, sf in enumerate(subfolder_names):
-				sf_indices = subfolder_groups.get_group(sf).index.tolist()
-				if i == 0:
-					test_idx.extend(sf_indices)
-				elif i == 1:
-					val_idx.extend(sf_indices)
-				else:
-					train_idx.extend(sf_indices)
+			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
+			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
+			train_idx.extend(tr_g)
+			val_idx.extend(va_g)
+			test_idx.extend(te_g)
 			continue
 
 		sf_embs = np.array([embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names])
@@ -417,11 +451,14 @@ def pp7_hierarchical_clustering_split(
 					sf_indices.extend(subfolder_groups.get_group(subfolder_names[idx_sf]).index.tolist())
 			cluster_info.append((cid, c_dist, sf_indices))
 
-		cluster_info.sort(key=lambda x: -x[1])
-		test_idx.extend(cluster_info[0][2])
-		val_idx.extend(cluster_info[1][2] if len(cluster_info) > 1 else cluster_info[0][2])
-		for _, _, c_ind in cluster_info[2:]:
-			train_idx.extend(c_ind)
+		# Sắp xếp tăng dần theo khoảng cách (gần tâm nhất vào Train trước)
+		cluster_info.sort(key=lambda x: x[1])
+		sorted_groups_indices = [info[2] for info in cluster_info]
+
+		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
+		train_idx.extend(tr_g)
+		val_idx.extend(va_g)
+		test_idx.extend(te_g)
 
 	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
 
@@ -443,14 +480,11 @@ def pp8_cosine_graph_split(
 		n_sf = len(subfolder_names)
 
 		if n_sf < 3:
-			for i, sf in enumerate(subfolder_names):
-				sf_indices = subfolder_groups.get_group(sf).index.tolist()
-				if i == 0:
-					test_idx.extend(sf_indices)
-				elif i == 1:
-					val_idx.extend(sf_indices)
-				else:
-					train_idx.extend(sf_indices)
+			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
+			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
+			train_idx.extend(tr_g)
+			val_idx.extend(va_g)
+			test_idx.extend(te_g)
 			continue
 
 		sf_embs = np.array([embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names])
@@ -472,11 +506,14 @@ def pp8_cosine_graph_split(
 					c_indices.extend(subfolder_groups.get_group(subfolder_names[idx_sf]).index.tolist())
 			comp_info.append((cid, c_dist, c_indices))
 
-		comp_info.sort(key=lambda x: -x[1])
-		test_idx.extend(comp_info[0][2])
-		val_idx.extend(comp_info[1][2] if len(comp_info) > 1 else comp_info[0][2])
-		for _, _, c_ind in comp_info[2:]:
-			train_idx.extend(c_ind)
+		# Sắp xếp tăng dần theo khoảng cách (gần tâm nhất vào Train trước)
+		comp_info.sort(key=lambda x: x[1])
+		sorted_groups_indices = [info[2] for info in comp_info]
+
+		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
+		train_idx.extend(tr_g)
+		val_idx.extend(va_g)
+		test_idx.extend(te_g)
 
 	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
 
@@ -500,14 +537,11 @@ def pp9_adversarial_validation_split(
 		n_sf = len(subfolder_names)
 
 		if n_sf < 3:
-			for i, sf in enumerate(subfolder_names):
-				sf_indices = subfolder_groups.get_group(sf).index.tolist()
-				if i == 0:
-					test_idx.extend(sf_indices)
-				elif i == 1:
-					val_idx.extend(sf_indices)
-				else:
-					train_idx.extend(sf_indices)
+			groups_indices = [subfolder_groups.get_group(sf).index.tolist() for sf in subfolder_names]
+			tr_g, va_g, te_g = _allocate_groups_by_ratio(groups_indices, TRAIN_RATIO, VAL_RATIO)
+			train_idx.extend(tr_g)
+			val_idx.extend(va_g)
+			test_idx.extend(te_g)
 			continue
 
 		sf_embs = np.array([embeddings[subfolder_groups.get_group(sf).index.tolist()].mean(axis=0) for sf in subfolder_names])
@@ -544,18 +578,14 @@ def pp9_adversarial_validation_split(
 			scores = discriminator(X_t).squeeze().cpu().numpy()
 
 		difficulty = np.abs(scores - 0.5)
-		sorted_pos = np.argsort(-difficulty)
+		sorted_pos = np.argsort(difficulty)  # Dị biệt ít hơn (gần 0.5) vào Train trước, dị biệt nhất vào Test
 
-		tr_c, va_c, te_c = compute_split_counts(n_sf, TRAIN_RATIO, VAL_RATIO)
-		for i, pos in enumerate(sorted_pos):
-			sf = subfolder_names[pos]
-			sf_indices = subfolder_groups.get_group(sf).index.tolist()
-			if i < te_c:
-				test_idx.extend(sf_indices)
-			elif i < te_c + va_c:
-				val_idx.extend(sf_indices)
-			else:
-				train_idx.extend(sf_indices)
+		sorted_groups_indices = [subfolder_groups.get_group(subfolder_names[pos]).index.tolist() for pos in sorted_pos]
+		tr_g, va_g, te_g = _allocate_groups_by_ratio(sorted_groups_indices, TRAIN_RATIO, VAL_RATIO)
+
+		train_idx.extend(tr_g)
+		val_idx.extend(va_g)
+		test_idx.extend(te_g)
 
 	return _shuffle_df(df.loc[train_idx], seed), _shuffle_df(df.loc[val_idx], seed), _shuffle_df(df.loc[test_idx], seed)
 

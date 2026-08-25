@@ -97,7 +97,6 @@ def compute_intra_split_cosine_sim(
 	for indices in [train_indices, val_indices, test_indices]:
 		if len(indices) > 1:
 			sub_sim = sim_matrix[np.ix_(indices, indices)]
-			# Lấy phần tam giác trên (loại bỏ đường chéo chính)
 			triu_indices = np.triu_indices(len(indices), k=1)
 			intra_sims.extend(sub_sim[triu_indices])
 
@@ -237,17 +236,18 @@ def compute_knn_metrics(
 	df_train: pd.DataFrame,
 	df_test: pd.DataFrame,
 	class_to_idx: Dict[str, int],
+	path_to_idx: Dict[str, int],
 	k_neighbors: int = 1,
 ) -> Dict[str, float]:
 	"""
 	Đánh giá khả năng phân loại Zero-Training bằng K-Nearest Neighbors (KNN) trên frozen embeddings.
-	Trả về Accuracy, Macro-F1, và Weighted-F1.
+	Sử dụng path_to_idx để trích xuất chính xác row index trong matrix embeddings gốc.
 	"""
 	if len(df_train) == 0 or len(df_test) == 0:
 		return {"knn_accuracy": 0.0, "knn_f1_macro": 0.0, "knn_f1_weighted": 0.0}
 
-	train_indices = df_train.index.tolist()
-	test_indices = df_test.index.tolist()
+	train_indices = [path_to_idx[p] for p in df_train["path"]]
+	test_indices = [path_to_idx[p] for p in df_test["path"]]
 
 	X_train = embeddings[train_indices]
 	y_train = np.array([class_to_idx[lbl] for lbl in df_train["label"]])
@@ -299,10 +299,8 @@ def compute_statistical_significance(
 	if len(scores_group_a) < 2 or len(scores_group_b) < 2:
 		return {"p_value": 1.0, "cohens_d": 0.0}
 
-	# Welch's t-test (không giả định phương sai bằng nhau)
 	t_stat, p_val = stats.ttest_ind(scores_group_a, scores_group_b, equal_var=False)
 
-	# Cohen's d
 	n1, n2 = len(scores_group_a), len(scores_group_b)
 	s1, s2 = np.std(scores_group_a, ddof=1), np.std(scores_group_b, ddof=1)
 	s_pooled = np.sqrt(((n1 - 1) * s1**2 + (n2 - 1) * s2**2) / (n1 + n2 - 2))

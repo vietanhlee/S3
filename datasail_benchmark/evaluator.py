@@ -68,7 +68,7 @@ def run_benchmark_pipeline(
 				sil_score = compute_silhouette_separation(embeddings, tr_idx, va_idx, te_idx)
 				nn_stats = compute_nearest_neighbor_stats(embeddings, tr_idx, te_idx)
 				w1_dist = compute_wasserstein_divergence(df_filtered, df_tr, df_va, df_te)
-				knn_res = compute_knn_metrics(embeddings, df_tr, df_te, class_to_idx)
+				knn_res = compute_knn_metrics(embeddings, df_tr, df_te, class_to_idx, path_to_idx)
 
 				rec = {
 					"protocol": proto_name,
@@ -155,7 +155,7 @@ def run_benchmark_pipeline(
 	meta_sil = compute_silhouette_separation(embeddings, meta_tr_idx, meta_va_idx, meta_te_idx)
 	meta_nn = compute_nearest_neighbor_stats(embeddings, meta_tr_idx, meta_te_idx)
 	meta_w1 = compute_wasserstein_divergence(df_filtered, df_meta_tr, df_meta_va, df_meta_te)
-	meta_knn = compute_knn_metrics(embeddings, df_meta_tr, df_meta_te, class_to_idx)
+	meta_knn = compute_knn_metrics(embeddings, df_meta_tr, df_meta_te, class_to_idx, path_to_idx)
 
 	meta_rec = {
 		"protocol": "PP10_DataSAIL_Meta_Selector_Optimal_k^N",
@@ -226,7 +226,7 @@ def run_benchmark_pipeline(
 			stat_res = compute_statistical_significance(random_acc_scores, acc_vals)
 			pval_str = f"{stat_res['p_value']:.4e}"
 		else:
-			pval_str = "---"
+			pval_str = "Baseline"
 
 		lines.append(f"{proto:<32} {acc_str:<16} {f1_str:<16} {loss_str:<18} {s_inter_str:<14} {slr_str:<10} {nn_str:<14} {pval_str:<16}")
 
