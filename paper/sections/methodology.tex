@@ -1,120 +1,129 @@
-\section{Generalized Specimen-Centric Data Protocol (SCDP)}
+\section{Methodology and Theoretical Formulation}
 
-To address the methodological deficiencies of ad-hoc dataset creation in physical computer vision domains, we propose the **Specimen-Centric Data Protocol (SCDP)**. SCDP is a generalized data governance framework that standardizes every stage of dataset lifecycle management---from physical sample acquisition and immutable metadata storage to automated group-disjoint partitioning and cross-split auditing. Figure~\ref{fig:scdp_workflow} illustrates the five sequential phases of the SCDP framework.
+To resolve specimen-level data leakage while addressing taxon-specific structural heterogeneity, we formulate a comprehensive partitioning framework. First, we define the mechanisms of Same-Specimen-Picture Bias (SSPB). Next, we introduce a streamlined suite of representative splitting protocols spanning distinct algorithmic paradigms. Then, we construct the "Three Pillars Framework" comprising 16 quantitative metrics. Finally, we detail the mathematical formulation of our proposed Multi-Objective Simulated Annealing Meta-Selector ($\text{CEGS-Split}$).
 
-\subsection{Phase 1: Physical Acquisition Logging and Provenance Standards}
-Existing dataset collection pipelines routinely discard sample provenance, recording only target class labels. SCDP mandates that every image acquisition event must be bound to immutable physical provenance attributes at the moment of capture:
+\subsection{Problem Formulation and Specimen Leakage Risk (SLR)}
+Let $\mathcal{D} = \{(x_i, y_i, g_i)\}_{i=1}^N$ represent a wood dataset of $N$ macro images, where $x_i \in \mathcal{X}$ is an RGB image observation, $y_i \in \{1, \dots, C\}$ is the biological species label ($C=18$), and $g_i \in \mathcal{G}$ denotes the physical specimen block (subfolder identifier).
 
-\begin{enumerate}[label=\textbf{(\arabic*)}, leftmargin=*]
-\item \textbf{Physical Specimen Identifier ($\mathrm{SID}$)}: A unique, deterministic alphanumeric identifier assigned to each distinct physical sample (e.g., individual wood log block, biological core, patient sample). All images harvested from the same physical entity inherit identical $\mathrm{SID}$ tags.
-\item \textbf{Acquisition Session Identifier ($\mathrm{AID}$)}: An identifier tracking photo capture sessions, camera hardware settings, operator IDs, and environmental lighting conditions.
-\item \textbf{Surface Preparation State}: Metadata recording mechanical treatment (e.g., saw cut, planed surface, sanded grit level, anatomical cross-section orientation).
+A data partition $\pi: \mathcal{D} \to \{\text{Train}, \text{Val}, \text{Test}\}$ maps each sample $x_i$ to a split. Under naive random splitting, split assignment is independent of specimen origin $g_i$, inducing severe Same-Specimen-Picture Bias (SSPB). We quantify this vulnerability via the **Specimen Leakage Risk (SLR)**:
+\begin{equation}
+\mathrm{SLR}(\pi) = \frac{|\{g \in \mathcal{G} \mid \exists x, x' \in g \text{ s.t. } \pi(x) \neq \pi(x')\}|}{|\mathcal{G}|} \times 100\%,
+\end{equation}
+where $\mathrm{SLR} = 0.0\%$ indicates absolute physical specimen isolation, and $\mathrm{SLR} > 0.0\%$ measures the percentage of leaked physical specimens.
+
+\begin{tcolorbox}[colback=lightbg,colframe=primaryblue,title=\textbf{SCDP Core Data Governance Axioms}]
+\begin{enumerate}[leftmargin=*]
+\item \textbf{100\% Subfolder Integrity}: All image observations $x_i, x_j$ originating from the same physical specimen $g \in \mathcal{G}$ MUST belong to the exact same split partition:
+\begin{equation}
+\forall g \in \mathcal{G}, \quad \pi(x_i) = \pi(x_j) \quad \forall x_i, x_j \in g.
+\label{eq:subfolder_integrity}
+\end{equation}
+\item \textbf{100\% Class Coverage Rate (CCR)}: Every target species $c \in \{1, \dots, C\}$ MUST be present in Train, Validation, AND Test splits:
+\begin{equation}
+\mathrm{CCR}(\pi) = \frac{|\{c \in \{1,\dots,C\} \mid c \text{ present in Train, Val, and Test}\}|}{C} \times 100\% = 100.0\%.
+\end{equation}
+\end{enumerate}
+\end{tcolorbox}
+
+\subsection{Categorization of Evaluated Splitting Protocols}
+To benchmark dataset partitioning paradigms without redundancy, we evaluate representative splitting protocols categorized into four distinct analytical blocks:
+
+\begin{enumerate}[label=\textbf{Category \Roman*:}, leftmargin=*]
+\item \textbf{Naive Image-Level Baseline (\textsf{Naive Random Image Split})}: Performs independent uniform random sampling over image files according to target ratios $r = (0.60, 0.20, 0.20)$. Serves as the maximum-leakage baseline ($\mathrm{SLR} = 100\%$).
+
+\item \textbf{Single Splitting Protocols (Single Paradigm Imposed Globally)}:
+\begin{itemize}
+\item \textbf{\textsf{Stratified Group Split}}: Extends multi-objective group allocation to isolate physical specimen groups $g_i$ while maintaining per-class target split ratios.
+\item \textbf{\textsf{Hierarchical Ward Partitioning}}: Computes specimen feature centroids $h_g = \frac{1}{|g|} \sum_{x \in g} \phi(x)$ using EfficientNetV2 embeddings. Hierarchical agglomerative clustering with Ward's minimum variance linkage is performed on $\{h_g\}$, assigning intact sub-trees to splits to minimize inter-cluster linkage distance.
+\item \textbf{\textsf{Adversarial Density Validation}}: Trains an auxiliary binary MLP discriminator $D_\psi: \mathbb{R}^d \to [0, 1]$ to distinguish candidate split assignments. Specimens assigned high discriminator certainty $|D_\psi(h_g) - 0.5|$ are identified as distributional outliers and allocated to the Test set to enforce evaluation difficulty.
+\item \textbf{\textsf{DataSAIL Specimen-Level ILP}}: Formulates specimen partitioning as a constrained 2-node / multi-node Graph Cut problem solved via Integer Linear Programming (ILP)~\cite{kalina2023}. Minimizes specimen centroid inter-split similarity:
+\begin{equation}
+\min_{\pi} \sum_{g \neq g'} \mathbb{1}[\pi(g) \neq \pi(g')] \cdot \cos(h_g, h_{g'}) \cdot |g| \cdot |g'| \quad \text{s.t. } \left| \frac{|W_s|}{W_{\text{total}}} - r_s \right| \le \epsilon.
+\end{equation}
+\end{itemize}
+
+\item \textbf{Combinatorial Selector: Single-Objective DataSAIL Loss (\textsf{Single-Objective Classwise Selector})}: Evaluates 11 candidate solvers per taxon to independently minimize per-class DataSAIL loss $L_c(m_c)$.
+
+\item \textbf{Combinatorial Selector: Multi-Objective Optimization (\textsf{Multi-Objective SA Meta-Selector}, Proposed)}: A combinatorial optimization engine operating over an $11^{18}$ search space using Simulated Annealing to discover global Pareto-optimal class-wise splitting configurations evaluated against a multi-objective fitness function.
 \end{enumerate}
 
-By capturing physical provenance at harvest time, SCDP establishes an auditable chain of custody that prevents accidental physical source co-occurrence during downstream partitioning.
-
-\subsection{Phase 2: Immutable Storage Schema and Data Organization}
-To decouple dataset management from transient local directory structures or arbitrary file naming conventions, SCDP replaces unindexed file trees with an **Immutable Manifest Architecture**. Let $\mathcal{X} = \{x_i\}_{i=1}^{M}$ denote the dataset of $M$ image observations, and let $\mathcal{S} = \{S_j\}_{j=1}^{N}$ represent the set of $N$ physical specimens ($M \gg N$). Every image $x_i$ is registered in a version-controlled manifest file containing the schema attributes outlined in Table~\ref{tab:manifest}.
+\subsection{The Three Pillars Evaluation Framework (16 Metrics)}
+To provide a comprehensive evaluation suitable for journal publication, we establish 16 quantitative metrics organized under three analytical pillars:
 
 \begin{table}[htbp]
 \centering
-\caption{Standardized SCDP Metadata Schema for Physical Image Datasets.}
-\label{tab:manifest}
-\small
+\caption{The Three Pillars Evaluation Framework comprising 16 quantitative metrics.}
+\label{tab:three_pillars}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lll}
 \toprule
-\textbf{Attribute Field} & \textbf{Data Type} & \textbf{Governance Description} \\
+\textbf{Pillar} & \textbf{Metric Name} & \textbf{Mathematical Definition / Purpose} \\
 \midrule
-\texttt{image\_id} & String (UUIDv4) & Global unique identifier for the image observation \\
-\texttt{content\_hash} & String (SHA-256) & Cryptographic hash ensuring image binary integrity \\
-\texttt{specimen\_id} & String & Deterministic identifier of the physical source entity \\
-\texttt{session\_id} & String & Photo acquisition session and camera rig tag \\
-\texttt{taxonomy\_label} & String / Int & Ground-truth biological or physical class label \\
-\texttt{surface\_state} & String & Mechanical surface treatment and section orientation \\
-\texttt{split\_assignment} & String & Assigned partition (\texttt{train}, \texttt{val}, or \texttt{test}) \\
+\multirow{6}{*}{\textbf{Pillar 1: Data Leakage Minimization}} 
+& DataSAIL Loss $L(\pi)$ & $L(\pi) = \frac{1}{2} \sum_{\pi(x) \neq \pi(x')} \cos(\phi(x), \phi(x')) \cdot \kappa(x) \kappa(x')$ \\
+& Inter-Split Similarity $\bar{S}_{\text{inter}}$ & Normalized mean Cosine similarity across different splits ($\text{Train} \leftrightarrow \text{Test}$) \\
+& Intra-Split Similarity $\bar{S}_{\text{intra}}$ & Normalized mean Cosine similarity within the same split ($\text{Train} \leftrightarrow \text{Train}$) \\
+& Specimen Leakage Risk $SLR$ & Percentage of physical specimen blocks distributed across multiple splits ($0.0\%$) \\
+& Pseudoreplication Index $PRI$ & Percentage of leaked specimen image pairs between Train and Test splits \\
+& Nearest-Neighbor Sim $\text{NN\_Sim}_{\text{Mean}}$ & Mean Cosine similarity from Test images to Nearest-Neighbor in Train set \\
+\midrule
+\multirow{3}{*}{\textbf{Pillar 2: OOD Difficulty \& Separation}} 
+& Maximum Mean Discrepancy $MMD$ & $MMD^2(\text{Tr}, \text{Te}) = \left\| \frac{1}{N_{\text{tr}}} \sum_{x \in \text{Tr}} k(\phi(x), \cdot) - \frac{1}{N_{\text{te}}} \sum_{y \in \text{Te}} k(\phi(y), \cdot) \right\|_{\mathcal{H}_k}^2$ \\
+& Silhouette Separation $S_{\text{split}}$ & Mean Silhouette coefficient evaluated on split assignments $\in [-1, 1]$ \\
+& Class Coverage Rate $CCR$ & Percentage of species present in Train, Val, and Test splits ($100.0\%$) \\
+\midrule
+\multirow{7}{*}{\textbf{Pillar 3: Hard Negatives \& Performance}} 
+& KNN Top-1 Test Accuracy & 1-Nearest Neighbor classifier accuracy trained on frozen embeddings \\
+& KNN Top-3 \& Balanced Acc & Top-3 prediction accuracy and mean recall across all 18 taxa \\
+& Macro-F1 \& Weighted-F1 & Unweighted macro average and weighted average F1-score across all 18 taxa \\
+& Hardest Class F1 $\text{F1}_{\text{Hardest}}$ & Minimum F1-score among all 18 species: $\min_{c \in \{1,\dots,C\}} F1_c$ \\
+& Wasserstein Divergence $W_1$ & Earth Mover's Distance between split class distributions and global dataset \\
+& Welch's $t$-test $p$-value & $p$-value from two-sample Welch's $t$-test against Naive Random Baseline \\
+& Cohen's $d$ Effect Size & Standardized effect size quantifying accuracy shift vs. Naive Random Baseline \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
-The physical source mapping function $s: \mathcal{X} \to \mathcal{S}$ is explicitly defined via the manifest field \texttt{specimen\_id}: $s(x_i) = S_{x_i.\texttt{specimen\_id}}$. The manifest is cryptographically hashed (SHA-256) to ensure full auditability and reproducibility.
+\subsection{Multi-Objective Simulated Annealing Meta-Selector ($k^N$ Search Space)}
 
-\subsection{Phase 3: Automated CEGS-Split Partitioning Algorithm}
-\label{sec:cegs_split}
-Given an immutable manifest, dataset partitioning must guarantee absolute specimen disjointness while preserving per-class sample balance and representation difficulty. Standard `GroupKFold` enforces group isolation but ignores class distribution, often producing severe sample size imbalance or missing minority classes.
+\subsubsection{Taxon Heterogeneity Motivation (Why Class-wise Selection?)}
+Wood taxa exhibit contrasting microscopic structures and intra-species variance:
+\begin{itemize}
+\item \textbf{Uniform Taxa}: Taxa with homogeneous growth rings (e.g., \textit{Guibourtia coleosperma}) are cleanly partitioned by linear centroid distance metrics (\textsf{Fixed Mahalanobis}).
+\item \textbf{Outlier-Prone Taxa}: Taxa with severe heartwood/sapwood color transitions or surface abrasions (e.g., \textit{Afzelia bella}) distort distance metrics, requiring \textsf{Adversarial Validation} or \textsf{DataSAIL ILP} to isolate anomalous specimens.
+\item \textbf{High Visual Similarity Taxa}: Taxa belonging to the same genus (e.g., \textit{Dalbergia oliveri} vs. \textit{Dalbergia tonkinensis}) require \textsf{Cosine Graph} component isolation to sever indirect visual leakage.
+\end{itemize}
 
-To solve this multi-objective optimization problem, we introduce **Class-wise Embedding-Guided Specimen Split (CEGS-Split)**. For each class $c \in \{1, \dots, C\}$, CEGS-Split extracts specimen feature centroids using a frozen feature backbone $f_\theta$:
+Enforcing a single splitting algorithm globally across all 18 species violates the \textbf{No Free Lunch theorem}. Allowing each taxon $c \in \{1, \dots, C\}$ to select its optimal solver $m_c \in \{1, \dots, K\}$ ($K=11$) yields a combinatorial configuration space of:
 \begin{equation}
-h_j = \frac{1}{|S_j|} \sum_{x_i \in S_j} f_\theta(x_i), \quad S_j \in \mathcal{S}_c,
+\mathcal{M} = K^C = 11^{18} \approx 5.5599 \times 10^{18} \quad \text{candidate partitions.}
 \end{equation}
-where $\mathcal{S}_c = \{S_j \in \mathcal{S} : y(S_j) = c\}$ is the set of specimens belonging to class $c$.
 
-CEGS-Split evaluates seven distinct feature-space allocation strategies per species:
-\begin{enumerate}[label=\textbf{Strategy \arabic*:}, leftmargin=*]
-\item \textbf{Fixed Mahalanobis Stratification}: Computes the class mean $\bar{h}_c$ and static covariance matrix $\mathbf{\Sigma}_c$, allocating tail-end Mahalanobis outliers to held-out test splits to enforce evaluation difficulty.
-\item \textbf{Iterative Mahalanobis Allocation}: Re-estimates the dynamic class covariance matrix after assigning each specimen, preventing outlier masking in skewed distributions.
-\item \textbf{Hierarchical Agglomerative Partitioning}: Applies Ward's linkage clustering on specimen centroids $\{h_j\}$ and assigns intact sub-trees to splits, preserving natural cluster structures.
-\item \textbf{Cosine Feature Graph Partitioning}: Constructs a $k$-nearest neighbor similarity graph across specimen centroids and finds spectral min-cut partitions to minimize cross-split similarity.
-\item \textbf{Adversarial Density Validation}: Trains an auxiliary domain classifier (e.g., LightGBM) to distinguish candidate splits, selecting partitions where adversarial $\mathrm{AUC} \to 0.50$ (maximum distributional overlap).
-\item \textbf{Stratified Group Allocation}: Extends multi-objective GroupKFold optimization to balance exact per-species target sample ratios while enforcing specimen disjointness.
-\item \textbf{Agglomerative Stratified Banding}: Combines hierarchical clustering with distance-band stratification (Near, Mid, Far shells from class centroid), ensuring representative split compositions.
+\subsubsection{Global Multi-Objective Fitness Function}
+To evaluate candidate partitions on the assembled global dataset $\mathcal{D}(\boldsymbol{m}) = \bigcup_{c=1}^C \mathcal{D}_c(m_c)$, we define a Global Multi-Objective Fitness Function:
+\begin{equation}
+\mathrm{Fitness}(\boldsymbol{m}) = w_1 \cdot \left( \frac{L_{\text{DataSAIL}}(\boldsymbol{m})}{1000} \right) - w_2 \cdot \left( 10 \cdot MMD(\boldsymbol{m}) \right) - w_3 \cdot \left( 10 \cdot \mathrm{F1}_{\text{Hardest}}(\boldsymbol{m}) \right),
+\label{eq:multi_obj_fitness}
+\end{equation}
+where $w_1 = 1.0$, $w_2 = 0.5$, and $w_3 = 0.5$. Minimizing $\mathrm{Fitness}(\boldsymbol{m})$ simultaneously:
+\begin{enumerate}[label=\textbf{(\arabic*)}, leftmargin=*]
+\item Minimizes DataSAIL inter-split leakage loss $L_{\text{DataSAIL}}(\boldsymbol{m})$.
+\item Maximizes feature distribution discrepancy $MMD(\boldsymbol{m})$ (OOD evaluation challenge).
+\item Maximizes hardest-class classification accuracy $\mathrm{F1}_{\text{Hardest}}(\boldsymbol{m})$ (inter-class decision boundary preservation).
 \end{enumerate}
 
-For each species $c$, the optimal strategy $m^*$ is selected automatically by minimizing cross-split nearest-neighbor cosine similarity on candidate test partitions:
+\subsubsection{Simulated Annealing Optimization Engine}
+We solve this combinatorial optimization problem using **Simulated Annealing (SA)**:
+
+\begin{enumerate}[label=\textbf{Step \arabic*:}, leftmargin=*]
+\item \textbf{Pre-computation}: Candidate splits $\mathcal{D}_c(m_c)$ for all 18 taxa across all 11 solvers are pre-computed and cached.
+\item \textbf{Initialization}: An initial configuration $\boldsymbol{m}^{(0)} = (m_1^{(0)}, \dots, m_{18}^{(0)})$ is selected randomly. The initial temperature is set to $T_0 = 10.0$ with a cooling rate $\alpha = 0.97$.
+\item \textbf{Neighbor Mutation}: At step $t$, a random taxon $c$ is selected, and its solver is mutated to a random alternative $m_c' \in \{1, \dots, K\}$.
+\item \textbf{Global Evaluation}: The assembled global dataset $\mathcal{D}(\boldsymbol{m}_{\text{cand}})$ is constructed, and $\Delta \mathrm{Fitness} = \mathrm{Fitness}(\boldsymbol{m}_{\text{cand}}) - \mathrm{Fitness}(\boldsymbol{m}^{(t)})$ is evaluated.
+\item \textbf{Boltzmann Acceptance}: The candidate configuration is accepted with probability:
 \begin{equation}
-m^* = \arg\min_{m} \frac{1}{|\mathcal{D}_{\mathrm{test}}^{(m,c)}|} \sum_{x_i \in \mathcal{D}_{\mathrm{test}}^{(m,c)}} \max_{x_j \in \mathcal{D}_{\mathrm{train}}^{(m,c)}} \left( \frac{z_i^T z_j}{\|z_i\|_2 \|z_j\|_2} \right).
-\label{eq:strategy_selection_formal}
+P(\text{accept}) = \begin{cases} 1.0 & \text{if } \Delta \mathrm{Fitness} < 0, \\ \exp\left(-\frac{\Delta \mathrm{Fitness}}{T_t}\right) & \text{if } \Delta \mathrm{Fitness} \ge 0. \end{cases}
 \end{equation}
-
-Table~\ref{tab:cegs_split} details the optimal per-species split configuration determined by CEGS-Split on the benchmark S3 wood dataset.
-
-\begin{table}[htbp]
-\centering
-\caption{Optimal per-species split configuration determined by CEGS-Split on the S3 dataset.}
-\label{tab:cegs_split}
-\small
-\begin{tabular}{l l c c}
-\toprule
-\textbf{Genus / Botanical Species} & \textbf{Strategy Name} & \textbf{Target Split} & \textbf{Backbone} \\
-\midrule
-\multicolumn{4}{l}{\textbf{\textit{Afzelia} Genus}} \\
-\quad \textit{Afzelia africana}      & Strategy 7 (Agglomerative Stratified) & Test & EfficientNetV2-M \\
-\quad \textit{Afzelia bella}          & Strategy 3 (Hierarchical Partitioning) & Validation & Swin-Large \\
-\quad \textit{Afzelia pachyloba}      & Strategy 3 (Hierarchical Partitioning) & Validation & EfficientNetV2-M \\
-\quad \textit{Afzelia quanzensis}     & Strategy 7 (Agglomerative Stratified) & Test & EfficientNetV2-M \\
-\midrule
-\multicolumn{4}{l}{\textbf{\textit{Dalbergia} Genus (CITES Protected)}} \\
-\quad \textit{Dalbergia cochinchinensis} & Strategy 7 (Agglomerative Stratified) & Validation & Swin-Large \\
-\quad \textit{Dalbergia melanoxylon}    & Strategy 2 (Iterative Mahalanobis) & Validation & EfficientNetV2-M \\
-\quad \textit{Dalbergia oliveri}        & Strategy 1 (Fixed Mahalanobis) & Test & Swin-Large \\
-\quad \textit{Dalbergia rimosa}         & Strategy 6 (Stratified Group) & Test & Swin-Large \\
-\quad \textit{Dalbergia tonkinensis}    & Strategy 5 (Adversarial Validation) & Test & Swin-Large \\
-\midrule
-\multicolumn{4}{l}{\textbf{\textit{Guibourtia} Genus}} \\
-\quad \textit{Guibourtia arnoldiana}     & Strategy 3 (Hierarchical Partitioning) & Test & EfficientNetV2-M \\
-\quad \textit{Guibourtia coleosperma}    & Strategy 1 (Fixed Mahalanobis) & Test & EfficientNetV2-M \\
-\quad \textit{Guibourtia ehie}           & Strategy 4 (Cosine Graph) & Test & Swin-Large \\
-\midrule
-\multicolumn{4}{l}{\textbf{\textit{Pterocarpus} Genus}} \\
-\quad \textit{Pterocarpus erinaceus}      & Strategy 2 (Iterative Mahalanobis) & Test & Swin-Large \\
-\quad \textit{Pterocarpus indicus}        & Strategy 7 (Agglomerative Stratified) & Test & EfficientNetV2-M \\
-\quad \textit{Pterocarpus macrocarpus}    & Strategy 2 (Iterative Mahalanobis) & Test & Swin-Large \\
-\quad \textit{Pterocarpus soyauxii}       & Strategy 3 (Hierarchical Partitioning) & Test & EfficientNetV2-M \\
-\midrule
-\multicolumn{4}{l}{\textbf{\textit{Sindora} Genus}} \\
-\quad \textit{Sindora cochinchinensis} & Strategy 6 (Stratified Group) & Validation & Swin-Large \\
-\quad \textit{Sindora tonkinensis}    & Strategy 5 (Adversarial Validation) & Validation & Swin-Large \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Phase 4: Cross-Split Near-Duplicate and Proximity Audit}
-Following split generation, CEGS-Split audits the maximum cross-split feature proximity for every test specimen $S_j \in \mathcal{S}_{\mathrm{test}}$:
-\begin{equation}
-r_j = \max_{S_k \in \mathcal{S}_{\mathrm{train}}} \left( \frac{h_j^T h_k}{\|h_j\|_2 \|h_k\|_2} \right).
-\label{eq:nn_audit_formal}
-\end{equation}
-
-Specimens falling in the upper 95th percentile of $r_j$ are flagged for manual provenance verification. If physical harvest logs indicate that two high-similarity specimen IDs originate from the same physical tree trunk, the manifest is corrected and the split regenerated. If physical logs confirm distinct biological origin, the pair is retained as a valid intra-species benchmark challenge.
-
-\subsection{Phase 5: Auditable and Leak-Free Downstream Evaluation Protocol}
-Under SCDP, downstream model evaluation is conducted on frozen manifest partitions ($\mathcal{D}_{\mathrm{train}}, \mathcal{D}_{\mathrm{val}}, \mathcal{D}_{\mathrm{test}}$). Once locked, test sets are strictly held out from hyperparameter optimization, threshold tuning, or feature scaler fitting. Performance metrics reported under SCDP reflect genuine model capacity to recognize unobserved physical entities.
+\item \textbf{Cooling}: Temperature is updated via $T_{t+1} = T_t \times 0.97$. The algorithm terminates after 400 iterations ($\approx 3$ seconds), returning the Pareto-optimal configuration $\boldsymbol{m}^*$.
+\end{enumerate}

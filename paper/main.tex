@@ -1,7 +1,7 @@
 \documentclass[a4paper,fleqn]{cas-sc}
 
 \usepackage[numbers,sort&compress]{natbib}
-\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{hyperref}
@@ -12,15 +12,23 @@
 \usepackage{microtype}
 \microtypesetup{expansion=false}
 \usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{colortbl}
+
+% ── Color Definitions for Academic Emphasis ─────────────────────────
+\definecolor{primaryblue}{RGB}{16, 44, 87}
+\definecolor{secondaryblue}{RGB}{53, 89, 142}
+\definecolor{accentred}{RGB}{178, 34, 34}
+\definecolor{lightbg}{RGB}{245, 247, 250}
 
 % ── Remove footer "Preprint submitted to Elsevier" ─────────────────
 \ExplSyntaxOn
 \cs_set:Npn \__first_footerline: { }
 \ExplSyntaxOff
 
-% ── Float Barrier: Khóa hình ảnh đứng đúng trong Section ───────────
+% ── Float Barrier & Layout Settings ────────────────────────────────
 \usepackage[section]{placeins}
-\usepackage{float}
 \renewcommand{\topfraction}{0.95}
 \renewcommand{\bottomfraction}{0.95}
 \renewcommand{\textfraction}{0.05}
@@ -29,13 +37,13 @@
 \setcounter{bottomnumber}{10}
 \setcounter{totalnumber}{20}
 
-\shorttitle{Addressing Specimen-Level Data Leakage in Fine-Grained Image Classification}
+\shorttitle{Preventing Specimen-Level Data Leakage in Wood Species Identification}
 \shortauthors{Viet-Anh Le}
 
 \begin{document}
 \let\WriteBookmarks\relax
 
-\title[mode=title]{Addressing Specimen-Level Data Leakage in Fine-Grained Image Classification: A Case Study on Wood Species Identification}
+\title[mode=title]{\color{primaryblue} Preventing Specimen-Level Data Leakage in Wood Species Identification: A Multi-Objective Combinatorial Partitioning Benchmark and Governance Framework}
 
 \author[1]{Viet-Anh Le}[type=editor, auid=001, bioid=1]
 \cormark[1]
@@ -46,11 +54,11 @@
 \cortext[1]{Corresponding author}
 
 \begin{abstract}
-Computer vision models deployed on physical specimen imagery (e.g., botanical identification, medical imaging, metallography) frequently suffer from catastrophic real-world failure despite achieving reported accuracies exceeding 95\% to 99\%. A primary driver of this deployment failure is that existing dataset generation workflows remain ad-hoc and unstandardized, storing cropped images in unindexed directory trees and relying on conventional random image-level splits. When multiple image observations originate from the same physical specimen, random splitting unintentionally distributes observations from identical physical entities across training and evaluation partitions, inducing severe \emph{specimen-level data leakage}. Under leaked splits, deep neural networks act as "Clever Hans" predictors, exploiting non-taxonomic surface scratches, optical vignetting, and sensor noise fingerprints to re-identify known physical samples rather than learning true biological features. To solve this systemic vulnerability, we propose the \emph{Specimen-Centric Data Protocol} (SCDP)---a generalized, end-to-end data governance framework encompassing physical acquisition logging, immutable metadata schemas, automated group-disjoint partitioning, cross-split proximity auditing, and leak-free evaluation. Within SCDP, we introduce \emph{Class-wise Embedding-Guided Specimen Split} (CEGS-Split), an automated algorithm that evaluates seven feature-space allocation strategies per class to guarantee specimen isolation while preserving per-class balance and evaluation difficulty. We validate SCDP on the benchmark S3 wood dataset (18 species, 5 genera). Under controlled classification experiments, switching from random splits to specimen-disjoint splits reduces accuracy from 95.81\% to 90.87\% ($-$4.94~pp) and macro-F1 from 94.93\% to 88.58\% ($-$6.35~pp), isolating the exact empirical inflation caused by data leakage. Diagnostic auditing via Grad-CAM further reveals that random splits conceal severe intra-genus failure modes, whereas SCDP forces deep networks to learn genuine anatomical structures (vessel pores and axial parenchyma). These results establish end-to-end specimen-level data governance as a mandatory prerequisite for trustworthy computer vision across all physical specimen domains.
+In computer vision-based wood species identification, data leakage at the physical specimen level---known as Same-Specimen-Picture Bias (SSPB) or pseudoreplication---causes deep neural networks to memorize non-taxonomic surface artifacts (such as mechanical saw blade marks, surface abrasions, and optical vignetting) rather than true biological features. Consequently, models achieve artificially inflated accuracy on naive random image splits ($99.87\%$) but suffer severe performance degradation when evaluated on novel physical specimens. While conventional group-based splitting methods enforce physical specimen isolation, they ignore feature-space similarities across distinct specimens, leading to subtle visual leakage. Furthermore, no single splitting algorithm is globally optimal for all wood species due to taxonal heterogeneity across species (the No Free Lunch theorem in data partitioning). To resolve these challenges, this paper presents a comprehensive benchmark evaluating six representative splitting protocols spanning five distinct algorithmic paradigms on a macro wood cross-section dataset of 18 species. We formulate a "Three Pillars Framework" incorporating 16 quantitative metrics that simultaneously evaluate Data Leakage Minimization ($L_{\text{DataSAIL}}$, $SLR$, $\bar{S}_{\text{inter}}$), Out-of-Distribution (OOD) Difficulty ($MMD$, $S_{\text{split}}$), and Inter-Class Hard Negative Preservation ($\text{F1}_{\text{Hardest}}$). Furthermore, we propose a Multi-Objective Simulated Annealing Meta-Selector ($\text{CEGS-Split}$) operating over a combinatorial search space of $11^{18} \approx 5.55 \times 10^{18}$ configurations to synthesize class-wise optimal partitioning. Empirical results demonstrate that naive random image splitting inflates accuracy to $99.87\%$ ($SLR = 100.0\%$), whereas DataSAIL Specimen-level ILP reduces leakage loss to $4,841,999.8$ ($SLR = 5.7\%$, $MMD = 0.1199$). Our Multi-Objective Meta-Selector maintains strict specimen isolation ($SLR = 0.0\%$, $CCR = 100.0\%$), achieves a realistic top-1 accuracy of $98.68\%$, and yields the highest hardest-class F1-score ($0.8148$). This study provides rigorous methodological foundations and academic guidelines for trustworthy computer vision benchmarks across biological and physical specimen domains.
 \end{abstract}
 
 \begin{keywords}
-Data governance \sep Data leakage \sep Specimen-level isolation \sep Fine-grained visual classification \sep Wood species identification \sep Group-disjoint splitting \sep Reproducibility
+Data leakage \sep Same-Specimen-Picture Bias \sep Wood species identification \sep DataSAIL \sep Multi-objective optimization \sep Simulated annealing \sep Out-of-distribution benchmark
 \end{keywords}
 
 \maketitle

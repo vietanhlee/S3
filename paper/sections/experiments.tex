@@ -1,60 +1,35 @@
-\section{Experimental Setup and S3 Case Study}
+\section{Experimental Setup}
 
-To validate the proposed Specimen-Centric Data Protocol (SCDP) and quantify specimen-level data leakage, we conduct controlled experiments on the S3 macroscopic wood species benchmark. This section details the dataset characteristics, existing partitioning baselines, evaluation protocols, and deep vision architectures.
+To evaluate specimen-level data leakage and benchmark partitioning paradigms, we conduct controlled experiments on the S3 macroscopic wood species dataset. This section details the dataset governance, the feature extraction setup, the evaluation protocol, and experimental controls.
 
-\subsection{The S3 Wood Benchmark Dataset}
-The S3 dataset comprises high-resolution macroscopic cross-sectional images of 18 wood species spanning 5 botanical genera: \textit{Afzelia} (4 spp.), \textit{Dalbergia} (5 spp., CITES Appendix II listed), \textit{Guibourtia} (3 spp.), \textit{Pterocarpus} (4 spp.), and \textit{Sindora} (2 spp.). Each image subdirectory maps to a distinct physical wood specimen block. Following SCDP governance, two raw categories lacking specimen provenance logs (\textit{Peltogyne pubescens} and an unassigned \textit{Pterocarpus sp.}) were excluded, leaving 18 taxonomically verified species. Figure~\ref{fig:eda_split} illustrates the per-species distribution of image observations and physical specimens under CEGS-Split.
+\subsection{The S3 Macroscopic Wood Dataset}
+The benchmark dataset comprises macroscopic cross-sectional images of 18 wood species spanning 5 botanical genera: \textit{Afzelia} (4 spp.), \textit{Dalbergia} (5 spp., CITES Appendix II listed), \textit{Guibourtia} (3 spp.), \textit{Pterocarpus} (4 spp.), and \textit{Sindora} (2 spp.). Each subfolder in the dataset maps to an immutable physical specimen block ($g_i$). Two raw categories lacking physical harvest logs (\textit{Pterocarpus sp.} and \textit{Peltogyne pubescens}) were excluded under governance rules, leaving 18 taxonomically verified species. Target split ratios are set to **Train 60\% / Val 20\% / Test 20\%**.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.85\textwidth]{fig/eda_split_end_version.png}
-\caption{Per-species image observation and physical specimen counts in the S3 dataset under CEGS-Split partitioning.}
-\label{fig:eda_split}
-\end{figure}
+\subsection{Feature Extraction and Zero-Training KNN Protocol}
+To isolate dataset partitioning performance from neural network training stochasticity (such as random weight initialization, optimizer state variance, or epoch termination choices), we adopt a **Zero-Training Nearest-Neighbor ($1$-NN) Evaluation Protocol**:
 
-\subsection{Comparative Analysis of Data Partitioning Protocols}
-To evaluate the effectiveness of CEGS-Split, we compare it against four existing dataset partitioning protocols commonly used across machine learning literature:
-
-\begin{enumerate}[label=\textbf{Protocol \arabic*:}, leftmargin=*]
-\item \textbf{Random Image-Level Split (R-Split)}: Uniform random sampling over image files without physical specimen isolation (simulating prevailing ad-hoc computer vision workflows). Images harvested from the same physical block $S_k$ co-occur across training and test sets, causing severe specimen-level data leakage.
-
-\item \textbf{Naive GroupKFold Split (G-Split)}: Standard group-disjoint splitting by \texttt{specimen\_id} (Scikit-Learn `GroupKFold`). While G-Split enforces specimen isolation, it completely ignores per-species class balance, resulting in severe sample size imbalance and missing minority classes in validation or test splits.
-
-\item \textbf{Stratified GroupKFold Split (SG-Split)}: Extends GroupKFold to balance class proportions while maintaining specimen isolation. However, SG-Split ignores feature-space representation density, often placing highly similar specimen pairs across split boundaries.
-
-\item \textbf{Spatial / Distance Blocking (S-Split)}: Groups specimens based on Euclidean feature distance thresholds. S-Split prevents spatial proximity across splits but suffers from over-clustering, reducing split diversity.
-
-\item \textbf{CEGS-Split (Proposed SCDP Governance)}: Evaluates seven distinct feature-space allocation strategies per species (Section~\ref{sec:cegs_split}) combined with cross-split cosine auditing, guaranteeing 100\% specimen isolation, preserving exact per-species balance, and maximizing evaluation difficulty.
+\begin{enumerate}[label=\textbf{\arabic*:}, leftmargin=*]
+\item \textbf{Deep Feature Backbone}: Deep feature representations are extracted using \texttt{tf\_efficientnetv2\_m\_in21k}~\cite{efficientnetv2}, a state-of-the-art Convolutional Neural Network pre-trained on ImageNet-21k.
+\item \textbf{Embedding Extraction}: Macro images of resolution $224 \times 224$ pixels are mapped to 1280-dimensional feature vectors $\boldsymbol{f}_i \in \mathbb{R}^{1280}$. Feature vectors are $L_2$-normalized: $\phi(x_i) = \frac{\boldsymbol{f}_i}{\|\boldsymbol{f}_i\|_2}$.
+\item \textbf{1-NN Classification}: For each test sample $x_{\text{test}} \in \mathcal{D}_{\text{Test}}$, a $1$-Nearest Neighbor classifier assigns the species label of the closest training sample under Cosine distance:
+\begin{equation}
+\hat{y}(x_{\text{test}}) = y\left( \arg\max_{x_{\text{train}} \in \mathcal{D}_{\text{Train}}} \phi(x_{\text{test}})^T \phi(x_{\text{train}}) \right).
+\end{equation}
+\item \textbf{Multi-Seed Replication}: All experiments are evaluated across 5 independent random seeds (\texttt{[42, 123, 456, 789, 2024]}). Summary tables report mean performance and standard deviation ($\text{Mean} \pm \text{Std}$).
 \end{enumerate}
 
-Table~\ref{tab:protocol_comparison} provides a qualitative and technical comparison of these partitioning protocols.
-
-\begin{table}[htbp]
-\centering
-\caption{Taxonomy and technical comparison of data partitioning protocols in physical object domains.}
-\label{tab:protocol_comparison}
-\small
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Partitioning Protocol} & \textbf{Specimen Isolation} & \textbf{Class Balance} & \textbf{Feature Auditability} & \textbf{Data Leakage Risk} \\
-\midrule
-R-Split (Random Image)       & \times & \checkmark & \times & \textbf{Severe (100\% Leakage)} \\
-G-Split (Naive GroupKFold)    & \checkmark & \times & \times & Low (Unbalanced Splits) \\
-SG-Split (Stratified Group)  & \checkmark & \checkmark & \times & Low (Unchecked Proximity) \\
-S-Split (Distance Blocking)   & \checkmark & \times & \checkmark & Low (Over-clustered) \\
-\textbf{CEGS-Split (SCDP)}    & \checkmark & \checkmark & \checkmark & \textbf{Zero (Audited \& Locked)} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Vision Backbones and Baseline Architectures}
-We evaluate four representative deep vision architectures spanning distinct representation paradigms:
+\subsection{Controlled Experimental Paradigms}
+We evaluate the streamlined suite of six splitting protocols spanning five distinct paradigms:
 \begin{itemize}
-\item \textbf{ConvNeXt-Tiny}~\cite{convnext}: Pure convolutional backbone ($28.6\text{M}$ parameters) incorporating $7\times 7$ depthwise separable convolutions and inverted bottlenecks.
-\item \textbf{Swin-Large}~\cite{swin}: Hierarchical Vision Transformer ($197\text{M}$ parameters) computing self-attention within shifted local windows.
-\item \textbf{EfficientNetV2-M}~\cite{efficientnetv2}: NAS-optimized convolutional backbone ($54.1\text{M}$ parameters) using Fused-MBConv layers.
-\item \textbf{ResNet-50}~\cite{resnet}: Classic 50-layer residual convolutional baseline ($25.6\text{M}$ parameters).
+\item \textbf{\texttt{PP0\_Stratified\_Random}}: Baseline Naive Random Image Split (Maximum Leakage).
+\item \textbf{\texttt{PP8\_StratifiedGroupKFold}}: Baseline Standard Grouping (Physical Subfolder Isolation).
+\item \textbf{\texttt{PP4\_Hierarchical\_Clustering}}: Unsupervised Dendrogram Ward Linkage Clustering.
+\item \textbf{\texttt{PP7\_Adversarial\_Validation}}: Adversarial MLP Discriminator Outlier Isolation.
+\item \textbf{\texttt{PP10\_DataSAIL\_Specimen}}: DataSAIL Integer Linear Programming (Specimen Level).
+\item \textbf{\texttt{PP13\_DataSAIL\_Meta\_Selector\_Multi\_Objective\_SA}}: Multi-Objective Simulated Annealing Meta-Selector ($k^N$ Search Space).
 \end{itemize}
 
-\subsection{Training Protocol and Implementation Details}
-All classification models are trained using **Focal Loss**~\cite{focal} ($\gamma = 2.0, \alpha = 0.25$) to handle class imbalance across wood species. Models are optimized using AdamW ($\beta_1 = 0.9, \beta_2 = 0.999$, weight decay $10^{-4}$) with a cosine annealing learning rate scheduler (initial learning rate $10^{-4}$, minimum $10^{-6}$) for 50 training epochs. Input images are resized to $224 \times 224$ pixels and normalized using ImageNet channel statistics. Standard data augmentations (random horizontal/vertical flips, random rotations up to $15^\circ$, and color jitter) are applied strictly to training partitions.
+Statistical significance between the baseline \texttt{PP0} and candidate protocols is evaluated using Welch's $t$-test ($p$-value) and Cohen's $d$ effect size:
+\begin{equation}
+d = \frac{\bar{X}_1 - \bar{X}_2}{s_{\text{pooled}}}, \quad s_{\text{pooled}} = \sqrt{\frac{s_1^2 + s_2^2}{2}}.
+\end{equation}

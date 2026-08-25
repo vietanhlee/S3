@@ -1,10 +1,10 @@
 """
 datasail_benchmark/evaluator.py
 ===============================
-Pipeline quản lý thực thi 11 thuật toán chia từ split_methods.py + DataSAIL,
+Pipeline quản lý thực thi các thuật toán chia từ split_methods.py + DataSAIL,
 Mục 5A: Class-wise DataSAIL Loss Selector (PP12),
 Mục 5B: Multi-Objective Simulated Annealing Selector (PP13),
-tính toán 16 chỉ số đo lường và xuất báo cáo.
+tính toán các chỉ số đo lường học thuật và xuất báo cáo.
 """
 
 import json
@@ -26,12 +26,12 @@ from .metrics import (
 	compute_class_coverage_rate,
 	compute_silhouette_separation,
 	compute_maximum_mean_discrepancy,
-	compute_nearest_neighbor_stats,
+	compute_nearest_neighbor_mean_sim,
 	compute_wasserstein_divergence,
 	compute_knn_metrics,
 	compute_statistical_significance,
 )
-from .solvers import ALL_SOLVERS
+from .solvers import ALL_SOLVERS, SPLIT_METHODS_WRAPPED
 
 
 def run_classwise_datasail_loss_selector(
@@ -41,11 +41,15 @@ def run_classwise_datasail_loss_selector(
 ) -> Tuple[Dict[str, str], Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
 	"""
 	Mục 5A: Tối ưu hóa đơn mục tiêu Per-Class DataSAIL Loss:
-	Duyệt qua từng loài gỗ c, chọn phương pháp solver cho ra DataSAIL Loss L_c nhỏ nhất cho loài c.
+	Duyệt qua từng loài gỗ c, chọn phương pháp solver cho ra DataSAIL Loss L_c nhỏ nhất cho loài c
+	chỉ quét trên không gian các thuật toán từ split_methods.py (SPLIT_METHODS_WRAPPED).
 	"""
 	class_names = sorted(df_filtered["label"].unique().tolist())
 	optimal_classwise_pp = {}
 	meta_tr_dfs, meta_va_dfs, meta_te_dfs = [], [], []
+
+	# Chỉ quét không gian các thuật toán từ split_methods.py
+	candidate_solvers = SPLIT_METHODS_WRAPPED
 
 	for label in class_names:
 		class_mask = df_filtered["label"] == label
@@ -58,7 +62,7 @@ def run_classwise_datasail_loss_selector(
 		best_class_loss = float("inf")
 		best_splits = None
 
-		for proto_name, solver_fn in ALL_SOLVERS.items():
+		for proto_name, solver_fn in candidate_solvers.items():
 			try:
 				tr_sub, va_sub, te_sub = solver_fn(sub_df, sub_embs, seed=42)
 				tr_i = [sub_path_to_idx[p] for p in tr_sub["path"]]
@@ -98,12 +102,15 @@ def optimize_multi_objective_datasail_sa(
 	seed: int = 42,
 ) -> Tuple[Dict[str, str], Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
 	"""
-	Mục 5B: Thuật toán Luyện Kim (Simulated Annealing - SA) Tối Ưu Hóa Đa Mục Tiêu (Multi-Objective Optimization):
+	Mục 5B: Thuật toán Luyện Kim (Simulated Annealing - SA) Tối Ưu Hóa Đa Mục Tiêu:
 	Fitness(m) = w1 * L_DataSAIL / 1000 - w2 * MMD * 10 - w3 * Hardest_F1 * 10
-	Đánh giá trực tiếp trên MA TRẬN DATASET TOÀN CỤC (Global Dataset Combination).
+	Chỉ quét chọn trong không gian các thuật toán phân tách từ split_methods.py (SPLIT_METHODS_WRAPPED).
 	"""
 	rng = random.Random(seed)
 	class_names = sorted(df_filtered["label"].unique().tolist())
+
+	# Chỉ quét không gian các thuật toán từ split_methods.py
+	candidate_solvers = SPLIT_METHODS_WRAPPED
 
 	class_splits_cache: Dict[str, Dict[str, Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]] = {}
 	for label in class_names:
@@ -112,7 +119,7 @@ def optimize_multi_objective_datasail_sa(
 		sub_embs = embeddings[sub_indices]
 
 		class_splits_cache[label] = {}
-		for proto_name, solver_fn in ALL_SOLVERS.items():
+		for proto_name, solver_fn in candidate_solvers.items():
 			try:
 				tr_s, va_s, te_s = solver_fn(sub_df, sub_embs, seed=seed)
 				class_splits_cache[label][proto_name] = (tr_s, va_s, te_s)
@@ -187,9 +194,9 @@ def run_benchmark_pipeline(
 	output_dir: Path = OUTPUT_DIR,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], str]:
 	"""
-	Thực thi pipeline benchmark toàn diện trên 11 thuật toán chia x 5 seeds
-	+ Mục 5A: Per-Class DataSAIL Loss Selector (PP12)
-	+ Mục 5B: Multi-Objective SA Selector (PP13).
+	Thực thi pipeline benchmark toàn diện trên tất cả các thuật toán chia x 5 seeds
+	+ Mục 5A: Per-Class DataSAIL Loss Selector (PP12) - Quét các thuật toán từ split_methods.py
+	+ Mục 5B: Multi-Objective SA Selector (PP13) - Quét các thuật toán từ split_methods.py.
 	"""
 	output_dir.mkdir(parents=True, exist_ok=True)
 	path_to_idx = {path: i for i, path in enumerate(df_filtered["path"])}
@@ -201,7 +208,7 @@ def run_benchmark_pipeline(
 
 	raw_benchmark_records = []
 
-	# Duyệt 11 solvers x 5 seeds
+	# Duyệt tất cả các solvers x 5 seeds
 	for proto_name, solver_fn in ALL_SOLVERS.items():
 		print(f"-> Đang thực thi phương pháp: {proto_name}...")
 		for seed in BENCHMARK_SEEDS:
@@ -220,7 +227,7 @@ def run_benchmark_pipeline(
 				ccr = compute_class_coverage_rate(df_filtered, df_tr, df_va, df_te)
 				sil_score = compute_silhouette_separation(embeddings, tr_idx, va_idx, te_idx)
 				mmd_dist = compute_maximum_mean_discrepancy(embeddings, tr_idx, te_idx)
-				nn_stats = compute_nearest_neighbor_stats(embeddings, tr_idx, te_idx)
+				nn_mean = compute_nearest_neighbor_mean_sim(embeddings, tr_idx, te_idx)
 				w1_dist = compute_wasserstein_divergence(df_filtered, df_tr, df_va, df_te)
 				knn_res = compute_knn_metrics(embeddings, df_tr, df_te, class_to_idx, path_to_idx)
 
@@ -235,16 +242,12 @@ def run_benchmark_pipeline(
 					"ccr_percent": ccr,
 					"silhouette_score": sil_score,
 					"mmd_distance": mmd_dist,
-					"nn_sim_mean": nn_stats["nn_sim_mean"],
-					"nn_sim_max": nn_stats["nn_sim_max"],
-					"nn_sim_p90": nn_stats["nn_sim_p90"],
-					"nn_sim_std": nn_stats["nn_sim_std"],
+					"nn_sim_mean": nn_mean,
 					"wasserstein_dist": w1_dist,
 					"knn_accuracy": knn_res["knn_accuracy"],
 					"knn_top3_accuracy": knn_res["knn_top3_accuracy"],
 					"knn_balanced_accuracy": knn_res["knn_balanced_accuracy"],
 					"knn_f1_macro": knn_res["knn_f1_macro"],
-					"knn_f1_weighted": knn_res["knn_f1_weighted"],
 					"hardest_class_f1": knn_res["hardest_class_f1"],
 					"num_train": len(df_tr),
 					"num_val": len(df_va),
@@ -255,9 +258,9 @@ def run_benchmark_pipeline(
 				print(f"  [Lỗi] {proto_name} (Seed {seed}): {str(e)}")
 
 	# =========================================================================
-	# MỤC 5A: Tối ưu hóa Per-Class DataSAIL Loss Selector (PP12)
+	# MỤC 5A: Tối ưu hóa Per-Class DataSAIL Loss Selector (PP12) - split_methods.py ONLY
 	# =========================================================================
-	print(f"\n-> Đang thực thi Mục 5A: Tối ưu hóa Per-Class DataSAIL Loss Selector (PP12)...")
+	print(f"\n-> Đang thực thi Mục 5A: Classwise DataSAIL Loss Selector (PP12 - split_methods.py ONLY)...")
 	opt_classwise_config, (df_meta_tr_a, df_meta_va_a, df_meta_te_a) = run_classwise_datasail_loss_selector(
 		df_filtered, embeddings, path_to_idx
 	)
@@ -265,6 +268,7 @@ def run_benchmark_pipeline(
 	tr_i_a = [path_to_idx[p] for p in df_meta_tr_a["path"]]
 	va_i_a = [path_to_idx[p] for p in df_meta_va_a["path"]]
 	te_i_a = [path_to_idx[p] for p in df_meta_te_a["path"]]
+	knn_a = compute_knn_metrics(embeddings, df_meta_tr_a, df_meta_te_a, class_to_idx, path_to_idx)
 
 	rec_5a = {
 		"protocol": "PP12_DataSAIL_Meta_Selector_Classwise_Loss",
@@ -277,17 +281,13 @@ def run_benchmark_pipeline(
 		"ccr_percent": compute_class_coverage_rate(df_filtered, df_meta_tr_a, df_meta_va_a, df_meta_te_a),
 		"silhouette_score": compute_silhouette_separation(embeddings, tr_i_a, va_i_a, te_i_a),
 		"mmd_distance": compute_maximum_mean_discrepancy(embeddings, tr_i_a, te_i_a),
-		"nn_sim_mean": compute_nearest_neighbor_stats(embeddings, tr_i_a, te_i_a)["nn_sim_mean"],
-		"nn_sim_max": compute_nearest_neighbor_stats(embeddings, tr_i_a, te_i_a)["nn_sim_max"],
-		"nn_sim_p90": compute_nearest_neighbor_stats(embeddings, tr_i_a, te_i_a)["nn_sim_p90"],
-		"nn_sim_std": compute_nearest_neighbor_stats(embeddings, tr_i_a, te_i_a)["nn_sim_std"],
+		"nn_sim_mean": compute_nearest_neighbor_mean_sim(embeddings, tr_i_a, te_i_a),
 		"wasserstein_dist": compute_wasserstein_divergence(df_filtered, df_meta_tr_a, df_meta_va_a, df_meta_te_a),
-		"knn_accuracy": compute_knn_metrics(embeddings, df_meta_tr_a, df_meta_te_a, class_to_idx, path_to_idx)["knn_accuracy"],
-		"knn_top3_accuracy": compute_knn_metrics(embeddings, df_meta_tr_a, df_meta_te_a, class_to_idx, path_to_idx)["knn_top3_accuracy"],
-		"knn_balanced_accuracy": compute_knn_metrics(embeddings, df_meta_tr_a, df_meta_te_a, class_to_idx, path_to_idx)["knn_balanced_accuracy"],
-		"knn_f1_macro": compute_knn_metrics(embeddings, df_meta_tr_a, df_meta_te_a, class_to_idx, path_to_idx)["knn_f1_macro"],
-		"knn_f1_weighted": compute_knn_metrics(embeddings, df_meta_tr_a, df_meta_te_a, class_to_idx, path_to_idx)["knn_f1_weighted"],
-		"hardest_class_f1": compute_knn_metrics(embeddings, df_meta_tr_a, df_meta_te_a, class_to_idx, path_to_idx)["hardest_class_f1"],
+		"knn_accuracy": knn_a["knn_accuracy"],
+		"knn_top3_accuracy": knn_a["knn_top3_accuracy"],
+		"knn_balanced_accuracy": knn_a["knn_balanced_accuracy"],
+		"knn_f1_macro": knn_a["knn_f1_macro"],
+		"hardest_class_f1": knn_a["hardest_class_f1"],
 		"num_train": len(df_meta_tr_a),
 		"num_val": len(df_meta_va_a),
 		"num_test": len(df_meta_te_a),
@@ -295,9 +295,9 @@ def run_benchmark_pipeline(
 	raw_benchmark_records.append(rec_5a)
 
 	# =========================================================================
-	# MỤC 5B: Tối ưu hóa Đa Mục Tiêu Multi-Objective Simulated Annealing (PP13)
+	# MỤC 5B: Tối ưu hóa Đa Mục Tiêu Multi-Objective SA (PP13) - split_methods.py ONLY
 	# =========================================================================
-	print(f"\n-> Đang thực thi Mục 5B: Tối ưu hóa Đa Mục Tiêu Multi-Objective SA Selector (PP13)...")
+	print(f"\n-> Đang thực thi Mục 5B: Multi-Objective SA Selector (PP13 - split_methods.py ONLY)...")
 	opt_sa_config, (df_meta_tr_b, df_meta_va_b, df_meta_te_b) = optimize_multi_objective_datasail_sa(
 		df_filtered, embeddings, class_to_idx, path_to_idx, seed=42
 	)
@@ -305,6 +305,7 @@ def run_benchmark_pipeline(
 	tr_i_b = [path_to_idx[p] for p in df_meta_tr_b["path"]]
 	va_i_b = [path_to_idx[p] for p in df_meta_va_b["path"]]
 	te_i_b = [path_to_idx[p] for p in df_meta_te_b["path"]]
+	knn_b = compute_knn_metrics(embeddings, df_meta_tr_b, df_meta_te_b, class_to_idx, path_to_idx)
 
 	rec_5b = {
 		"protocol": "PP13_DataSAIL_Meta_Selector_Multi_Objective_SA",
@@ -317,17 +318,13 @@ def run_benchmark_pipeline(
 		"ccr_percent": compute_class_coverage_rate(df_filtered, df_meta_tr_b, df_meta_va_b, df_meta_te_b),
 		"silhouette_score": compute_silhouette_separation(embeddings, tr_i_b, va_i_b, te_i_b),
 		"mmd_distance": compute_maximum_mean_discrepancy(embeddings, tr_i_b, te_i_b),
-		"nn_sim_mean": compute_nearest_neighbor_stats(embeddings, tr_i_b, te_i_b)["nn_sim_mean"],
-		"nn_sim_max": compute_nearest_neighbor_stats(embeddings, tr_i_b, te_i_b)["nn_sim_max"],
-		"nn_sim_p90": compute_nearest_neighbor_stats(embeddings, tr_i_b, te_i_b)["nn_sim_p90"],
-		"nn_sim_std": compute_nearest_neighbor_stats(embeddings, tr_i_b, te_i_b)["nn_sim_std"],
+		"nn_sim_mean": compute_nearest_neighbor_mean_sim(embeddings, tr_i_b, te_i_b),
 		"wasserstein_dist": compute_wasserstein_divergence(df_filtered, df_meta_tr_b, df_meta_va_b, df_meta_te_b),
-		"knn_accuracy": compute_knn_metrics(embeddings, df_meta_tr_b, df_meta_te_b, class_to_idx, path_to_idx)["knn_accuracy"],
-		"knn_top3_accuracy": compute_knn_metrics(embeddings, df_meta_tr_b, df_meta_te_b, class_to_idx, path_to_idx)["knn_top3_accuracy"],
-		"knn_balanced_accuracy": compute_knn_metrics(embeddings, df_meta_tr_b, df_meta_te_b, class_to_idx, path_to_idx)["knn_balanced_accuracy"],
-		"knn_f1_macro": compute_knn_metrics(embeddings, df_meta_tr_b, df_meta_te_b, class_to_idx, path_to_idx)["knn_f1_macro"],
-		"knn_f1_weighted": compute_knn_metrics(embeddings, df_meta_tr_b, df_meta_te_b, class_to_idx, path_to_idx)["knn_f1_weighted"],
-		"hardest_class_f1": compute_knn_metrics(embeddings, df_meta_tr_b, df_meta_te_b, class_to_idx, path_to_idx)["hardest_class_f1"],
+		"knn_accuracy": knn_b["knn_accuracy"],
+		"knn_top3_accuracy": knn_b["knn_top3_accuracy"],
+		"knn_balanced_accuracy": knn_b["knn_balanced_accuracy"],
+		"knn_f1_macro": knn_b["knn_f1_macro"],
+		"hardest_class_f1": knn_b["hardest_class_f1"],
 		"num_train": len(df_meta_tr_b),
 		"num_val": len(df_meta_va_b),
 		"num_test": len(df_meta_te_b),
@@ -344,7 +341,7 @@ def run_benchmark_pipeline(
 	with open(output_dir / "optimal_k_n_classwise_config.json", "w", encoding="utf-8") as f:
 		json.dump(configs_dict, f, indent=2, ensure_ascii=False)
 
-	# Bảng Thống kê Học thuật (Mean +- Std)
+	# BẢNG THỐNG KÊ HỌC THUẬT
 	lines = []
 	lines.append("=" * 155)
 	lines.append(" BẢNG TỔNG HỢP KẾT QUẢ BENCHMARK DATA LEAKAGE Q1/Q2 (MEAN ± STD QUA 5 SEEDS, 100% CLASS COVERAGE)")

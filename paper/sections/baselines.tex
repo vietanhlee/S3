@@ -17,15 +17,15 @@ To address class imbalance across wood species in the S3 benchmark, models are t
 \begin{equation}
 L_{\mathrm{Focal}}(p_t) = -\alpha_t (1 - p_t)^\gamma \log(p_t),
 \end{equation}
-where $p_t$ is the model's estimated probability for the ground-truth class, $\gamma \ge 0$ is the focusing parameter that down-weights easy examples, and $\alpha_t \in [0, 1]$ balances positive versus negative class frequencies. Throughout all classification experiments, we set $\gamma = 2.0$ and $\alpha = 0.25$.
+where $p_t$ is the model's estimated probability for the ground-truth class, $\gamma \ge 0$ is the focusing parameter that down-weights easy examples, and $\alpha_t \in [0, 1]$ balances positive versus negative class frequencies ($\gamma = 2.0, \alpha = 0.25$).
 
 \subsection{Formalization of Dataset Partitioning Protocols}
-To rigorously quantify data leakage inflation, we define three distinct dataset partitioning protocols:
+To rigorously quantify data leakage inflation, we define three distinct dataset partitioning protocols under target split ratios **Train 60\% / Val 20\% / Test 20\%**:
 
 \begin{enumerate}[label=\textbf{Protocol \Alph*:}, leftmargin=*]
-\item \textbf{Random Image-Level Split (R-Split)}: Images are assigned randomly to training, validation, and testing sets according to fixed target ratios (e.g., 80\% train, 10\% val, 10\% test) without regard to physical specimen origin. In this protocol, images $x_i, x_j$ harvested from the same physical block $S_k$ routinely co-occur in both $\mathcal{D}_{\mathrm{train}}$ and $\mathcal{D}_{\mathrm{test}}$, creating severe specimen-level data leakage.
+\item \textbf{Random Image-Level Split (R-Split)}: Images are assigned randomly to training, validation, and testing sets according to fixed target ratios (60\% train, 20\% val, 20\% test) without regard to physical specimen origin. In this protocol, images $x_i, x_j$ harvested from the same physical block $S_k$ routinely co-occur in both $\mathcal{D}_{\mathrm{train}}$ and $\mathcal{D}_{\mathrm{test}}$, creating severe specimen-level data leakage.
 
-\item \textbf{Naive GroupKFold Split (G-Split)}: Enforces specimen disjointness at the dataset level by grouping images strictly by `specimen_id`. However, naive GroupKFold ignores per-species class balance, causing severe sample size imbalance and complete absence of minority classes in validation or test partitions for rare species.
+\item \textbf{Naive GroupKFold Split (G-Split)}: Enforces specimen disjointness at the dataset level by grouping images strictly by \texttt{specimen\_id}. However, naive GroupKFold ignores per-species class balance, causing severe sample size imbalance and complete absence of minority classes in validation or test partitions for rare species.
 
-\item \textbf{Class-wise Embedding-Guided Specimen Split (CEGS-Split)}: Enforces absolute specimen disjointness per species ($\mathcal{S}_{\mathrm{train}}^{(c)} \cap \mathcal{S}_{\mathrm{test}}^{(c)} = \varnothing$) while evaluating seven feature-space partitioning strategies per species (Section~\ref{sec:cegs_split}) to preserve target class proportions and maximize evaluation difficulty.
+\item \textbf{Class-wise Embedding-Guided Specimen Split (CEGS-Split)}: Enforces absolute specimen disjointness per species ($\mathcal{S}_{\mathrm{train}}^{(c)} \cap \mathcal{S}_{\mathrm{test}}^{(c)} = \varnothing$) while evaluating seven feature-space partitioning strategies per species to preserve target class proportions and maximize evaluation difficulty.
 \end{enumerate}

@@ -1,60 +1,56 @@
 \section{Introduction}
 
-Computer vision has achieved notable progress across physical science domains, enabling automated solutions in botanical species identification~\cite{woodreview}, medical radiograph analysis~\cite{roberts2021}, agricultural crop disease screening~\cite{varoquaux2022}, spatial and ecological distribution modeling~\cite{roberts2017}, and metallographic material characterization~\cite{azimi2018}. In these domains, deep learning models promise non-destructive, rapid, and field-deployable screening to complement labor-intensive laboratory procedures. However, despite reported classification accuracies exceeding 95\% to 99\% across recent literature, computer vision models deployed on physical specimen imagery frequently suffer from severe performance degradation when evaluated in actual operational environments.
+Automated visual screening systems powered by deep convolutional neural networks (CNNs) and vision transformers (ViTs) have emerged as essential computational tools across physical science domains, including botanical identification, radiograph interpretation, agricultural crop diagnostic screening, and materials characterization~\cite{woodreview,rosadasilva2022,varoquaux2022,roberts2021}. In forestry science and international timber trade regulation, rapid macroscopic wood species identification is critical for enforcing international trade compliance under CITES Appendix II regulations~\cite{cites}, verifying legal timber supply chains, preventing illegal deforestation, and supporting forensic forestry investigations~\cite{dormontt2015,song2025,liu2025}. Computer vision systems promise field-deployable, non-destructive verification that can supplement labor-intensive xylotomy procedures in remote customs checkpoints. However, despite reported classification accuracies exceeding 95\% to 99\% across recent literature, computer vision models deployed on physical specimen imagery frequently suffer from catastrophic performance degradation when evaluated in operational field environments.
 
-We argue that a primary driver of this deployment failure is that dataset generation workflows in applied computer vision remain largely ad-hoc, unstandardized, and methodologically unverified. We formalize this broader computational challenge under a unified framework: **Physical Entity-Centric Visual Classification (PECVC)**. PECVC encompasses any visual recognition domain where individual physical entities---such as biological wood logs, patient organs, agricultural crop plants, or alloy metal blocks---generate multiple correlated image observations.
+We argue that a primary driver of this systemic deployment failure is that dataset creation and evaluation workflows in applied computer vision remain largely ad-hoc, unstandardized, and methodologically unverified. We formalize this fundamental computational challenge under a unified paradigm: \textbf{Physical Entity-Centric Visual Classification (PECVC)}. PECVC encompasses any visual recognition domain where individual physical entities---such as biological wood logs, patient tissue blocks, agricultural crop specimens, or alloy metal samples---generate multiple correlated image observations.
 
-In typical PECVC workflows, researchers collect images from physical objects, store them in flat directory structures organized solely by target class labels, and immediately partition datasets into training and evaluation sets using conventional \emph{random image-level splits}. Crucially, this prevailing workflow ignores physical object provenance. When random image-level partitioning is applied to PECVC datasets, observations originating from the exact same physical entity are unintentionally distributed across both training and test sets.
+In prevailing PECVC workflows, researchers harvest multiple high-resolution images from physical objects, store them in flat directory structures organized solely by target class labels, and immediately partition datasets into training and evaluation sets using conventional \emph{random image-level splits}. Crucially, this workflow ignores physical object provenance. When random image-level partitioning is applied to PECVC datasets, sub-images or cropped patches originating from the exact same physical entity are unintentionally distributed across both training and test sets.
 
-This systemic flaw induces a subtle but impactful failure mode formally conceptualized in plant vision literature as **Same-Specimen-Picture Bias (SSPB)**~\cite{figueroamata2022} and more broadly recognized as **specimen-level data leakage**~\cite{varoquaux2022,roberts2021,rosadasilva2022}. Under random image-level partitioning, deep neural networks act as opportunistic "shortcut learners" or "Clever Hans" predictors~\cite{geirhos2020,lapuschkin2019}. Rather than learning class-discriminative biological or anatomical features, deep networks exploit non-taxonomic surface artifacts, mechanical saw marks, optical illumination gradients, and camera sensor noise fingerprints unique to individual physical specimens. Consequently, reported high test accuracy does not measure the model's capacity to recognize novel physical samples; instead, it measures its capacity to re-identify previously seen physical sources.
+This systemic flaw induces a subtle but impactful failure mode formally conceptualized in plant vision literature as \textbf{Same-Specimen-Picture Bias (SSPB)}~\cite{figueroamata2022} and more broadly recognized as \textbf{specimen-level data leakage}~\cite{varoquaux2022,roberts2021}. Under random image-level partitioning, deep neural networks act as opportunistic "shortcut learners" or "Clever Hans" predictors~\cite{geirhos2020,lapuschkin2019}. Rather than learning class-discriminative biological or anatomical features (such as vessel pore distributions, axial parenchyma arrangements, and ray parenchyma widths), deep networks exploit non-taxonomic surface artifacts, mechanical saw marks, optical illumination gradients, and camera sensor noise fingerprints unique to individual physical specimens. Consequently, reported high test accuracy does not measure the model's capacity to recognize novel physical samples; instead, it measures its capacity to re-identify previously seen physical sources.
 
-While Figueroa-Mata et al.~\cite{figueroamata2022} first recognized SSPB, existing literature lacked controlled, isolated empirical quantification of pure specimen leakage (separate from external domain shift) as well as an automated, multi-strategy data governance protocol. This methodological vulnerability is particularly acute in fine-grained visual classification (FGVC) tasks such as \emph{wood species identification}. Wood identification plays a critical role in curbing illegal logging, enforcing CITES Appendix II trade regulations~\cite{cites}, verifying legal timber supply chains, and supporting forensic forestry~\cite{dormontt2015,ravindran2022,song2025}. Macroscopic wood image datasets inherently exhibit extreme specimen-level clustering: a single physical wood block yields dozens of cropped images that share identical microscopic vessel pore arrangements, growth ring trajectories, surface saw scratches, and grain patterns. Evaluating models on random image splits obscures genuine anatomical difficulty and conceals severe intra-genus confusion, creating a false assurance of model readiness for border customs enforcement.
-
-\subsection{Mechanisms and Typology of Specimen-Level Data Leakage}
-To understand why random image splitting causes performance overestimation, we formalize three visual and physical mechanisms through which specimen leakage manifests in image classifiers:
+\subsection{Mechanisms of Specimen-Level Data Leakage}
+To understand why random image splitting causes severe performance overestimation, we formalize three distinct visual and physical mechanisms through which specimen leakage manifests in deep vision models:
 
 \begin{enumerate}[label=\textbf{Mechanism \arabic*:}, leftmargin=*]
-\item \textbf{Geometric and Textural Continuity}: Sub-images or cropped patches extracted from the same physical specimen share continuous anatomical structures (e.g., matching growth ring trajectories, identical vessel pore cluster configurations, and continuous axial parenchyma bands). Deep networks memorize these spatial configurations as high-dimensional visual fingerprints.
+\item \textbf{Geometric and Anatomical Continuity}: Multiple sub-images or cropped patches extracted from the same physical wood block share continuous anatomical trajectories, including matching growth ring curvatures, identical vessel pore cluster arrangements, and continuous axial parenchyma bands. Deep networks memorize these spatial configurations as high-dimensional visual fingerprints.
 
-\item \textbf{Acquisition and Illumination Fingerprints}: Multiple images captured during the same photo session inherit identical camera sensor noise patterns (Photo-Response Non-Uniformity, PRNU), localized specular flash reflections, lens vignetting gradients, white balance color casts, and fixed background shadows. The network learns camera acquisition conditions rather than biological species.
+\item \textbf{Acquisition and Illumination Fingerprints}: Images captured during the same photographic session inherit identical camera sensor noise patterns (Photo-Response Non-Uniformity, PRNU), localized specular flash reflections, optical lens vignetting gradients, white balance color casts, and fixed background shadows. The network learns camera acquisition conditions rather than biological species features.
 
-\item \textbf{Surface Preparation and Processing Artifacts}: Physical specimens undergo mechanical preparation (saw cutting, planing, sanding). Micro-scratches from saw blade teeth, sanding grit scratch density, varnish/stain absorption variations, radial weathering cracks, and edge discoloration are unique to each specimen block. These non-taxonomic surface marks act as shortcut features for class prediction~\cite{geirhos2020}.
+\item \textbf{Surface Preparation and Mechanical Artifacts}: Physical specimens undergo mechanical preparation (saw cutting, planing, sanding). Micro-scratches from saw blade teeth, sanding grit scratch density, varnish/stain absorption variations, radial weathering cracks, and edge discoloration are unique to each specimen block. These non-taxonomic surface marks act as shortcut features for class prediction~\cite{geirhos2020}.
 \end{enumerate}
 
-\subsection{Problem Formulation and Specimen Leakage Risk (SLR)}
-Let $\mathcal{X} = \{x_i\}_{i=1}^{M}$ denote a dataset of $M$ macroscopic wood images, and let $\mathcal{S} = \{S_j\}_{j=1}^{N}$ represent the set of $N$ underlying physical specimens ($M \gg N$). Each image $x_i$ is bound to a biological species label $y_i \in \{1, \dots, C\}$ and a deterministic physical source mapping $s(x_i) \in \mathcal{S}$.
-
-In a conventional \emph{random image-level split}, images are assigned independently and identically distributed (i.i.d.) across splits:
-\begin{equation}
-x_i \sim \mathrm{Uniform}(\{\mathrm{train}, \mathrm{val}, \mathrm{test}\}),
-\end{equation}
-which guarantees that with high probability $s(x_i) = s(x_j)$ for some $x_i \in \mathcal{D}_{\mathrm{train}}$ and $x_j \in \mathcal{D}_{\mathrm{test}}$, creating group leakage.
-
-Conversely, a rigorous \emph{specimen-level group-disjoint split} mandates absolute isolation at the physical source level:
-\begin{equation}
-\mathcal{S}_{\mathrm{train}} \cap \mathcal{S}_{\mathrm{val}} = \mathcal{S}_{\mathrm{train}} \cap \mathcal{S}_{\mathrm{test}} = \mathcal{S}_{\mathrm{val}} \cap \mathcal{S}_{\mathrm{test}} = \varnothing.
-\label{eq:disjoint_intro}
-\end{equation}
-
-To quantify dataset vulnerability, we define the **Specimen Leakage Risk (SLR)** metric:
-\begin{equation}
-\mathrm{SLR}(\mathcal{D}, \text{split}) = \frac{1}{|\mathcal{D}_{\mathrm{test}}|} \sum_{x_i \in \mathcal{D}_{\mathrm{test}}} \mathbb{1}\left[ s(x_i) \in \mathcal{S}_{\mathrm{train}} \right],
-\end{equation}
-where $\mathrm{SLR} = 0$ indicates strict specimen disjointness and $\mathrm{SLR} > 0$ quantifies the proportion of leaked test observations.
-
-\subsection{Research Questions}
-This paper investigates three central research questions:
-\begin{enumerate}[label=\textbf{RQ\arabic*:}, leftmargin=*]
-\item \textbf{Generalized Data Governance Protocol}: How can physical acquisition, immutable metadata schemas, automated group-disjoint partitioning, and proximity auditing be unified into a standardized data governance framework for PECVC domains?
-\item \textbf{Empirical Quantification of Leakage Inflation}: What is the exact quantitative margin by which random image-level splits overestimate classification accuracy and macro-F1 when evaluated on novel physical specimens under controlled experimental conditions?
-\item \textbf{Impact on Model Selection and Architectural Ranking}: Does specimen-level data leakage alter empirical conclusions regarding model selection and relative rankings when evaluating deep vision backbones?
-\end{enumerate}
-
-\subsection{Contributions}
-The key contributions of this work are fourfold:
+\subsection{Taxon Heterogeneity and The No Free Lunch Theorem in Data Partitioning}
+While standard group-based splitting methods (such as \texttt{GroupKFold} or \texttt{StratifiedGroupKFold}) enforce physical specimen isolation, they suffer from two fundamental limitations:
+\begin{enumerate}[label=\textbf{\arabic*:}, leftmargin=*]
+\item \textbf{Feature-Space Blindness}: Physical group isolation does not prevent two \emph{distinct} physical specimens with identical surface textures, sanding grit scratch patterns, or optical vignetting from being placed in separate splits, creating subtle visual feature-space leakage.
+\item \textbf{Taxon Heterogeneity \& The No Free Lunch Theorem}: Wood species exhibit highly divergent intra-species biological variation:
 \begin{itemize}
-\item \textbf{Formalization of Specimen-Level Data Leakage and SSPB in PECVC}: We formalize the theoretical mechanisms of specimen leakage and Same-Specimen-Picture Bias (SSPB) across Physical Entity-Centric Visual Classification domains, proposing the \emph{Specimen-Centric Data Protocol} (SCDP)---an end-to-end framework covering physical acquisition logging, metadata schemas, group-disjoint partitioning, and cross-split auditing.
-\item \textbf{CEGS-Split Optimization Algorithm}: Within SCDP, we introduce \emph{Class-wise Embedding-Guided Specimen Split} (CEGS-Split), an automated algorithm that evaluates seven feature-space allocation strategies per species, guaranteeing specimen isolation while preserving per-class balance and evaluation difficulty.
-\item \textbf{Controlled Quantification of Leakage Inflation}: On the benchmark S3 wood dataset (18 species across 5 genera), controlling feature representations and classifier parameters, we measure an empirical accuracy drop of \textbf{4.94 percentage points} ($95.81\%$ vs. $90.87\%$) and a macro-F1 drop of \textbf{6.35 percentage points} ($94.93\%$ vs. $88.58\%$) when switching from random splits to specimen-disjoint splits.
-\item \textbf{Demonstration of Model Ranking Inversion}: We show that data leakage distorts model selection ($\rho_s = 0.40$), causing high-capacity models (e.g., Swin-Large) to rank highest under leaked splits due to shortcut memorization, whereas pure convolutional backbones (e.g., ConvNeXt-Tiny) achieve superior true generalization under specimen-disjoint governance.
+\item \textbf{Uniform Species}: Taxa with homogeneous growth rings and consistent color density (e.g., \textit{Guibourtia coleosperma}) are cleanly partitioned by linear centroid distance metrics such as Mahalanobis distance or Ward agglomerative clustering.
+\item \textbf{Outlier-Prone Species}: Taxa exhibiting extreme heartwood/sapwood color transitions or severe weathering abrasions (e.g., \textit{Afzelia bella}) distort standard distance metrics, requiring Adversarial MLP Discriminator validation or DataSAIL Integer Linear Programming (ILP) to isolate anomalous specimens.
+\item \textbf{Visually Similar Sibling Species}: Taxa belonging to the same genus (e.g., \textit{Dalbergia oliveri} vs. \textit{Dalbergia tonkinensis}) exhibit high inter-specimen similarity, requiring Cosine Graph spectral component isolation to sever indirect leakage.
+\end{itemize}
+\end{enumerate}
+
+Fixing a single splitting algorithm globally across all 18 species forces a sub-optimal partition for taxa whose structural distributions violate the algorithm's assumptions. Allowing each taxon $c \in \{1, \dots, C\}$ ($C=18$) to independently select its optimal splitting protocol $m_c \in \{1, \dots, K\}$ ($K=11$ candidate solvers) yields a combinatorial configuration space of:
+\begin{equation}
+\mathcal{M} = K^C = 11^{18} \approx 5.5599 \times 10^{18} \quad \text{candidate partitions.}
+\end{equation}
+
+Evaluating all $11^{18}$ candidate datasets by brute-force search is computationally impossible (requiring over $176$ million CPU years). Furthermore, global metrics such as Maximum Mean Discrepancy ($MMD$) and Inter-Class Hard Negative F1-scores must be evaluated on the **assembled global dataset** $\mathcal{D}(\boldsymbol{m}) = \bigcup_{c=1}^C \mathcal{D}_c(m_c)$.
+
+\subsection{Research Questions and Primary Contributions}
+This paper addresses four central research questions:
+\begin{enumerate}[label=\textbf{RQ\arabic*:}, leftmargin=*]
+\item \textbf{Data Governance Framework}: How can physical acquisition provenance, immutable manifest schemas, and cross-split proximity auditing be unified into a standardized data governance framework?
+\item \textbf{Benchmarked Wood Dataset Creation}: How can a macro cross-sectional wood dataset be curated and partitioned to preserve 100\% subfolder integrity and 100\% Class Coverage Rate ($CCR = 100.0\%$)?
+\item \textbf{Empirical Quantification of Leakage Inflation}: What is the exact quantitative margin ($\Delta \text{Acc}$, $\Delta \text{F1}$) by which naive random image splits overestimate performance compared to strict specimen-disjoint partitions?
+\item \textbf{Multi-Objective Combinatorial Meta-Selection}: How can Simulated Annealing be formulated over the $11^{18}$ search space to discover Pareto-optimal global partitions balancing leakage reduction, OOD difficulty, and hard class accuracy?
+\end{enumerate}
+
+The primary contributions of this work are fourfold:
+\begin{itemize}
+\item \textbf{Contribution 1: Specimen-Centric Data Protocol (SCDP) Framework}: We formalize a comprehensive data governance framework covering physical acquisition logging, immutable JSON/CSV metadata schemas, group-disjoint partitioning, and cross-split feature proximity auditing.
+\item \textbf{Contribution 2: Curated \& Governed S3 Wood Dataset (18 Taxa)}: We present a benchmarked macroscopic cross-sectional wood dataset of 18 botanical species spanning 5 genera, fully annotated with physical specimen IDs, guaranteeing 100\% subfolder integrity ($SLR = 0.0\%$) and 100\% Class Coverage Rate ($CCR = 100.0\%$).
+\item \textbf{Contribution 3: Multi-Objective Simulated Annealing Meta-Selector ($\text{CEGS-Split}$)}: We introduce a meta-heuristic optimization engine operating over an $11^{18}$ configuration space to select class-wise optimal splitting strategies evaluated against a global multi-objective fitness function.
+\item \textbf{Contribution 4: Systematic 6-Protocol Leakage Benchmark (16 Metrics)}: On the S3 dataset, we evaluate a streamlined benchmark of 6 representative splitting protocols across 16 quantitative metrics, proving that naive random image splitting inflates accuracy to $99.87\%$ ($SLR = 100.0\%$), whereas DataSAIL ILP minimizes leakage loss to $4,841,999.8$ ($SLR = 5.7\%$, $MMD = 0.1199$) and Multi-Objective Meta-Selection achieves the highest hardest-class F1-score ($0.8148$).
 \end{itemize}

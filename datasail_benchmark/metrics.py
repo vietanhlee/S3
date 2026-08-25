@@ -1,7 +1,7 @@
 """
 datasail_benchmark/metrics.py
 =============================
-Bộ 16 chỉ số định lượng đánh giá rò rỉ dữ liệu (Data Leakage) và hiệu suất phân loại đạt chuẩn Q1/Q2.
+Bộ chỉ số định lượng đánh giá rò rỉ dữ liệu (Data Leakage) và hiệu suất phân loại đạt chuẩn Q1/Q2.
 """
 
 from typing import Dict, Any, List, Tuple
@@ -15,10 +15,8 @@ from sklearn.metrics import (
 	f1_score,
 	balanced_accuracy_score,
 	silhouette_score,
-	top_k_accuracy_score,
 )
 from sklearn.metrics.pairwise import cosine_similarity, rbf_kernel
-from sklearn.neighbors import KNeighborsClassifier
 
 
 def compute_datasail_loss(
@@ -79,7 +77,7 @@ def compute_inter_split_cosine_sim(
 	
 	if not np.any(diff_split_mask):
 		return 0.0
-		
+
 	return float(np.mean(sim_matrix[diff_split_mask]))
 
 
@@ -89,19 +87,25 @@ def compute_intra_split_cosine_sim(
 	val_indices: List[int],
 	test_indices: List[int],
 ) -> float:
-	"""Tính tương đồng Cosine trung bình giữa các ảnh thuộc cùng một tập (S_intra)."""
-	intra_sims = []
-	sim_matrix = cosine_similarity(embeddings)
-
-	for indices in [train_indices, val_indices, test_indices]:
-		if len(indices) > 1:
-			sub_sim = sim_matrix[np.ix_(indices, indices)]
-			triu_indices = np.triu_indices(len(indices), k=1)
-			intra_sims.extend(sub_sim[triu_indices])
-
-	if not intra_sims:
+	"""Tính tương đồng Cosine trung bình giữa các ảnh trong CÙNG một tập (S_intra)."""
+	n = len(embeddings)
+	if n <= 1:
 		return 0.0
-	return float(np.mean(intra_sims))
+
+	split_labels = np.full(n, -1, dtype=int)
+	split_labels[train_indices] = 0
+	split_labels[val_indices] = 1
+	split_labels[test_indices] = 2
+
+	sim_matrix = cosine_similarity(embeddings)
+	same_split_mask = (split_labels[:, None] == split_labels[None, :]) & \
+	                  (split_labels[:, None] >= 0)
+	np.fill_diagonal(same_split_mask, False)
+
+	if not np.any(same_split_mask):
+		return 0.0
+
+	return float(np.mean(sim_matrix[same_split_mask]))
 
 
 def compute_specimen_leakage_risk(
@@ -110,22 +114,19 @@ def compute_specimen_leakage_risk(
 	df_test: pd.DataFrame,
 ) -> float:
 	"""
-	Tính Specimen Leakage Risk Ratio (SLR):
-	Tỷ lệ % mẫu vật lý (subfolder) xuất hiện đồng thời ở nhiều hơn 1 tập.
+	Tính Specimen Leakage Risk Ratio (SLR %):
+	Tỷ lệ % subfolder/specimen bị phân tán đồng thời sang nhiều tập khác nhau.
 	"""
-	train_subfolders = set(df_train["subfolder"])
-	val_subfolders = set(df_val["subfolder"])
-	test_subfolders = set(df_test["subfolder"])
+	tr_sf = set(df_train["subfolder"].unique())
+	va_sf = set(df_val["subfolder"].unique())
+	te_sf = set(df_test["subfolder"].unique())
 
-	all_subfolders = train_subfolders | val_subfolders | test_subfolders
-	if not all_subfolders:
+	all_sf = tr_sf | va_sf | te_sf
+	if not all_sf:
 		return 0.0
 
-	leaked_subfolders = (train_subfolders & val_subfolders) | \
-	                    (train_subfolders & test_subfolders) | \
-	                    (val_subfolders & test_subfolders)
-
-	return float(len(leaked_subfolders) / len(all_subfolders) * 100.0)
+	leaked_sf = (tr_sf & va_sf) | (tr_sf & te_sf) | (va_sf & te_sf)
+	return float((len(leaked_sf) / len(all_sf)) * 100.0)
 
 
 def compute_pseudoreplication_index(
@@ -133,17 +134,15 @@ def compute_pseudoreplication_index(
 	df_test: pd.DataFrame,
 ) -> float:
 	"""
-	Tính Pseudoreplication Index (PRI):
-	Tỷ lệ cặp ảnh có cùng subfolder giữa Train và Test so với tổng số cặp có thể có.
+	Tính Pseudoreplication Index (PRI %):
+	Tỷ lệ % các cặp ảnh cùng subfolder xuất hiện ở cả Train và Test.
 	"""
-	train_sf_counts = df_train["subfolder"].value_counts()
-	test_sf_counts = df_test["subfolder"].value_counts()
+	tr_sf_counts = df_train["subfolder"].value_counts().to_dict()
+	te_sf_counts = df_test["subfolder"].value_counts().to_dict()
 
-	common_sfs = set(train_sf_counts.index) & set(test_sf_counts.index)
-	if not common_sfs:
-		return 0.0
+	shared_sf = set(tr_sf_counts.keys()) & set(te_sf_counts.keys())
+	leaked_pairs = sum(tr_sf_counts[sf] * te_sf_counts[sf] for sf in shared_sf)
 
-	leaked_pairs = sum(train_sf_counts[sf] * test_sf_counts[sf] for sf in common_sfs)
 	total_possible_pairs = len(df_train) * len(df_test)
 	if total_possible_pairs == 0:
 		return 0.0
@@ -157,10 +156,7 @@ def compute_class_coverage_rate(
 	df_val: pd.DataFrame,
 	df_test: pd.DataFrame,
 ) -> float:
-	"""
-	Tính Class Coverage Rate (CCR):
-	Tỷ lệ % các class có mặt đầy đủ ở cả 3 tập (Train, Val, Test).
-	"""
+	"""Tính Class Coverage Rate (CCR): Tỷ lệ % các class có mặt ở cả 3 tập (100.0%)."""
 	all_classes = set(df_all["label"].unique())
 	if not all_classes:
 		return 100.0
@@ -206,9 +202,7 @@ def compute_maximum_mean_discrepancy(
 	test_indices: List[int],
 	gamma: float = 1.0,
 ) -> float:
-	"""
-	Tính Maximum Mean Discrepancy (MMD) đo độ lệch phân phối không gian đặc trưng giữa Train và Test.
-	"""
+	"""Tính Maximum Mean Discrepancy (MMD) đo độ lệch phân phối không gian đặc trưng giữa Train và Test."""
 	if not train_indices or not test_indices:
 		return 0.0
 
@@ -223,30 +217,21 @@ def compute_maximum_mean_discrepancy(
 	return float(np.sqrt(max(0.0, mmd2)))
 
 
-def compute_nearest_neighbor_stats(
+def compute_nearest_neighbor_mean_sim(
 	embeddings: np.ndarray,
 	train_indices: List[int],
 	test_indices: List[int],
-) -> Dict[str, float]:
-	"""
-	Tính chỉ số Nearest-Neighbor Cosine Similarity từ ảnh Test đến ảnh gần nhất trong tập Train (NN_Sim):
-	Trả về Mean, Max, 90th percentile, và Standard Deviation.
-	"""
+) -> float:
+	"""Tính chỉ số Nearest-Neighbor Cosine Similarity trung bình từ ảnh Test đến ảnh gần nhất trong Train."""
 	if not train_indices or not test_indices:
-		return {"nn_sim_mean": 0.0, "nn_sim_max": 0.0, "nn_sim_p90": 0.0, "nn_sim_std": 0.0}
+		return 0.0
 
 	train_feats = embeddings[train_indices]
 	test_feats = embeddings[test_indices]
 
 	sim_matrix = cosine_similarity(test_feats, train_feats)
 	max_sims_per_test = sim_matrix.max(axis=1)
-
-	return {
-		"nn_sim_mean": float(np.mean(max_sims_per_test)),
-		"nn_sim_max": float(np.max(max_sims_per_test)),
-		"nn_sim_p90": float(np.percentile(max_sims_per_test, 90)),
-		"nn_sim_std": float(np.std(max_sims_per_test)),
-	}
+	return float(np.mean(max_sims_per_test))
 
 
 def compute_wasserstein_divergence(
@@ -255,24 +240,27 @@ def compute_wasserstein_divergence(
 	df_val: pd.DataFrame,
 	df_test: pd.DataFrame,
 ) -> float:
-	"""
-	Tính Khoảng cách Wasserstein (Earth Mover's Distance) đo độ lệch phân phối loài giữa các tập và dataset gốc.
-	"""
-	all_labels = sorted(df_all["label"].unique())
-	label_to_code = {lbl: i for i, lbl in enumerate(all_labels)}
+	"""Tính khoảng cách Wasserstein Divergence (W1) đo độ lệch phân phối class."""
+	all_classes = sorted(df_all["label"].unique().tolist())
+	n_classes = len(all_classes)
+	if n_classes == 0:
+		return 0.0
 
-	p_global = df_all["label"].map(label_to_code).values
-	w_total = 0.0
-	count = 0
+	cls_to_idx = {c: i for i, c in enumerate(all_classes)}
 
-	for df_split in [df_train, df_val, df_test]:
-		if len(df_split) > 0:
-			p_split = df_split["label"].map(label_to_code).values
-			w_dist = wasserstein_distance(p_global, p_split)
-			w_total += w_dist
-			count += 1
+	def get_dist(df: pd.DataFrame) -> np.ndarray:
+		counts = df["label"].value_counts().to_dict()
+		vec = np.array([counts.get(c, 0) for c in all_classes], dtype=float)
+		total = vec.sum()
+		return vec / total if total > 0 else vec
 
-	return float(w_total / max(1, count))
+	p_all = get_dist(df_all)
+	p_tr = get_dist(df_train)
+	p_te = get_dist(df_test)
+
+	w1_tr = wasserstein_distance(np.arange(n_classes), np.arange(n_classes), p_all, p_tr)
+	w1_te = wasserstein_distance(np.arange(n_classes), np.arange(n_classes), p_all, p_te)
+	return float((w1_tr + w1_te) / 2.0)
 
 
 def compute_knn_metrics(
@@ -281,105 +269,72 @@ def compute_knn_metrics(
 	df_test: pd.DataFrame,
 	class_to_idx: Dict[str, int],
 	path_to_idx: Dict[str, int],
-	k_neighbors: int = 1,
+	k: int = 1,
 ) -> Dict[str, float]:
 	"""
-	Đánh giá khả năng phân loại Zero-Training bằng K-Nearest Neighbors (KNN) trên frozen embeddings.
-	Tính Accuracy Top-1, Top-3, Balanced Accuracy, F1 Macro, Weighted-F1, và Hardest Class F1.
+	Đánh giá hiệu suất phân loại Zero-Training 1-NN Classifier trên tập Test:
+	Trả về Top-1 Acc, Top-3 Acc, Balanced Acc, F1-Macro, và Hardest Class F1.
 	"""
-	if len(df_train) == 0 or len(df_test) == 0:
-		return {
-			"knn_accuracy": 0.0,
-			"knn_top3_accuracy": 0.0,
-			"knn_balanced_accuracy": 0.0,
-			"knn_f1_macro": 0.0,
-			"knn_f1_weighted": 0.0,
-			"hardest_class_f1": 0.0,
-		}
+	tr_indices = [path_to_idx[p] for p in df_train["path"]]
+	te_indices = [path_to_idx[p] for p in df_test["path"]]
 
-	train_indices = [path_to_idx[p] for p in df_train["path"]]
-	test_indices = [path_to_idx[p] for p in df_test["path"]]
+	X_tr = embeddings[tr_indices]
+	y_tr = np.array([class_to_idx[lbl] for lbl in df_train["label"]])
 
-	X_train = embeddings[train_indices]
-	y_train = np.array([class_to_idx[lbl] for lbl in df_train["label"]])
+	X_te = embeddings[te_indices]
+	y_te = np.array([class_to_idx[lbl] for lbl in df_test["label"]])
 
-	X_test = embeddings[test_indices]
-	y_test = np.array([class_to_idx[lbl] for lbl in df_test["label"]])
+	knn = KNeighborsClassifier(n_neighbors=k, metric="cosine")
+	knn.fit(X_tr, y_tr)
 
-	knn = KNeighborsClassifier(n_neighbors=k_neighbors, metric="cosine", n_jobs=-1)
-	knn.fit(X_train, y_train)
+	preds = knn.predict(X_te)
+	probs = knn.predict_proba(X_te)
 
-	y_pred = knn.predict(X_test)
-	probs = knn.predict_proba(X_test)
-
-	acc = float(accuracy_score(y_test, y_pred))
-	balanced_acc = float(balanced_accuracy_score(y_test, y_pred))
+	acc = float(accuracy_score(y_te, preds))
+	bacc = float(balanced_accuracy_score(y_te, preds))
+	f1_macro = float(f1_score(y_te, preds, average="macro", zero_division=0))
 
 	# Top-3 Accuracy
 	try:
-		if probs.shape[1] >= 3:
-			top3_acc = float(top_k_accuracy_score(y_test, probs, k=3, labels=np.arange(len(class_to_idx))))
+		if len(knn.classes_) >= 3:
+			top3_acc = float(np.mean([y_te[i] in np.argsort(probs[i])[-3:] for i in range(len(y_te))]))
 		else:
 			top3_acc = acc
 	except Exception:
 		top3_acc = acc
 
-	f1_macro = float(f1_score(y_test, y_pred, average="macro", zero_division=0))
-	f1_weighted = float(f1_score(y_test, y_pred, average="weighted", zero_division=0))
-
-	# Hardest Class F1 (F1 nhỏ nhất trong các loài)
-	per_class_f1 = f1_score(y_test, y_pred, average=None, zero_division=0)
-	hardest_f1 = float(np.min(per_class_f1)) if len(per_class_f1) > 0 else 0.0
+	# Hardest Class F1
+	rep = classification_report(y_te, preds, output_dict=True, zero_division=0)
+	class_f1s = [v["f1-score"] for k_cls, v in rep.items() if k_cls.isdigit()]
+	hardest_f1 = float(min(class_f1s)) if class_f1s else 0.0
 
 	return {
 		"knn_accuracy": acc,
 		"knn_top3_accuracy": top3_acc,
-		"knn_balanced_accuracy": balanced_acc,
+		"knn_balanced_accuracy": bacc,
 		"knn_f1_macro": f1_macro,
-		"knn_f1_weighted": f1_weighted,
 		"hardest_class_f1": hardest_f1,
 	}
 
 
-def compute_leakage_inflation_deltas(
-	acc_random: float,
-	acc_protocol: float,
-	f1_random: float,
-	f1_protocol: float,
-) -> Dict[str, float]:
-	"""
-	Tính mức độ "bơm phồng" hiệu suất giả tạo do rò rỉ dữ liệu:
-	Δ Acc = Acc_Random - Acc_Protocol (pp)
-	Δ F1  = F1_Random - F1_Protocol (pp)
-	"""
-	return {
-		"delta_accuracy_pp": float((acc_random - acc_protocol) * 100.0),
-		"delta_f1_macro_pp": float((f1_random - f1_protocol) * 100.0),
-	}
-
-
 def compute_statistical_significance(
-	scores_group_a: List[float],
-	scores_group_b: List[float],
+	baseline_scores: List[float],
+	candidate_scores: List[float],
 ) -> Dict[str, float]:
-	"""
-	Tính kiểm định ý nghĩa thống kê (Welch's t-test p-value) và Kích thước Hiệu ứng (Cohen's d).
-	"""
-	if len(scores_group_a) < 2 or len(scores_group_b) < 2:
+	"""Kiểm định ý nghĩa thống kê: Welch's t-test p-value & Cohen's d effect size."""
+	if len(baseline_scores) <= 1 or len(candidate_scores) <= 1:
 		return {"p_value": 1.0, "cohens_d": 0.0}
 
-	t_stat, p_val = stats.ttest_ind(scores_group_a, scores_group_b, equal_var=False)
+	t_stat, p_val = stats.ttest_ind(baseline_scores, candidate_scores, equal_var=False)
 
-	n1, n2 = len(scores_group_a), len(scores_group_b)
-	s1, s2 = np.std(scores_group_a, ddof=1), np.std(scores_group_b, ddof=1)
-	s_pooled = np.sqrt(((n1 - 1) * s1**2 + (n2 - 1) * s2**2) / (n1 + n2 - 2))
+	m1, m2 = np.mean(baseline_scores), np.mean(candidate_scores)
+	s1, s2 = np.std(baseline_scores, ddof=1), np.std(candidate_scores, ddof=1)
 
-	if s_pooled == 0:
-		cohen_d = 0.0
-	else:
-		cohen_d = (np.mean(scores_group_a) - np.mean(scores_group_b)) / s_pooled
+	pooled_std = np.sqrt(((len(baseline_scores) - 1) * s1**2 + (len(candidate_scores) - 1) * s2**2) /
+	                     (len(baseline_scores) + len(candidate_scores) - 2))
 
+	cohens_d = float((m1 - m2) / pooled_std) if pooled_std > 0 else 0.0
 	return {
-		"p_value": float(p_val if not np.isnan(p_val) else 1.0),
-		"cohens_d": float(cohen_d if not np.isnan(cohen_d) else 0.0),
+		"p_value": float(p_val),
+		"cohens_d": float(abs(cohens_d)),
 	}

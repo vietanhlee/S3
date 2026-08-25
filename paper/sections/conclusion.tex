@@ -1,25 +1,23 @@
 \section{Conclusion}
 
-This study formalizes **specimen-level data leakage** as a major driver of performance overestimation in fine-grained visual classification. On the benchmark S3 wood dataset, evaluating identical feature representations and KNN classification under standard random image-level splits yields an inflated accuracy of \textbf{95.81\%}, whereas enforcing strict specimen-disjoint partitioning via our proposed protocol reduces accuracy to \textbf{90.87\%}---isolating a \textbf{4.94 percentage point accuracy inflation} (and a \textbf{6.35 pp macro-F1 inflation}) caused solely by dataset partitioning flaws.
+This paper addressed specimen-level data leakage (Same-Specimen-Picture Bias) in computer vision-based wood species classification. We introduced a benchmark of six streamlined splitting protocols spanning five distinct algorithmic paradigms on an 18-species macro cross-sectional wood dataset. We established the "Three Pillars Framework" incorporating 16 quantitative metrics to evaluate leakage minimization, OOD difficulty, and decision boundary preservation. Finally, we proposed a Multi-Objective Simulated Annealing Meta-Selector ($\text{CEGS-Split}$) that optimizes class-wise splitting strategies across an $11^{18} \approx 5.55 \times 10^{18}$ combinatorial configuration space.
 
-To eliminate group leakage, we introduced the **Specimen-Centric Data Protocol** (SCDP) and the **CEGS-Split** optimization algorithm, which evaluates seven distinct feature-space allocation strategies per species to achieve specimen isolation while maintaining per-class balance and feature-space auditability. Attention map visualizations further confirm that specimen-disjoint evaluation forces deep networks to abandon non-taxonomic surface shortcuts in favor of genuine biological structures (vessel pores and axial parenchyma).
-
-Future work will expand SCDP to cross-device and multi-source wood datasets, release versioned group-disjoint benchmarks for the scientific community, and evaluate group-disjoint data governance across medical imaging, metallography, and spatial ecological monitoring.
+Empirical results demonstrate that naive random image splitting inflates accuracy to a misleading $99.87\%$ ($SLR = 100.0\%$), whereas DataSAIL Specimen-level ILP achieves maximum leakage reduction ($L_{\text{DataSAIL}} = 4,841,999.8$, $MMD = 0.1199$). Our Multi-Objective Meta-Selector maintains 100\% subfolder integrity ($SLR = 0.0\%$, $CCR = 100.0\%$), achieves a realistic top-1 accuracy of $98.68\%$, and secures the highest hardest-class F1-score ($0.8148$). This study provides a rigorous methodological foundation for future benchmarks in biological and physical computer vision.
 
 \section*{Highlights}
 \begin{itemize}
-\item Formalizes specimen-level data leakage in physical entity-centric visual classification.
-\item Proposes Specimen-Centric Data Protocol (SCDP) and automated CEGS-Split algorithm.
-\item Quantifies exact leakage inflation of 4.94 pp accuracy and 6.35 pp macro-F1.
-\item Demonstrates model ranking inversion ($\rho_s = 0.40$), proving leakage distorts model choice.
-\item Shows specimen governance forces networks to learn anatomical features over saw marks.
+\item Formalizes specimen-level data leakage (Same-Specimen-Picture Bias) in physical object visual classification.
+\item Establishes the Three Pillars Framework incorporating 16 quantitative metrics for journal evaluation.
+\item Proposes Multi-Objective Simulated Annealing Meta-Selector operating over an $11^{18}$ search space.
+\item Quantifies exact empirical leakage inflation ($\Delta \text{Acc} = -9.10\text{ pp}$, $\Delta \text{F1} = -16.75\text{ pp}$).
+\item Demonstrates that DataSAIL ILP minimizes visual feature leakage ($L_{\text{DataSAIL}} = 4.84\text{M}$) while Multi-Objective Meta-Selection preserves hardest-class boundaries ($\text{F1}_{\text{Hardest}} = 0.8148$).
 \end{itemize}
 
 \section*{Data Availability Statement}
-The S3 macroscopic wood species image dataset and the versioned CEGS-Split immutable manifest (\texttt{s3\_cegs\_split\_manifest.csv}) containing SHA-256 content hashes and specimen provenance mappings will be made publicly available upon publication at \url{https://github.com/vietanhlee/S3_paper}.
+The S3 macroscopic wood species benchmark and versioned splitting manifests containing cryptographic content hashes and specimen provenance mappings will be made publicly available at \url{https://github.com/vietanhlee/S3_paper}.
 
 \section*{CRediT Authorship Contribution Statement}
-\textbf{Viet-Anh Le}: Conceptualization, Methodology, Software, Formal analysis, Data curation, Writing -- Original Draft, Visualization, Project administration.
+\textbf{Viet-Anh Le}: Conceptualization, Methodology, Software, Formal Analysis, Data Curation, Writing -- Original Draft, Visualization, Project Administration.
 
 \section*{Declaration of Competing Interest}
-The author declares that he has no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+The author declares no competing financial interests or personal relationships that could influence the work reported in this paper.
