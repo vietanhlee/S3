@@ -964,6 +964,8 @@ def main():
     parser.add_argument("--epochs", type=int, default=15, help="Số epoch fine-tuning (mặc định: 15).")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size (mặc định: 64).")
     parser.add_argument("--sa-iters", type=int, default=10000, help="Số vòng lặp SA (mặc định: 10,000).")
+    parser.add_argument("--data-path", type=str, default=None,
+                        help="Đường dẫn trực tiếp đến thư mục chứa dữ liệu ảnh S3 (ví dụ: 'g:/S3_paper/S3' hoặc './S3').")
     parser.add_argument("--export-latex", action="store_true", help="Chỉ xuất lại bảng mã LaTeX từ kết quả đã có.")
     parser.add_argument("--patch-paper", action="store_true", help="Tự động cập nhật số liệu vào paper/main.tex.")
     args = parser.parse_args()
@@ -984,13 +986,21 @@ def main():
     device = get_device()
     print(f"\n[Environment] Thiết bị tính toán được chọn: {device}")
 
-    # Thu thập dữ liệu
-    dataset_root = resolve_dataset_root()
-    print(f"[Dataset] Đang thu thập dữ liệu ảnh tại: {dataset_root}...")
+    # Thu thập dữ liệu: Ưu tiên đường dẫn người dùng truyền qua --data-path, nếu không tự động tìm kiếm
+    if args.data_path:
+        dataset_root = Path(args.data_path)
+        if not dataset_root.exists() or not dataset_root.is_dir():
+            print(f"[LỖI] Đường dẫn dữ liệu được chỉ định không tồn tại: {dataset_root}")
+            sys.exit(1)
+        print(f"[Dataset] Sử dụng đường dẫn dữ liệu người dùng chỉ định: {dataset_root.resolve()}")
+    else:
+        dataset_root = resolve_dataset_root()
+        print(f"[Dataset] Tự động phát hiện dữ liệu ảnh tại: {dataset_root.resolve()}...")
+
     samples = collect_image_samples(str(dataset_root))
     if not samples:
         print(f"[LỖI] Không tìm thấy ảnh nào trong thư mục '{dataset_root}'.")
-        print("Vui lòng kiểm tra lại đường dẫn dataset S3 trên máy của bạn.")
+        print("Vui lòng kiểm tra lại đường dẫn dataset S3 trên máy của bạn (truyền qua --data-path 'đường/dẫn/S3').")
         sys.exit(1)
 
     df_all = build_dataframe(samples)
