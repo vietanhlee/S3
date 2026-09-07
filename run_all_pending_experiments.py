@@ -925,13 +925,14 @@ def generate_filled_latex_code(output_dir: Path) -> str:
         latex_snippets.append(r"\midrule")
 
         for _, row in df_t5.iterrows():
-            line = f"{row['Optimization Formulation']} & {row['Constraint Mechanism']} & {row['Accuracy (%)']} & {row['Macro-F1 (%)']} & {row['Hardest-F1 (%)']} & {row['DataSAIL Loss']} & {row['SLR (%)']} & {row['CCR (%)']} & {row['Runtime (s)']} \\\\"
+            line = f"{row['Optimization Formulation']} & {row['Constraint Mechanism']} & {row['Accuracy (%)']} & {row['Macro-F1 (%)']} & {row['Hardest-F1 (%)']} & {row['DataSAIL Loss']} & {row['SLR (%)']} & {row['CCR (%)']} & {row['Runtime (s)']}" + " \\\\"
             latex_snippets.append(line)
 
         latex_snippets.append(r"\bottomrule")
         latex_snippets.append(r"\end{tabular}%")
         latex_snippets.append(r"}")
-        latex_snippets.append(r"\end{table}\n")
+        latex_snippets.append(r"\end{table}")
+        latex_snippets.append("")
 
     # 2. Bảng 4: Multi-Backbone Robustness Table
     table4_path = output_dir / "table4_backbone_results.csv"
@@ -961,13 +962,14 @@ def generate_filled_latex_code(output_dir: Path) -> str:
             else:
                 first_cell = ""
 
-            line = f"{first_cell} & {row['Splitting Protocol']} & {row['Top-1 Acc (%)']} & {row['Top-3 Acc (%)']} & {row['Balanced Acc (%)']} & {row['Macro F1 (%)']} & {row['Hardest F1 (%)']} & {row['SLR (%)']} \\\\"
+            line = f"{first_cell} & {row['Splitting Protocol']} & {row['Top-1 Acc (%)']} & {row['Top-3 Acc (%)']} & {row['Balanced Acc (%)']} & {row['Macro F1 (%)']} & {row['Hardest F1 (%)']} & {row['SLR (%)']}" + " \\\\"
             latex_snippets.append(line)
 
         latex_snippets.append(r"\bottomrule")
         latex_snippets.append(r"\end{tabular}%")
         latex_snippets.append(r"}")
-        latex_snippets.append(r"\end{table*}\n")
+        latex_snippets.append(r"\end{table*}")
+        latex_snippets.append("")
 
     full_latex = "\n".join(latex_snippets)
     out_latex_file = output_dir / "latex_tables_filled.tex"
@@ -996,61 +998,80 @@ def patch_paper_main_tex(paper_path: Path, output_dir: Path) -> None:
     print(f"[Patch Paper] Đã tạo file dự phòng tại: {backup_path}")
 
     with open(paper_path, "r", encoding="utf-8") as f:
-        content = f.read()
+        lines = f.readlines()
 
-    # Cập nhật Table 5
+    eol = " \\\\\n"
+
+    # 1. Cập nhật Table 5
     if table5_path.exists():
         df_t5 = pd.read_csv(table5_path)
-        for _, row in df_t5.iterrows():
-            name = row["Optimization Formulation"]
-            acc = row["Accuracy (%)"]
-            f1 = row["Macro-F1 (%)"]
-            hard = row["Hardest-F1 (%)"]
-            loss = row["DataSAIL Loss"]
-            slr = row["SLR (%)"]
-            ccr = row["CCR (%)"]
-            rt = row["Runtime (s)"]
+        t5_dict = {str(r["Optimization Formulation"]): r for _, r in df_t5.iterrows()}
 
-            # Thay thế dòng pending tương ứng
-            if "Unconstrained" in name:
-                old_pat = r"Unconstrained SA \(Updated \$10\{,\}000\$ iters\).*?\\\\"
-                new_line = f"Unconstrained SA (Updated $10{{,}}000$ iters) & None & {acc} & {f1} & {hard} & {loss} & {slr} & {ccr} & {rt} \\\\"
-                content = re.sub(old_pat, new_line, content)
-            elif "Hard-Constrained" in name:
-                old_pat = r"Hard-Constrained Candidate Pool.*?\\\\"
-                new_line = f"Hard-Constrained Candidate Pool & $\\text{{SLR}}_c \\equiv 0.0\\%$ & {acc} & {f1} & {hard} & {loss} & \\textbf{{{slr}}} & {ccr} & {rt} \\\\"
-                content = re.sub(old_pat, new_line, content)
-            elif "w_4 = 1.0" in name:
-                old_pat = r"Penalized Fitness \(\$w_4 = 1\.0\$\).*?\\\\"
-                new_line = f"Penalized Fitness ($w_4 = 1.0$) & $-w_4 \\cdot \\mathrm{{SLR}}$ & {acc} & {f1} & {hard} & {loss} & {slr} & {ccr} & {rt} \\\\"
-                content = re.sub(old_pat, new_line, content)
-            elif "w_4 = 2.0" in name:
-                old_pat = r"Penalized Fitness \(\$w_4 = 2\.0\$\).*?\\\\"
-                new_line = f"Penalized Fitness ($w_4 = 2.0$) & $-w_4 \\cdot \\mathrm{{SLR}}$ & {acc} & {f1} & {hard} & {loss} & {slr} & {ccr} & {rt} \\\\"
-                content = re.sub(old_pat, new_line, content)
+        new_lines = []
+        for line in lines:
+            replaced = False
+            for name, row in t5_dict.items():
+                short_name = name.split("(")[0].strip()
+                if short_name in line and "pendingcell" in line:
+                    acc = row["Accuracy (%)"]
+                    f1 = row["Macro-F1 (%)"]
+                    hard = row["Hardest-F1 (%)"]
+                    loss = row["DataSAIL Loss"]
+                    slr = row["SLR (%)"]
+                    ccr = row["CCR (%)"]
+                    rt = row["Runtime (s)"]
+                    constraint = row["Constraint Mechanism"]
+                    if "Hard-Constrained" in short_name:
+                        slr_str = f"\\textbf{{{slr}}}"
+                    else:
+                        slr_str = f"{slr}"
+                    new_line = f"{short_name} & {constraint} & {acc} & {f1} & {hard} & {loss} & {slr_str} & {ccr} & {rt}" + eol
+                    new_lines.append(new_line)
+                    replaced = True
+                    break
+            if not replaced:
+                new_lines.append(line)
+        lines = new_lines
 
-    # Cập nhật Table 4
+    # 2. Cập nhật Table 4
     if table4_path.exists():
         df_t4 = pd.read_csv(table4_path)
-        for _, row in df_t4.iterrows():
-            arch = row["Architecture"]
-            proto = row["Splitting Protocol"]
-            top1 = row["Top-1 Acc (%)"]
-            top3 = row["Top-3 Acc (%)"]
-            bal = row["Balanced Acc (%)"]
-            f1 = row["Macro F1 (%)"]
-            hard = row["Hardest F1 (%)"]
-            slr = row["SLR (%)"]
+        t4_records = df_t4.to_dict(orient="records")
 
-            # Quét tìm và thay thế theo tên kiến trúc và tên protocol
-            # Pattern: & <Protocol> & \pendingcell{...}
-            proto_escaped = re.escape(proto)
-            pattern = rf"(&\s*{proto_escaped}\s*&\s*)\\pendingcell\{{Pending\}}\s*&\s*\\pendingcell\{{Pending\}}\s*&\s*\\pendingcell\{{Pending\}}\s*&\s*\\pendingcell\{{Pending\}}\s*&\s*\\pendingcell\{{Pending\}}\s*(&\s*[\d\.\%\\pendingcell\{\}]+)\s*\\\\"
-            replacement = rf"\g<1>{top1} & {top3} & {bal} & {f1} & {hard} & {slr} \\\\"
-            content = re.sub(pattern, replacement, content, count=1)
+        new_lines = []
+        current_arch = None
+        for line in lines:
+            if "multirow" in line:
+                for arch_spec in BACKBONE_SPECS:
+                    if arch_spec["display_name"] in line:
+                        current_arch = arch_spec["display_name"]
+                        break
+
+            replaced = False
+            if "pendingcell" in line:
+                for row in t4_records:
+                    proto = row["Splitting Protocol"]
+                    arch = row["Architecture"]
+                    if proto in line and (current_arch is None or arch == current_arch):
+                        top1 = row["Top-1 Acc (%)"]
+                        top3 = row["Top-3 Acc (%)"]
+                        bal = row["Balanced Acc (%)"]
+                        f1 = row["Macro F1 (%)"]
+                        hard = row["Hardest F1 (%)"]
+                        slr = row["SLR (%)"]
+
+                        prefix = line.split(proto)[0] + proto
+                        new_line = f"{prefix} & {top1} & {top3} & {bal} & {f1} & {hard} & {slr}" + eol
+                        new_lines.append(new_line)
+                        replaced = True
+                        break
+
+            if not replaced:
+                new_lines.append(line)
+        lines = new_lines
 
     with open(paper_path, "w", encoding="utf-8") as f:
-        f.write(content)
+        f.writelines(lines)
 
     print(f"[Patch Paper] Đã cập nhật thành công các số liệu vào bài báo: {paper_path}")
 
