@@ -48,8 +48,9 @@ def run_classwise_datasail_loss_selector(
 	optimal_classwise_pp = {}
 	meta_tr_dfs, meta_va_dfs, meta_te_dfs = [], [], []
 
-	# Chỉ quét không gian các thuật toán từ split_methods.py
-	candidate_solvers = SPLIT_METHODS_WRAPPED
+	# Chỉ quét không gian các thuật toán phân tách cấp độ MẪU VẬT từ split_methods.py (loại bỏ chia cấp ảnh PP6/PP0)
+	candidate_solvers = {k: v for k, v in SPLIT_METHODS_WRAPPED.items() if k not in ["PP0_Stratified_Random", "PP6_Stratified_Random", "PP11_DataSAIL_Image"]}
+
 
 	for label in class_names:
 		class_mask = df_filtered["label"] == label
@@ -109,8 +110,9 @@ def optimize_multi_objective_datasail_sa(
 	rng = random.Random(seed)
 	class_names = sorted(df_filtered["label"].unique().tolist())
 
-	# Chỉ quét không gian các thuật toán từ split_methods.py
-	candidate_solvers = SPLIT_METHODS_WRAPPED
+	# Chỉ quét không gian các thuật toán phân tách cấp độ MẪU VẬT từ split_methods.py (loại bỏ chia cấp ảnh PP6/PP0)
+	candidate_solvers = {k: v for k, v in SPLIT_METHODS_WRAPPED.items() if k not in ["PP0_Stratified_Random", "PP6_Stratified_Random", "PP11_DataSAIL_Image"]}
+
 
 	class_splits_cache: Dict[str, Dict[str, Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]] = {}
 	for label in class_names:

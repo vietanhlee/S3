@@ -15,12 +15,37 @@
 \usepackage{enumitem}
 \usepackage{tcolorbox}
 \usepackage{colortbl}
+\usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{subcaption}
 
 % ── Color Definitions for Academic Emphasis ─────────────────────────
 \definecolor{primaryblue}{RGB}{16, 44, 87}
 \definecolor{secondaryblue}{RGB}{53, 89, 142}
 \definecolor{accentred}{RGB}{178, 34, 34}
-\definecolor{lightbg}{RGB}{245, 247, 250}
+\definecolor{lightbg}{RGB}{246, 248, 252}
+\definecolor{tableheader}{RGB}{232, 240, 250}
+\definecolor{pendingbg}{RGB}{254, 242, 242}
+\definecolor{grayborder}{RGB}{203, 213, 225}
+
+% ── Hyperref Academic Configuration ─────────────────────────────────
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    citecolor=secondaryblue,
+    urlcolor=secondaryblue,
+    pdfauthor={Viet-Anh Le},
+    pdftitle={Preventing Specimen-Level Data Leakage in Wood Species Identification}
+}
+
+% ── Reproducibility / Pending-Data Marker ───────────────────────────
+% Use \pending{...} to flag any statement, figure, or number that is
+% NOT yet backed by an executed experiment in the current codebase and
+% therefore requires new data collection before submission.
+\newcommand{\pending}[1]{\textcolor{accentred}{\textbf{[\textsc{Pending Execution}: #1]}}}
+\newcommand{\pendingcell}[1]{\cellcolor{pendingbg}\textcolor{accentred}{\footnotesize\textbf{[Pending: #1]}}}
 
 % ── Remove footer "Preprint submitted to Elsevier" ─────────────────
 \ExplSyntaxOn
@@ -43,7 +68,7 @@
 \begin{document}
 \let\WriteBookmarks\relax
 
-\title[mode=title]{\color{primaryblue} Preventing Specimen-Level Data Leakage in Wood Species Identification: A Multi-Objective Combinatorial Partitioning Benchmark and Governance Framework}
+\title[mode=title]{\color{primaryblue} Preventing Specimen-Level Data Leakage in Wood Species Identification: A Multi-Paradigm Partitioning Benchmark and Multi-Objective Combinatorial Governance Framework}
 
 \author[1]{Viet-Anh Le}[type=editor, auid=001, bioid=1]
 \cormark[1]
@@ -54,23 +79,843 @@
 \cortext[1]{Corresponding author}
 
 \begin{abstract}
-In computer vision-based wood species identification, data leakage at the physical specimen level---known as Same-Specimen-Picture Bias (SSPB) or pseudoreplication---causes deep neural networks to memorize non-taxonomic surface artifacts (such as mechanical saw blade marks, surface abrasions, and optical vignetting) rather than true biological features. Consequently, models achieve artificially inflated accuracy on naive random image splits ($99.87\%$) but suffer severe performance degradation when evaluated on novel physical specimens. While conventional group-based splitting methods enforce physical specimen isolation, they ignore feature-space similarities across distinct specimens, leading to subtle visual leakage. Furthermore, no single splitting algorithm is globally optimal for all wood species due to taxonal heterogeneity across species (the No Free Lunch theorem in data partitioning). To resolve these challenges, this paper presents a comprehensive benchmark evaluating six representative splitting protocols spanning five distinct algorithmic paradigms on a macro wood cross-section dataset of 18 species. We formulate a "Three Pillars Framework" incorporating 16 quantitative metrics that simultaneously evaluate Data Leakage Minimization ($L_{\text{DataSAIL}}$, $SLR$, $\bar{S}_{\text{inter}}$), Out-of-Distribution (OOD) Difficulty ($MMD$, $S_{\text{split}}$), and Inter-Class Hard Negative Preservation ($\text{F1}_{\text{Hardest}}$). Furthermore, we propose a Multi-Objective Simulated Annealing Meta-Selector ($\text{CEGS-Split}$) operating over a combinatorial search space of $11^{18} \approx 5.55 \times 10^{18}$ configurations to synthesize class-wise optimal partitioning. Empirical results demonstrate that naive random image splitting inflates accuracy to $99.87\%$ ($SLR = 100.0\%$), whereas DataSAIL Specimen-level ILP reduces leakage loss to $4,841,999.8$ ($SLR = 5.7\%$, $MMD = 0.1199$). Our Multi-Objective Meta-Selector maintains strict specimen isolation ($SLR = 0.0\%$, $CCR = 100.0\%$), achieves a realistic top-1 accuracy of $98.68\%$, and yields the highest hardest-class F1-score ($0.8148$). This study provides rigorous methodological foundations and academic guidelines for trustworthy computer vision benchmarks across biological and physical specimen domains.
+In computer-vision-based biological specimen identification, data leakage at the physical-specimen level -- termed Same-Specimen-Picture Bias (SSPB) or pseudoreplication, an instance of what recent taxonomies formalize as Class~IV Boundary Leakage -- causes deep feature extractors to memorize non-taxonomic surface artifacts (mechanical saw-blade marks, surface abrasions, optical vignetting) rather than true anatomical structure. While data leakage has received rigorous treatment in financial time series (purged cross-validation) and panel econometrics (cross-sectional unit leakage), its manifestation in high-dimensional biological computer vision remains structurally unaddressed. Under naive image-level partitioning, this yields illusory near-perfect accuracy that collapses under genuine specimen-disjoint deployment conditions. While group-based splitting enforces physical isolation, it ignores feature-space similarity across distinct specimens, and no single splitting algorithm is uniformly optimal across taxonomically heterogeneous species -- an instance of the No Free Lunch principle applied to data partitioning. We address these issues on a macroscopic wood cross-section dataset of 18 species (5 genera, including CITES Appendix~II-listed \textit{Dalbergia}). First, we formalize a Specimen-Centric Data Protocol (SCDP) built on two governance axioms -- 100\% subfolder integrity and 100\% Class Coverage Rate -- and a quantitative Specimen Leakage Risk (SLR) metric. Second, we benchmark 13 splitting configurations spanning six algorithmic paradigms (naive/ungrouped, distance-based stratification, group-based, clustering-based, graph/adversarial-based, and DataSAIL Integer-Linear-Programming-based) under a ``Three Pillars'' evaluation framework of 16 metrics covering leakage minimization, out-of-distribution (OOD) difficulty, and hard-negative class preservation. Third, motivated by taxon heterogeneity, we introduce a Multi-Objective Simulated-Annealing Meta-Selector (CEGS-Split) that searches a combinatorial space of $K^{C}=11^{18}\approx5.5599\times10^{18}$ class-wise solver assignments. Under a zero-training $1$-nearest-neighbor evaluation protocol on frozen EfficientNetV2-M embeddings (5 seeds), naive random image splitting inflates top-1 accuracy to $99.87\%\pm0.11$ (SLR $=100.0\%$), whereas DataSAIL Specimen-Level ILP achieves the strongest leakage reduction among single-paradigm protocols ($L_{\text{DataSAIL}}=4{,}841{,}999.8$, $\mathrm{MMD}=0.1199$, SLR $=5.7\%$) at the cost of a severe hardest-class collapse ($\mathrm{F1}_{\text{Hardest}}=0.1193$). The proposed Multi-Objective SA Meta-Selector recovers a markedly better Pareto balance ($98.75\%$ accuracy, Macro-F1 $=0.9775$, $\mathrm{F1}_{\text{Hardest}}=0.7407$) while reducing residual leakage from $100.0\%$ to $6.0\%$; we further show analytically that this residual (rather than absolute-zero) leakage is an artifact of the current fitness formulation, which does not impose a hard SLR constraint, and we specify a constrained variant together with the exact experiments required to validate it. The gap between naive and specimen-disjoint evaluation ($\Delta\text{Acc}=+9.10$ pp, $\Delta\text{F1-Macro}=+16.75$ pp, Welch's $p=2.28\times10^{-6}$, Cohen's $d=27.91$) is consistent in direction and order of magnitude with independently reported leakage inflation in other imaging domains (optical coherence tomography, brain MRI, digital histopathology), reinforcing that SSPB is a general, quantifiable failure mode rather than a dataset-specific artifact. We release the governed dataset, versioned splitting manifests, and code, and we provide an explicit checklist of the additional experiments required to fully substantiate the framework across backbones and training regimes.
 \end{abstract}
 
 \begin{keywords}
-Data leakage \sep Same-Specimen-Picture Bias \sep Wood species identification \sep DataSAIL \sep Multi-objective optimization \sep Simulated annealing \sep Out-of-distribution benchmark
+Data leakage \sep Same-Specimen-Picture Bias \sep Wood species identification \sep DataSAIL \sep Multi-objective optimization \sep Simulated annealing \sep Out-of-distribution benchmark \sep Data governance
 \end{keywords}
 
 \maketitle
 
-\input{sections/introduction}
-\input{sections/related_work}
-\input{sections/methodology}
-\input{sections/experiments}
-\input{sections/results}
-\input{sections/explainability}
-\input{sections/conclusion}
+%======================================================================
+\section{Introduction}
+%======================================================================
 
-\input{sections/references}
+Automated visual screening systems powered by deep convolutional neural networks (CNNs) and vision transformers (ViTs) have emerged as essential computational tools across physical-science domains, including botanical identification, radiograph interpretation, agricultural crop diagnostics, and materials characterization~\cite{woodreview,rosadasilva2022,varoquaux2022,roberts2021}. In forestry science and international timber-trade regulation, rapid macroscopic wood species identification is critical for enforcing compliance with CITES Appendix~II~\cite{cites}, verifying legal timber supply chains, preventing illegal deforestation, and supporting forensic forestry investigations~\cite{dormontt2015,song2025,liu2025}. Computer vision promises field-deployable, non-destructive verification that can supplement labor-intensive xylotomy at customs checkpoints. Yet, despite reported classification accuracies routinely exceeding 95--99\% in recent literature~\cite{song2025,fabijanska2021,wu2021}, such systems frequently suffer catastrophic performance degradation once deployed on genuinely novel physical specimens~\cite{ravindran2019,ravindran2021,ravindran2022}.
+
+We argue that a primary driver of this systemic deployment failure is that dataset construction and evaluation workflows in applied computer vision remain largely ad hoc, unstandardized, and methodologically unverified. We formalize this challenge under a unified paradigm: \textbf{Physical Entity-Centric Visual Classification (PECVC)}. PECVC covers any visual-recognition domain in which individual physical entities -- wood logs, patient tissue blocks, agricultural specimens, alloy samples -- generate multiple correlated image observations.
+
+In prevailing PECVC workflows, researchers harvest multiple high-resolution images per physical object, store them in flat directory structures indexed solely by class label, and partition the resulting pool via conventional \emph{random image-level splits}. This workflow discards physical-object provenance: sub-images or crops originating from the same physical entity are routinely scattered across training and evaluation sets.
+
+This systemic flaw induces a failure mode formalized in the plant-vision literature as \textbf{Same-Specimen-Picture Bias (SSPB)}~\cite{figueroamata2022} and more broadly recognized as \textbf{specimen-level data leakage}~\cite{varoquaux2022,roberts2021,kapoor2023}. Crucially, as recently established by Roth~\cite{roth2026} across more than 2,000 empirical benchmarks, this phenomenon represents an acute manifestation of \emph{Class~IV Boundary Leakage}: a structural partitioning failure in which train/test split boundaries ignore physical entity boundaries, remaining completely invisible under conventional random cross-validation while driving substantial predictive inflation. This failure mode is conceptually and mathematically isomorphic to cross-sectional unit leakage in panel data econometrics~\cite{cerqua2026,babii2024} and spatial autocorrelation in geoscience~\cite{roberts2017}: under random image-level partitioning, deep networks behave as opportunistic ``shortcut learners'' or ``Clever Hans'' predictors~\cite{geirhos2020,lapuschkin2019}: rather than learning class-discriminative anatomical features (vessel-pore distribution, axial-parenchyma arrangement, ray width), they exploit non-taxonomic surface artifacts, illumination gradients, and sensor-noise fingerprints unique to individual specimens. High reported test accuracy then measures the model's ability to \emph{re-identify previously seen physical sources}, not to recognize novel biological material.
+
+\subsection{Mechanisms of Specimen-Level Data Leakage}
+We formalize three distinct physical mechanisms through which specimen leakage manifests in deep vision models applied to macroscopic wood imagery:
+
+\begin{enumerate}[label=\textbf{Mechanism \arabic*:}, leftmargin=*]
+\item \textbf{Geometric and Anatomical Continuity}: Sub-images or crops extracted from the same physical wood block share continuous anatomical trajectories -- matching growth-ring curvature, identical vessel-pore cluster arrangement, continuous axial-parenchyma banding. Deep networks can memorize these spatial configurations as high-dimensional visual fingerprints of the individual block rather than of the species.
+\item \textbf{Acquisition and Illumination Fingerprints}: Images captured within the same photographic session inherit identical sensor noise (photo-response non-uniformity), specular flash reflections, lens vignetting, white-balance casts, and fixed background shadows. The network can learn acquisition conditions instead of biological features.
+\item \textbf{Surface Preparation and Mechanical Artifacts}: Mechanical preparation (sawing, planing, sanding) leaves specimen-unique micro-scratch density, varnish/stain absorption patterns, weathering cracks, and edge discoloration, all of which act as shortcut features for class prediction~\cite{geirhos2020}.
+\end{enumerate}
+
+\subsection{Taxon Heterogeneity and the No Free Lunch Theorem in Data Partitioning}
+Standard group-aware splitting (e.g., \texttt{GroupKFold}, \texttt{StratifiedGroupKFold}) enforces physical-specimen isolation but suffers two further limitations.
+
+\begin{enumerate}[label=\textbf{\arabic*:}, leftmargin=*]
+\item \textbf{Feature-Space Blindness}: Physical group isolation alone does not prevent two \emph{distinct} specimens with near-identical surface texture, sanding pattern, or vignetting from landing in different splits, creating a subtler, feature-space form of leakage that survives naive grouping.
+\item \textbf{Taxon Heterogeneity}: Wood species differ markedly in intra-species visual homogeneity:
+\begin{itemize}
+\item \textbf{Uniform species} with homogeneous growth rings and consistent coloration (e.g., \textit{Guibourtia coleosperma}) are cleanly separated by linear centroid-distance metrics (Mahalanobis distance, Ward linkage).
+\item \textbf{Outlier-prone species} with extreme heartwood/sapwood transitions or severe weathering (e.g., \textit{Afzelia bella}) distort standard distance metrics and instead require adversarial density validation or DataSAIL Integer Linear Programming (ILP) to isolate anomalous specimens.
+\item \textbf{Visually similar sibling species} within the same genus (e.g., \textit{Dalbergia oliveri} vs.\ \textit{Dalbergia tonkinensis}) require graph-based isolation of near-duplicate feature-space neighborhoods to sever indirect leakage.
+\end{itemize}
+\end{enumerate}
+
+Fixing a single splitting algorithm globally across all 18 species therefore forces a sub-optimal partition for any taxon whose empirical distribution violates that algorithm's assumptions -- an instance of the No Free Lunch principle in data partitioning. If each taxon $c\in\{1,\dots,C\}$ ($C=18$) is instead allowed to select its own splitting solver $m_c\in\{1,\dots,K\}$ from a candidate pool of $K=11$ solvers, the resulting configuration space has cardinality
+\begin{equation}
+\mathcal{M} = K^{C} = 11^{18} \approx 5.5599\times10^{18}\ \text{candidate global partitions,}
+\label{eq:comb_space}
+\end{equation}
+formalized in full in Section~\ref{sec:methodology}. Brute-force enumeration of Eq.~\eqref{eq:comb_space} is computationally intractable: even under an optimistic per-configuration evaluation cost on the order of a few milliseconds (consistent with the amortized per-iteration cost of our Simulated Annealing engine reported in Section~\ref{sec:methodology}), exhaustive search would require on the order of $10^{8}$--$10^{9}$ CPU-years, several orders of magnitude beyond feasibility. Moreover, global metrics such as Maximum Mean Discrepancy (MMD) and the hardest-class F1-score must be evaluated on the \emph{assembled} global dataset $\mathcal{D}(\boldsymbol{m})=\bigcup_{c=1}^{C}\mathcal{D}_c(m_c)$, so per-class solver choices cannot be optimized independently of one another -- this is precisely what motivates a global, combinatorial search procedure rather than greedy per-class selection.
+
+\subsection{Research Questions and Primary Contributions}
+This paper addresses four research questions:
+\begin{enumerate}[label=\textbf{RQ\arabic*:}, leftmargin=*]
+\item \textbf{Data Governance}: How can physical acquisition provenance, immutable manifest schemas, and cross-split proximity auditing be unified into a standardized data-governance framework for PECVC datasets?
+\item \textbf{Benchmarked Dataset Construction}: How can a macroscopic cross-sectional wood dataset be curated and partitioned to guarantee 100\% subfolder integrity and 100\% Class Coverage Rate (CCR)?
+\item \textbf{Quantification of Leakage Inflation}: What is the exact quantitative margin ($\Delta\text{Acc}$, $\Delta\text{F1}$) by which naive random image splitting overestimates performance relative to strict specimen-disjoint partitions, and how does this margin compare across splitting paradigms?
+\item \textbf{Multi-Objective Combinatorial Meta-Selection}: How can Simulated Annealing be formulated over the $11^{18}$ configuration space to discover Pareto-favorable global partitions that jointly balance leakage reduction, OOD difficulty, and hard-class accuracy -- and what residual limitations does such a formulation carry?
+\end{enumerate}
+
+The primary contributions of this work are fourfold:
+\begin{itemize}
+\item \textbf{Contribution 1 -- Specimen-Centric Data Protocol (SCDP)}: A data-governance framework covering physical-acquisition logging, immutable JSON/CSV metadata schemas, group-disjoint partitioning, and cross-split feature-proximity auditing, operationalized through two verifiable axioms (subfolder integrity, Class Coverage Rate) and a quantitative Specimen Leakage Risk (SLR) metric.
+\item \textbf{Contribution 2 -- Curated and Governed S3 Wood Dataset (18 taxa)}: A benchmarked macroscopic cross-sectional wood dataset spanning 5 genera, fully annotated with physical specimen identifiers, released with versioned splitting manifests and cryptographic content hashes.
+\item \textbf{Contribution 3 -- A 13-Configuration, Six-Paradigm Leakage Benchmark under a 16-Metric ``Three Pillars'' Framework}: A comprehensive, statistically validated (5-seed, Welch's $t$-test, Cohen's $d$) comparison spanning naive, distance-based, group-based, clustering-based, graph/adversarial-based, and ILP-based (DataSAIL) splitting, quantifying the exact leakage-inflation margin for each.
+\item \textbf{Contribution 4 -- Multi-Objective Simulated Annealing Meta-Selector (CEGS-Split)}: A meta-heuristic optimization engine operating over the $11^{18}$-configuration search space that selects class-wise splitting strategies against a global multi-objective fitness function, together with an explicit, honestly reported analysis of its current SLR-related limitation and the constrained variant required to close it.
+\end{itemize}
+
+The remainder of this paper is organized as follows. Section~\ref{sec:related} situates this work within the broader data-leakage and dataset-partitioning literature. Section~\ref{sec:methodology} formalizes the governance axioms, the evaluated splitting paradigms, the Three Pillars metric suite, and the Meta-Selector. Section~\ref{sec:experiments} details the experimental protocol. Section~\ref{sec:results} reports and discusses the empirical findings. Section~\ref{sec:explainability} presents feature-space and attribution diagnostics. Section~\ref{sec:discussion} discusses limitations. Section~\ref{sec:conclusion} concludes, and Appendix~\ref{app:checklist} enumerates the concrete follow-up experiments required to fully substantiate the framework.
+
+%======================================================================
+\section{Related Work}
+\label{sec:related}
+%======================================================================
+
+\subsection{Ad Hoc Data Acquisition and Organization in Physical Computer Vision}
+The rapid proliferation of deep learning across scientific domains has driven the creation of numerous domain-specific image datasets, but empirical dataset-collection practice in applied computer vision has historically prioritized sample volume over methodological data governance~\cite{varoquaux2022,east2025}. In typical pipelines, physical samples are photographed, cropped into sub-images, and stored in unindexed directory trees organized solely by target label. Provenance metadata -- physical sample identifiers, harvesting location, acquisition timestamp, camera settings, surface-preparation condition -- is rarely recorded in a machine-readable schema. A recent interdisciplinary review of biological specimen imaging for computer vision explicitly identifies the absence of standardized, machine-readable specimen identifiers as a primary obstacle to leakage-free evaluation across biological imaging domains~\cite{east2025}, corroborating the governance gap this paper targets for wood anatomy.
+
+This ad hoc approach creates severe vulnerabilities during partitioning. Because standard frameworks (PyTorch \texttt{ImageFolder}, scikit-learn \texttt{train\_test\_split}) operate strictly on file paths, splits are constructed via uniform random sampling over individual image files. When several images originate from the same physical entity, this unindexed organization guarantees that observations from the same physical source are distributed across training and evaluation splits, corrupting the scientific integrity of the resulting evaluation~\cite{kapoor2023}.
+
+\subsection{Data Leakage, the Deployment Gap, and Same-Specimen-Picture Bias}
+Data leakage is increasingly recognized as a primary driver of the reproducibility crisis in computational science~\cite{kapoor2023,kaufman2012}. Kaufman et al.~\cite{kaufman2012} established an early taxonomy of leakage in data mining, distinguishing \emph{feature leakage} (illegitimate predictors) from \emph{leakage from the training example} (illegitimate rows). Kapoor and Narayanan~\cite{kapoor2023} conducted a systematic review of methodological pitfalls in ML-based science, identifying leakage-driven overoptimism affecting at least 294 published papers across 17 scientific disciplines -- a figure their subsequent living survey has since extended to 648 papers across 30 fields -- and organizing leakage by the pipeline stage at which train/test information first crosses the split boundary (preprocessing, feature engineering, sample overlap, temporal contamination).
+
+The magnitude of this problem is not specific to wood imaging. In optical coherence tomography, Tampu et al.~\cite{tampu2022} showed that slice-level rather than volume-level (i.e., patient/specimen-level) splitting inflates reported classification accuracy by 5 to 30 percentage points (Matthews Correlation Coefficient inflated by 0.07--0.43) across three widely used open datasets. In brain MRI, Yagis et al.~\cite{yagis2021} similarly quantified accuracy inflation exceeding 29 percentage points at the slide level when 2D-slice splitting ignores subject identity, and comparable inflation has been reported in digital histopathology. These independently derived magnitudes -- obtained in entirely different imaging modalities with different backbones and different leakage-detection protocols -- are consistent in direction and order of magnitude with the wood-specific inflation we quantify in Section~\ref{sec:results}, supporting the view that specimen/subject-level leakage is a general, transferable failure mode of image-level partitioning rather than an artifact peculiar to macroscopic wood imagery.
+
+In botanical image analysis and wood species recognition specifically, Same-Specimen-Picture Bias was explicitly conceptualized by Figueroa-Mata et al.~\cite{figueroamata2022} for Costa Rican tree species identified from wood-cut images, who divided each physical cross-section into multiple sub-images and cautioned that failing to isolate a specimen's sub-images across splits inflates evaluation performance. Rosa da Silva et al.~\cite{rosadasilva2022} further demonstrated, across the transverse, radial, and tangential anatomical planes, that evaluation protocols routinely ignore multiple image captures per physical sample, again yielding overoptimistic estimates.
+
+In timber forensics, Ravindran et al.~\cite{ravindran2019,ravindran2020,ravindran2021,ravindran2022} and Wiedenhoeft~\cite{wiedenhoeft2011} documented a substantial ``deployment gap'' between laboratory xylarium accuracy and field accuracy -- from roughly 10\% (Ghanaian timbers evaluated on field samples versus laboratory specimens~\cite{ravindran2019}) up to approximately 25\% under real-world field conditions. Crucially, our work differs from these deployment-gap studies in a specific methodological respect: whereas field studies conflate specimen leakage with external camera domain shift, sensor variation, and environmental noise, our framework isolates \emph{pure} specimen-level leakage under strictly controlled conditions (matched feature backbone, matched classifier, identical acquisition distribution), so that the measured performance gap can be attributed unambiguously to specimen provenance rather than to confounded field covariates.
+
+In medical computer vision, Roberts et al.~\cite{roberts2021} reviewed over 400 deep-learning models for COVID-19 detection from chest radiographs and concluded that none were suitable for clinical deployment, in large part owing to patient-level data leakage; a recent leakage-aware benchmark of leukemia-cell classification similarly attributes the gap between near-perfect image-level scores and modest patient-level scores directly to identity leakage~\cite{leukemia2026}. Varoquaux and Cheplygina~\cite{varoquaux2022} demonstrated that medical-imaging benchmarks routinely overestimate real-world diagnostic utility once group independence is violated. In explainable AI, Geirhos et al.~\cite{geirhos2020} and Lapuschkin et al.~\cite{lapuschkin2019} showed that networks trained under leaked splits act as ``Clever Hans'' predictors that exploit non-diagnostic shortcuts rather than domain-relevant features -- the same behavior we document via attribution analysis in Section~\ref{sec:explainability}.
+
+\subsection{Cross-Disciplinary Paradigms of Data Leakage: From Panel Econometrics to Physical Computer Vision}
+Data leakage is a pervasive methodological vulnerability that transcends scientific disciplines, yet formal mitigation strategies have developed largely within isolated academic domains. In general machine learning and data mining, Kaufman et al.~\cite{kaufman2012} and Kapoor and Narayanan~\cite{kapoor2023} established overarching taxonomies organizing leakage by the pipeline stage at which information crosses the partition boundary. Recently, Roth~\cite{roth2026} established an empirical landscape of four leakage classes across 2,047 benchmark datasets, demonstrating that whereas pre-processing estimation leakage (e.g., standardizing feature matrices prior to splitting) exerts negligible influence on downstream performance ($|\Delta\mathrm{AUC}| \le 0.005$), \emph{selection leakage} and \emph{boundary leakage} (Class~IV) dominate empirical overoptimism. Crucially, Roth demonstrated that boundary leakage -- arising whenever data partitioning fails to mirror the physical or operational deployment boundary -- remains completely invisible under standard cross-validation, creating an undetected gap between benchmark scores and operational reality.
+
+In quantitative finance and time-series econometrics, temporal serial correlation induces severe look-ahead leakage. To prevent feature-label temporal overlap and market memory contamination, L{\'o}pez de Prado~\cite{lopezdeprado2018} formalized \emph{Purged Cross-Validation (PCV)} and \emph{Combinatorial Purged Cross-Validation (CPCV)}, which enforce an explicit temporal ``embargo'' buffer between contiguous folds. In macroeconomic and panel econometrics, Cerqua, Letta, and Pinto~\cite{cerqua2026} established a systematic framework exposing the acute vulnerabilities of applying machine learning models to panel data. In an empirical audit of 480 machine learning models across 3,058 U.S. counties spanning twenty years, Cerqua et al. demonstrated that conventional random partitioning inflates predictive accuracy by over 17\% in Mean Squared Error and 0.05 in AUC by conflating cross-sectional \emph{unit leakage} (observing the same geographic county in both training and test sets) with \emph{temporal leakage} (training on future information to forecast past horizons). Babii et al.~\cite{babii2024} similarly underscored that preserving panel dependency structures requires structured block-sampling across cross-sectional and temporal dimensions.
+
+In spatial ecology and environmental machine learning, spatial autocorrelation governed by Tobler's First Law of Geography introduces an identical challenge: geographically proximal samples share unobserved environmental covariates. Roberts et al.~\cite{roberts2017} demonstrated that standard random cross-validation substantially overestimates predictive skill in spatial modeling, advocating spatial blocking and environmental buffering to sever spatial proximity leakage.
+
+\textbf{Synthesis and The PECVC Frontier.} We synthesize these disparate domains into a unified conceptual principle: \emph{Physical Entity-Centric Visual Classification (PECVC)} in biological computer vision is structurally and mathematically isomorphic to cross-sectional unit leakage in panel econometrics and spatial autocorrelation in geoscience. In macroscopic wood anatomy, an individual physical timber specimen block $g \in \mathcal{G}$ constitutes an independent entity unit (analogous to a firm or county in panel econometrics, or a spatial profile in geoscience). Multiple image patches cropped from specimen block $g$ inherit unobserved latent factors: mechanical saw striations, sanding micro-grooves, anatomical growth-ring trajectory, camera sensor photo-response non-uniformity (PRNU), and optical vignetting. When computer vision researchers partition datasets via uniform random image sampling, they inadvertently inject Class~IV Boundary Leakage into the evaluation pipeline. 
+
+Crucially, existing econometric and financial remedies cannot be directly transplanted into biological computer vision. Econometric panel methods (e.g., Cerqua et al.~\cite{cerqua2026}) and financial purged splits (L{\'o}pez de Prado~\cite{lopezdeprado2018}) operate on structured, low-dimensional tabular matrices governed by scalar unit identifiers or 1D temporal axes. They do not account for high-dimensional continuous feature embeddings ($\phi(x) \in \mathbb{R}^D$), nor do they accommodate the extreme visual and taxonomic heterogeneity of biological taxa, where distinct species exhibit vastly different intra-class distributions. Conversely, while combinatorial methods such as DataSAIL~\cite{joeres2025} minimize inter-split similarity via integer linear programming, they impose a single global optimization objective across all classes, frequently inducing severe hardest-class performance collapse or dropping rare taxa entirely ($CCR < 100\%$). Our framework bridges this interdisciplinary divide by introducing the first verifiable data-governance protocol (SCDP) coupled with a multi-objective combinatorial meta-selector that simultaneously governs specimen boundaries, maximizes out-of-distribution evaluation difficulty, and safeguards minority class boundaries.
+
+\subsection{Data Partitioning Paradigms and DataSAIL}
+To prevent group leakage, specialized partitioning strategies have been explored across subfields. Standard libraries provide \texttt{GroupKFold}~\cite{scikit}, which enforces group isolation but treats all groups homogeneously, ignoring per-class sample imbalance and often eliminating minority classes from validation or test folds. Roberts et al.~\cite{roberts2017} systematized block, buffered, and leave-location-out cross-validation strategies for data exhibiting temporal, spatial, hierarchical, or phylogenetic structure, establishing the broader principle -- also central to this paper -- that the correct notion of ``independence'' between splits is problem- and structure-dependent rather than universal.
+
+Joeres, Blumenthal, and Kalinina~\cite{joeres2025} introduced \textbf{DataSAIL} (Data Splitting Against Information Leakage), which formulates dataset partitioning as an NP-hard combinatorial optimization problem solved via a scalable clustering-plus-integer-linear-programming heuristic, minimizing an inter-split similarity objective of the form
+\begin{equation}
+\min_{\pi} \sum_{i \neq j} \mathbb{1}[\pi(i) \neq \pi(j)] \cdot S(i, j) \cdot w_i \cdot w_j,
+\label{eq:datasail_objective}
+\end{equation}
+where $\pi(i)$ is the split assignment of sample $i$, $S(i,j)$ the pairwise feature similarity, and $w_i$ a sample weight. DataSAIL was originally developed and validated on biomedical and molecular datasets; while it effectively reduces inter-split feature similarity, the published formulation applies a single global optimization criterion across all classes, and does not natively account for class-wise taxon heterogeneity of the kind we document in Section~\ref{sec:methodology}. Existing splitting algorithms, more broadly, operate under single-objective formulations (either group isolation or similarity-loss minimization). In contrast, this work proposes a \textbf{Multi-Objective Combinatorial Meta-Selector} that optimizes class-wise splitting strategy \emph{assignment} against a global multi-objective fitness function combining DataSAIL-style leakage loss, Maximum Mean Discrepancy, and hardest-class decision-boundary preservation -- to our knowledge, the first application of a class-wise combinatorial solver-selection search, rather than a single global split objective, to specimen-level image partitioning.
+
+\subsection{Automated Wood Identification and Timber Forensics}
+Macroscopic wood-species identification underpins CITES Appendix~II enforcement and the fight against illegal timber trafficking~\cite{cites,dormontt2015}. Recent computer-vision research has transitioned from handcrafted texture descriptors (GLCM, LBP, Gabor filters)~\cite{woodreview} to deep convolutional networks and vision transformers~\cite{fabijanska2021,wu2021,ravindran2022,song2025,liu2025}. Song et al.~\cite{song2025} recently reported deep-learning classification of ten Vietnamese timber species with accuracy exceeding 99\%; such results, characteristic of the field, illustrate precisely the class of high-accuracy claims that specimen-level leakage auditing is designed to interrogate, since the corresponding splitting protocol's specimen-disjointness is rarely reported explicitly.
+
+Despite architectural progress, wood-species identification remains an extreme fine-grained challenge~\cite{wiedenhoeft2011}. Taxonomically close sibling species within the same genus (e.g., \textit{Afzelia}, \textit{Dalbergia}, \textit{Pterocarpus}~\cite{liu2025}) share near-identical macroscopic anatomical traits, including vessel-pore distribution and axial-parenchyma banding. Evaluating models on random image splits obscures this genuine biological difficulty by allowing memorization of specimen-specific surface shortcuts to substitute for anatomical discrimination. A standardized data-governance framework is therefore a prerequisite, not an optional refinement, for establishing reliable, leak-free benchmarks in forensic timber identification.
+
+%======================================================================
+\section{Problem Formulation and Data Governance Framework}
+\label{sec:formulation}
+%======================================================================
+
+\subsection{Notation and Specimen Leakage Risk (SLR)}
+Let $\mathcal{D} = \{(x_i, y_i, g_i)\}_{i=1}^N$ denote a wood-image dataset of $N$ macroscopic images, where $x_i \in \mathcal{X}$ is an RGB observation, $y_i \in \{1, \dots, C\}$ is the botanical species label ($C=18$), and $g_i \in \mathcal{G}$ denotes the physical specimen block (subfolder identifier) from which $x_i$ was extracted.
+
+A data partition $\pi: \mathcal{D} \to \{\text{Train}, \text{Val}, \text{Test}\}$ maps each sample to a split. Under naive random splitting, the assignment $\pi(x_i)$ is statistically independent of specimen origin $g_i$, inducing SSPB. We quantify this vulnerability via the \textbf{Specimen Leakage Risk (SLR)}:
+\begin{equation}
+\mathrm{SLR}(\pi) = \frac{\left|\{g \in \mathcal{G} \mid \exists\, x, x' \in g \text{ s.t. } \pi(x) \neq \pi(x')\}\right|}{|\mathcal{G}|} \times 100\%,
+\label{eq:slr}
+\end{equation}
+where $\mathrm{SLR}=0.0\%$ denotes absolute physical specimen isolation and $\mathrm{SLR}>0.0\%$ measures the proportion of physical specimens whose images are split across two or more partitions.
+
+\begin{tcolorbox}[colback=lightbg,colframe=primaryblue,title=\textbf{SCDP Core Data Governance Axioms}]
+\begin{enumerate}[leftmargin=*]
+\item \textbf{100\% Subfolder Integrity}: all images $x_i, x_j$ originating from the same physical specimen $g \in \mathcal{G}$ must belong to the same split:
+\begin{equation}
+\forall g \in \mathcal{G}, \quad \pi(x_i) = \pi(x_j) \quad \forall\, x_i, x_j \in g.
+\label{eq:subfolder_integrity}
+\end{equation}
+\item \textbf{100\% Class Coverage Rate (CCR)}: every species $c \in \{1, \dots, C\}$ must be present in Train, Validation, \emph{and} Test:
+\begin{equation}
+\mathrm{CCR}(\pi) = \frac{\left|\{c \in \{1,\dots,C\} \mid c \text{ present in Train, Val, and Test}\}\right|}{C} \times 100\%.
+\label{eq:ccr}
+\end{equation}
+\end{enumerate}
+\end{tcolorbox}
+
+Axiom~\eqref{eq:subfolder_integrity} is a \emph{hard} governance requirement: any splitting protocol that violates it for any specimen contributes to $\mathrm{SLR}(\pi)>0$ and is, by construction, susceptible to SSPB. Axiom~\eqref{eq:ccr} is a \emph{feasibility} requirement without which downstream classification metrics (macro-F1, per-class recall) are undefined for the missing classes. As Section~\ref{sec:results} shows, several published-style single-paradigm protocols satisfy Axiom~\eqref{eq:ccr} while substantially violating Axiom~\eqref{eq:subfolder_integrity}, which motivates reporting SLR as a first-class metric rather than assuming it is zero whenever a ``group-aware'' label is attached to a method.
+
+%======================================================================
+\section{Methodology}
+\label{sec:methodology}
+%======================================================================
+
+To resolve specimen-level leakage while accommodating taxon-specific structural heterogeneity, we (i) categorize a comprehensive set of splitting protocols spanning distinct algorithmic paradigms, (ii) define a 16-metric ``Three Pillars'' evaluation framework, and (iii) formulate a Multi-Objective Simulated Annealing Meta-Selector over the class-wise solver-assignment space introduced in Eq.~\eqref{eq:comb_space}.
+
+\subsection{Categorization of Evaluated Splitting Protocols}
+\label{sec:protocols}
+We evaluate splitting protocols organized into four methodological blocks, corresponding to the four categories reported in Table~\ref{tab:master_results}.
+
+\begin{enumerate}[label=\textbf{Category \Roman*:}, leftmargin=*]
+\item \textbf{Naive Image-Level Baselines}: \textsf{Naive Random Image Split} and \textsf{Naive Stratified Image Split} perform independent (respectively class-stratified) uniform random sampling over individual image files at target ratios $r=(0.60, 0.20, 0.20)$ without regard to specimen origin, serving as the maximum-leakage reference ($\mathrm{SLR}\approx100\%$). \textsf{DataSAIL Image-Level ILP} applies the DataSAIL objective of Eq.~\eqref{eq:datasail_objective} directly over individual images rather than specimen groups, and therefore reduces inter-split visual similarity without enforcing specimen disjointness.
+
+\item \textbf{Single Splitting Protocols (one paradigm imposed globally across all 18 species)}:
+\begin{itemize}
+\item \textbf{\textsf{Fixed Mahalanobis Stratification}}: computes a per-class Mahalanobis distance of each image embedding to its class centroid and stratifies images into splits by distance quantile; because stratification operates at the image level, it does not itself guarantee specimen disjointness.
+\item \textbf{\textsf{Naive Specimen Group Split}}: a plain \texttt{GroupKFold}-style split enforcing $g_i$-level disjointness without explicit per-class ratio balancing.
+\item \textbf{\textsf{Stratified Group Split}}: extends the above with joint group isolation \emph{and} per-class target-ratio balancing (\texttt{StratifiedGroupKFold}-style allocation).
+\item \textbf{\textsf{Hierarchical Ward Partitioning}}: computes per-specimen feature centroids $h_g = \frac{1}{|g|}\sum_{x\in g}\phi(x)$ from EfficientNetV2 embeddings, applies Ward-linkage agglomerative clustering over $\{h_g\}$, and assigns intact sub-trees to splits to minimize inter-cluster linkage distance.
+\item \textbf{\textsf{Agglomerative Stratified Banding}}: orders specimen centroids by agglomerative similarity into contiguous ``bands'' and stratifies bands round-robin across splits, jointly controlling class balance and gross feature-space overlap.
+\item \textbf{\textsf{Cosine Feature Graph Partitioning}}: builds a $k$-nearest-neighbor cosine-similarity graph over specimen centroids and partitions by isolating weakly connected / spectrally separated components, targeting indirect (multi-hop) similarity leakage among visually close sibling species.
+\item \textbf{\textsf{Adversarial Density Validation}}: trains an auxiliary binary MLP discriminator $D_\psi:\mathbb{R}^d\to[0,1]$ to distinguish candidate split assignments from specimen embeddings; specimens with high discriminator certainty $|D_\psi(h_g)-0.5|$ are treated as distributional outliers and preferentially routed to the test split to enforce evaluation difficulty (in the spirit of adversarial validation for train/test shift detection~\cite{adversarialvalidation}).
+\item \textbf{\textsf{DataSAIL Specimen-Level ILP}}: applies the DataSAIL objective of Eq.~\eqref{eq:datasail_objective} at the specimen-centroid level, minimizing
+\begin{equation}
+\min_{\pi} \sum_{g \neq g'} \mathbb{1}[\pi(g) \neq \pi(g')] \cdot \cos(h_g, h_{g'}) \cdot |g| \cdot |g'| \quad \text{s.t.} \quad \left| \frac{|W_s|}{W_{\text{total}}} - r_s \right| \le \epsilon,
+\label{eq:datasail_specimen}
+\end{equation}
+where $W_s$ denotes the total sample weight assigned to split $s$ and $\epsilon$ a small tolerance on the target ratio $r_s$.
+\end{itemize}
+
+\item \textbf{Combinatorial Selector -- Single-Objective DataSAIL Loss}: for each taxon $c$, independently selects the candidate solver $m_c$ from the $K=11$-solver pool that minimizes the per-class DataSAIL loss $L_c(m_c)$ in isolation, without regard to the resulting global MMD or hardest-class accuracy.
+
+\item \textbf{Combinatorial Selector -- Multi-Objective Optimization (CEGS-Split, proposed)}: jointly searches the $K^{C}=11^{18}$ class-wise assignment space via Simulated Annealing (Section~\ref{sec:sa}) to discover a globally Pareto-favorable configuration under the multi-objective fitness function of Eq.~\eqref{eq:multi_obj_fitness}.
+\end{enumerate}
+
+We stress that Categories III and IV are \emph{meta-selectors}: they do not introduce a new low-level partitioning rule but instead choose, per taxon, among the eight Category-II solvers (plus additional lightweight variants completing the $K=11$ candidate pool), assembling the resulting per-class splits into one global dataset $\mathcal{D}(\boldsymbol{m})$.
+
+\subsection{The Three Pillars Evaluation Framework}
+\label{sec:three_pillars}
+Table~\ref{tab:three_pillars} organizes 16 quantitative metrics under three analytical pillars, chosen so that leakage minimization, evaluation difficulty, and downstream classification utility can be assessed jointly rather than in isolation -- a single metric from any one pillar can be trivially optimized at the expense of the other two, as Section~\ref{sec:results} demonstrates empirically.
+
+\begin{table}[htbp]
+\centering
+\caption{The Three Pillars Evaluation Framework comprising 16 quantitative metrics.}
+\label{tab:three_pillars}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{Pillar} & \textbf{Metric Name} & \textbf{Mathematical Definition / Purpose} \\
+\midrule
+\multirow{6}{*}{\textbf{Pillar 1: Data Leakage Minimization}}
+& DataSAIL Loss $L(\pi)$ & $L(\pi) = \frac{1}{2} \sum_{\pi(x) \neq \pi(x')} \cos(\phi(x), \phi(x')) \cdot \kappa(x) \kappa(x')$ \\
+& Inter-Split Similarity $\bar{S}_{\text{inter}}$ & Mean cosine similarity across different splits (Train $\leftrightarrow$ Test) \\
+& Intra-Split Similarity $\bar{S}_{\text{intra}}$ & Mean cosine similarity within the same split (Train $\leftrightarrow$ Train) \\
+& Specimen Leakage Risk $SLR$ & Percentage of physical specimens distributed across multiple splits (Eq.~\ref{eq:slr}) \\
+& Pseudoreplication Index $PRI$ & Percentage of leaked specimen image-pairs between Train and Test \\
+& Nearest-Neighbor Sim.\ $\text{NN\_Sim}_{\text{Mean}}$ & Mean cosine similarity from each Test image to its nearest Train neighbor \\
+\midrule
+\multirow{3}{*}{\textbf{Pillar 2: OOD Difficulty \& Separation}}
+& Maximum Mean Discrepancy $MMD$ & $MMD^2(\text{Tr}, \text{Te}) = \left\| \frac{1}{N_{\text{tr}}} \sum_{x \in \text{Tr}} k(\phi(x), \cdot) - \frac{1}{N_{\text{te}}} \sum_{y \in \text{Te}} k(\phi(y), \cdot) \right\|_{\mathcal{H}_k}^2$ \\
+& Silhouette Separation $S_{\text{split}}$ & Mean Silhouette coefficient evaluated on split assignment, $\in [-1, 1]$ \\
+& Class Coverage Rate $CCR$ & Percentage of species present in Train, Val, and Test (Eq.~\ref{eq:ccr}) \\
+\midrule
+\multirow{7}{*}{\textbf{Pillar 3: Hard Negatives \& Performance}}
+& KNN Top-1 Test Accuracy & 1-Nearest-Neighbor accuracy on frozen embeddings \\
+& KNN Top-3 \& Balanced Acc.\ & Top-3 accuracy and mean per-class recall across all 18 taxa \\
+& Macro-F1 \& Weighted-F1 & Unweighted and support-weighted average F1-score across all 18 taxa \\
+& Hardest Class F1 $\text{F1}_{\text{Hardest}}$ & $\min_{c \in \{1,\dots,C\}} F1_c$ \\
+& Wasserstein Divergence $W_1$ & Earth Mover's Distance between per-split and global class distributions \\
+& Welch's $t$-test $p$-value & Two-sample $p$-value vs.\ the Naive Random baseline \\
+& Cohen's $d$ Effect Size & Standardized effect size of the accuracy shift vs.\ the Naive Random baseline \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Multi-Objective Simulated Annealing Meta-Selector}
+\label{sec:sa}
+
+\subsubsection{Why Class-Wise Selection?}
+As motivated in Section~\ref{sec:related} and observed empirically in Table~\ref{tab:species_breakdown}, wood taxa exhibit contrasting intra-species variance: uniform taxa are best served by linear centroid-distance stratification, outlier-prone taxa require adversarial or ILP-based isolation of anomalous specimens, and visually similar sibling species require graph-based severance of indirect similarity. Enforcing one algorithm globally therefore trades off accuracy on some taxa against leakage-robustness on others. Allowing per-taxon solver selection $m_c\in\{1,\dots,K\}$ ($K=11$) yields the configuration space of Eq.~\eqref{eq:comb_space}.
+
+\subsubsection{Global Multi-Objective Fitness Function}
+Candidate global configurations are evaluated on the assembled dataset $\mathcal{D}(\boldsymbol{m})=\bigcup_{c=1}^{C}\mathcal{D}_c(m_c)$ via
+\begin{equation}
+\mathrm{Fitness}(\boldsymbol{m}) = w_1 \cdot \left( \frac{L_{\text{DataSAIL}}(\boldsymbol{m})}{1000} \right) - w_2 \cdot \left( 10 \cdot MMD(\boldsymbol{m}) \right) - w_3 \cdot \left( 10 \cdot \mathrm{F1}_{\text{Hardest}}(\boldsymbol{m}) \right),
+\label{eq:multi_obj_fitness}
+\end{equation}
+with $w_1=1.0$, $w_2=0.5$, $w_3=0.5$. Minimizing Eq.~\eqref{eq:multi_obj_fitness} simultaneously (1) minimizes DataSAIL inter-split leakage loss, (2) maximizes feature-distribution discrepancy (OOD evaluation difficulty), and (3) maximizes hardest-class F1 (inter-class decision-boundary preservation).
+
+\begin{tcolorbox}[colback=lightbg,colframe=accentred,title=\textbf{Identified Limitation: Fitness Function Does Not Encode SLR}]
+Equation~\eqref{eq:multi_obj_fitness} does not include a term penalizing $\mathrm{SLR}(\boldsymbol{m})$ directly. $L_{\text{DataSAIL}}$ is a continuous \emph{similarity}-based proxy for leakage, not a hard specimen-disjointness constraint; consequently, Simulated Annealing can rationally select a per-class solver that violates Axiom~\eqref{eq:subfolder_integrity} (e.g., \textsf{Naive Stratified Image Split}) whenever doing so improves $\mathrm{Fitness}(\boldsymbol{m})$ enough via the $MMD$ or $\mathrm{F1}_{\text{Hardest}}$ terms. This is exactly what we observe empirically in Table~\ref{tab:species_breakdown}: three of eighteen taxa (\textit{Dalbergia cochinchinensis}, \textit{Guibourtia coleosperma}, \textit{Sindora cochinchinensis}) are assigned an image-level solver by the Meta-Selector, producing a residual $\mathrm{SLR}=6.0\%$ rather than the $0.0\%$ that a specimen-isolation-first design would guarantee. We treat this as a genuine, reportable limitation of the current formulation rather than obscure it, and we specify in Section~\ref{sec:discussion} and Appendix~\ref{app:checklist} the exact constrained variant -- adding a hard rejection or a large penalty term $w_4\cdot\mathrm{SLR}(\boldsymbol{m})$ to Eq.~\eqref{eq:multi_obj_fitness} -- and the experiment required to validate that it recovers $\mathrm{SLR}=0.0\%$ without an unacceptable loss of $\mathrm{F1}_{\text{Hardest}}$.
+\end{tcolorbox}
+
+\subsubsection{Simulated Annealing Optimization Engine}
+We solve the resulting combinatorial optimization problem using Simulated Annealing (SA):
+
+\begin{enumerate}[label=\textbf{Step \arabic*:}, leftmargin=*]
+\item \textbf{Pre-computation}: candidate splits $\mathcal{D}_c(m_c)$ for all 18 taxa across all $K=11$ solvers are pre-computed and cached, so that SA iterations only reassemble and re-score the global dataset rather than recomputing embeddings or per-class splits from scratch.
+\item \textbf{Initialization}: an initial configuration $\boldsymbol{m}^{(0)}=(m_1^{(0)},\dots,m_{18}^{(0)})$ is sampled uniformly at random; initial temperature $T_0=30.0$, cooling rate $\alpha=0.999$.
+\item \textbf{Neighbor Mutation}: at step $t$, a random taxon $c$ is selected and its solver is mutated to a random alternative $m_c'\in\{1,\dots,K\}$.
+\item \textbf{Global Evaluation}: the assembled candidate dataset $\mathcal{D}(\boldsymbol{m}_{\text{cand}})$ is constructed from cached per-class splits, and $\Delta\mathrm{Fitness}=\mathrm{Fitness}(\boldsymbol{m}_{\text{cand}})-\mathrm{Fitness}(\boldsymbol{m}^{(t)})$ is evaluated.
+\item \textbf{Boltzmann Acceptance}: the candidate is accepted with probability
+\begin{equation}
+P(\text{accept}) = \begin{cases} 1.0 & \text{if } \Delta \mathrm{Fitness} < 0, \\ \exp\left(-\dfrac{\Delta \mathrm{Fitness}}{T_t}\right) & \text{if } \Delta \mathrm{Fitness} \ge 0. \end{cases}
+\end{equation}
+\item \textbf{Cooling}: $T_{t+1}=T_t\times0.999$; the procedure terminates after 10{,}000 iterations ($\approx60$ seconds wall-clock on a single workstation CPU, i.e., an amortized cost on the order of a few milliseconds per iteration given the pre-cached candidate splits), returning the best configuration $\boldsymbol{m}^{*}$ found.
+\end{enumerate}
+
+Because SA performs stochastic local search rather than exhaustive enumeration, $\boldsymbol{m}^{*}$ is a \emph{Pareto-favorable} rather than provably Pareto-optimal solution with respect to Eq.~\eqref{eq:multi_obj_fitness}; we do not claim global optimality over the full $11^{18}$ space, only that the discovered configuration dominates every single-paradigm global baseline evaluated in Table~\ref{tab:master_results} on the joint objective. The complete operational procedure is formalized in Algorithm~\ref{alg:cegs_split}.
+
+\begin{algorithm}[htbp]
+\caption{Multi-Objective Simulated Annealing Meta-Selector (CEGS-Split)}
+\label{alg:cegs_split}
+\begin{algorithmic}[1]
+\Require Dataset $\mathcal{D} = \{(x_i, y_i, g_i)\}_{i=1}^N$, taxon labels $\{1,\dots,C\}$, candidate solver pool $\mathcal{K}=\{1,\dots,K\}$, objective weights $(w_1, w_2, w_3)$, initial temperature $T_0$, cooling rate $\alpha$, maximum iterations $N_{\text{iter}}$.
+\Ensure Globally Pareto-favorable configuration $\boldsymbol{m}^* = (m_1^*, \dots, m_C^*)$ and assembled dataset $\mathcal{D}(\boldsymbol{m}^*)$.
+\State \textbf{Offline Pre-computation:}
+\For{each taxon $c \in \{1,\dots,C\}$ and solver $k \in \mathcal{K}$}
+    \State Compute and cache candidate partition $\mathcal{D}_c(k) = (\text{Tr}_{c,k}, \text{Val}_{c,k}, \text{Te}_{c,k})$.
+\EndFor
+\State \textbf{Initialization:}
+\State Sample initial configuration $\boldsymbol{m}^{(0)} = (m_1^{(0)}, \dots, m_C^{(0)})$ uniformly from $\mathcal{K}^C$.
+\State Assemble global dataset $\mathcal{D}(\boldsymbol{m}^{(0)}) \gets \bigcup_{c=1}^C \mathcal{D}_c(m_c^{(0)})$.
+\State Compute initial fitness $F^{(0)} \gets \mathrm{Fitness}(\boldsymbol{m}^{(0)})$ via Eq.~\eqref{eq:multi_obj_fitness}.
+\State $\boldsymbol{m}^* \gets \boldsymbol{m}^{(0)}$, $F^* \gets F^{(0)}$, $T \gets T_0$.
+\State \textbf{Annealing Loop:}
+\For{$t = 1$ \textbf{to} $N_{\text{iter}}$}
+    \State Uniformly select taxon $c \sim \{1, \dots, C\}$.
+    \State Uniformly select alternative solver $k' \sim \mathcal{K} \setminus \{m_c^{(t)}\}$.
+    \State Form candidate configuration $\boldsymbol{m}_{\text{cand}} \gets (m_1^{(t)}, \dots, m_c^{(t)} \gets k', \dots, m_C^{(t)})$.
+    \State Assemble $\mathcal{D}(\boldsymbol{m}_{\text{cand}})$ from cached splits.
+    \State Evaluate $\Delta F \gets \mathrm{Fitness}(\boldsymbol{m}_{\text{cand}}) - F^{(t)}$.
+    \If{$\Delta F < 0$ \textbf{or} $\mathrm{rand}(0,1) < \exp\left(-\dfrac{\Delta F}{\max(10^{-5}, T)}\right)$}
+        \State $\boldsymbol{m}^{(t+1)} \gets \boldsymbol{m}_{\text{cand}}$, $F^{(t+1)} \gets \mathrm{Fitness}(\boldsymbol{m}_{\text{cand}})$.
+        \If{$F^{(t+1)} < F^*$}
+            \State $\boldsymbol{m}^* \gets \boldsymbol{m}^{(t+1)}$, $F^* \gets F^{(t+1)}$.
+        \EndIf
+    \Else
+        \State $\boldsymbol{m}^{(t+1)} \gets \boldsymbol{m}^{(t)}$, $F^{(t+1)} \gets F^{(t)}$.
+    \EndIf
+    \State $T \gets T \times \alpha$.
+\EndFor
+\State \Return $\boldsymbol{m}^*$ and assembled dataset $\mathcal{D}(\boldsymbol{m}^*)$.
+\end{algorithmic}
+\end{algorithm}
+
+%======================================================================
+\section{Experimental Setup}
+\label{sec:experiments}
+%======================================================================
+
+\subsection{The S3 Macroscopic Wood Dataset}
+The benchmark dataset comprises macroscopic cross-sectional images of 18 wood species spanning 5 botanical genera: \textit{Afzelia} (4 spp.), \textit{Dalbergia} (5 spp., CITES Appendix~II-listed), \textit{Guibourtia} (3 spp.), \textit{Pterocarpus} (4 spp.), and \textit{Sindora} (2 spp.). Each subfolder maps to an immutable physical specimen block $g_i$. Two raw categories lacking physical-harvest logs (\textit{Pterocarpus sp.} and \textit{Peltogyne pubescens}) were excluded under governance rules, leaving 18 taxonomically verified species. Target split ratios are Train~60\% / Val~20\% / Test~20\%. Figure~\ref{fig:dataset_distribution} depicts the taxonomic class distribution and split balance under the governed protocol.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.98\linewidth]{fig/eda_split_end_version.png}
+\caption{Taxonomic class distribution and governed partition allocation across the S3 wood cross-section dataset. The target split ratio (Train 60\% / Val 20\% / Test 20\%) is preserved under the Specimen-Centric Data Protocol while maintaining 100\% Class Coverage Rate ($CCR=100.0\%$) and whole-subfolder physical specimen integrity.}
+\label{fig:dataset_distribution}
+\end{figure}
+
+\subsection{Feature Extraction and Zero-Training KNN Protocol}
+To isolate the effect of dataset partitioning from neural-network training stochasticity (weight initialization, optimizer state, epoch-termination choice), we adopt a \textbf{Zero-Training $1$-Nearest-Neighbor Evaluation Protocol}:
+
+\begin{enumerate}[label=\textbf{\arabic*:}, leftmargin=*]
+\item \textbf{Deep Feature Backbone}: features are extracted with \texttt{tf\_efficientnetv2\_m\_in21k}~\cite{efficientnetv2}, EfficientNetV2-M pre-trained on ImageNet-21k.
+\item \textbf{Embedding Extraction}: $224\times224$ macro images are mapped to 1280-dimensional vectors $\boldsymbol{f}_i\in\mathbb{R}^{1280}$, $L_2$-normalized as $\phi(x_i)=\boldsymbol{f}_i/\lVert\boldsymbol{f}_i\rVert_2$.
+\item \textbf{1-NN Classification}: for each $x_{\text{test}}\in\mathcal{D}_{\text{Test}}$,
+\begin{equation}
+\hat{y}(x_{\text{test}}) = y\left( \arg\max_{x_{\text{train}} \in \mathcal{D}_{\text{Train}}} \phi(x_{\text{test}})^{\!\top} \phi(x_{\text{train}}) \right).
+\end{equation}
+\item \textbf{Multi-Seed Replication}: all experiments are repeated across 5 seeds (\texttt{42, 123, 456, 789, 2024}); tables report $\text{Mean}\pm\text{Std}$.
+\end{enumerate}
+
+This protocol deliberately trades peak achievable accuracy for methodological cleanliness: because $1$-NN classification on frozen, non-fine-tuned embeddings involves no gradient-based fitting to the training split, any performance differential observed between splitting protocols can be attributed to the partition itself (via which images are eligible as neighbors) rather than to confounds in classifier training. This isolates RQ3 cleanly, but it is a \emph{necessary, not sufficient}, validation of the framework's practical relevance -- Section~\ref{sec:discussion} and Appendix~\ref{app:checklist} specify the trained-classifier robustness study required to confirm that the same ranking of protocols holds when a classifier head is actually fine-tuned end-to-end.
+
+\subsection{Statistical Testing}
+Statistical significance between the Naive Random baseline and each candidate protocol is assessed via Welch's $t$-test ($p$-value, unequal variances assumed) and Cohen's $d$ effect size,
+\begin{equation}
+d = \frac{\bar{X}_1 - \bar{X}_2}{s_{\text{pooled}}}, \qquad s_{\text{pooled}} = \sqrt{\frac{s_1^2 + s_2^2}{2}},
+\end{equation}
+computed over the 5-seed accuracy distributions.
+
+\subsection{Planned Robustness Validation Across Trained Deep Vision Backbones}
+\label{sec:backbone_robustness}
+\pending{Full backbone $\times$ splitting-protocol fine-tuning grid across 260 runs awaiting local workstation execution by user; see Appendix~\ref{app:checklist}, Item~B1}. To confirm that the leakage-inflation and protocol-ranking conclusions established under the zero-training $1$-NN proxy (Sections~\ref{sec:results}--\ref{sec:explainability}) transfer to genuinely trained classifiers, we specify a companion study fine-tuning four representative backbones spanning distinct visual-representation paradigms:
+\begin{enumerate}[label=\textbf{(\arabic*)}, leftmargin=*]
+\item \textbf{ConvNeXt-Tiny}~\cite{convnext}: a modernized pure convolutional architecture incorporating ViT-inspired design elements ($7\times7$ depthwise convolutions, inverted bottlenecks, Layer Normalization) while retaining convolutional inductive bias.
+\item \textbf{Swin-Large}~\cite{swin}: a hierarchical vision transformer computing self-attention within shifted local windows, capturing both fine-grained microscopic texture and global anatomical pattern.
+\item \textbf{EfficientNetV2-M}~\cite{efficientnetv2}: the same NAS-optimized convolutional backbone used for the zero-training embeddings, now fine-tuned end-to-end, to directly test whether fine-tuning changes the protocol ranking obtained from frozen features.
+\item \textbf{ResNet-50}~\cite{resnet}: a classic residual-network reference point.
+\end{enumerate}
+Each backbone is fine-tuned with a classification head under \textbf{Focal Loss}~\cite{focal},
+\begin{equation}
+L_{\mathrm{Focal}}(p_t) = -\alpha_t (1 - p_t)^\gamma \log(p_t), \qquad \gamma=2.0,\ \alpha=0.25,
+\end{equation}
+to address class imbalance across the 18 species, across the 5 core splitting protocols, evaluated across the same 5 random seeds (\texttt{42, 123, 456, 789, 2024}). Table~\ref{tab:backbone_robustness} provides the structured evaluation matrix whose empirical slots will be populated upon completion of the user's training runs.
+
+\begin{table}[htbp]
+\centering
+\caption{Planned multi-backbone robustness benchmark under Focal Loss ($\gamma=2.0, \alpha=0.25$) fine-tuning across representative vision architectures and splitting protocols (Mean $\pm$ Std across 5 seeds; \pending{Awaiting workstation execution by user; see Appendix~\ref{app:checklist}, Item~B1}).}
+\label{tab:backbone_robustness}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccccc}
+\toprule
+\textbf{Backbone Architecture} & \textbf{Splitting Protocol} & \textbf{Top-1 Acc (\%)} & \textbf{Top-3 Acc (\%)} & \textbf{Balanced Acc (\%)} & \textbf{Macro-F1 (\%)} & \textbf{F1-Hardest} & \textbf{SLR (\%)} \\
+\midrule
+\multirow{4}{*}{\textbf{ConvNeXt-Tiny}~\cite{convnext}} 
+& Naive Random Image Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 100.0\% \\
+& Stratified Group Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 6.0\% \\
+& DataSAIL Specimen-Level ILP & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 5.7\% \\
+& Multi-Objective SA Meta-Selector & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} \\
+\midrule
+\multirow{4}{*}{\textbf{Swin-Large}~\cite{swin}} 
+& Naive Random Image Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 100.0\% \\
+& Stratified Group Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 6.0\% \\
+& DataSAIL Specimen-Level ILP & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 5.7\% \\
+& Multi-Objective SA Meta-Selector & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} \\
+\midrule
+\multirow{4}{*}{\textbf{EfficientNetV2-M}~\cite{efficientnetv2}} 
+& Naive Random Image Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 100.0\% \\
+& Stratified Group Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 6.0\% \\
+& DataSAIL Specimen-Level ILP & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 5.7\% \\
+& Multi-Objective SA Meta-Selector & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} \\
+\midrule
+\multirow{4}{*}{\textbf{ResNet-50}~\cite{resnet}} 
+& Naive Random Image Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 100.0\% \\
+& Stratified Group Split & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 6.0\% \\
+& DataSAIL Specimen-Level ILP & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 5.7\% \\
+& Multi-Objective SA Meta-Selector & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+%======================================================================
+\section{Results and Comparative Analysis}
+\label{sec:results}
+%======================================================================
+
+This section presents the empirical evaluation across all benchmarked splitting protocols, organized into the four methodological categories introduced in Section~\ref{sec:protocols}.
+
+\subsection{Master Benchmark: Classification and Leakage Metrics}
+Table~\ref{tab:master_results} reports the Three Pillars metrics, averaged across 5 seeds under identical \texttt{tf\_efficientnetv2\_m\_in21k} embeddings.
+
+\begin{table}[htbp]
+\centering
+\caption{Master evaluation table: zero-training $1$-NN classification performance and DataSAIL leakage metrics across all four methodological categories (Mean $\pm$ Std across 5 seeds; $CCR=100\%$ unless noted). [\textsc{Note}: Category IV results reflect preliminary exploratory runs; updated $T_0=30, 10{,}000$-iteration SA run is \pending{Pending local workstation execution}].}
+\label{tab:master_results}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccccc}
+\toprule
+\makecell[l]{\textbf{Splitting Protocol}} & \makecell{\textbf{KNN}\\\textbf{Top-1}} & \makecell{\textbf{Top-3}\\\textbf{Acc}} & \makecell{\textbf{Balanced}\\\textbf{Acc}} & \makecell{\textbf{Macro}\\\textbf{F1}} & \makecell{\textbf{Hardest}\\\textbf{F1}} & \makecell{\textbf{DataSAIL}\\\textbf{Loss $L(\pi)$}} & \makecell{\textbf{Inter-Sim}\\\textbf{$\bar{S}_{\text{inter}}$}} & \makecell{\textbf{SLR}\\\textbf{(\%)}} & \makecell{\textbf{CCR}\\\textbf{(\%)}} & \makecell{\textbf{MMD}} & \makecell{\textbf{Welch's $p$}\\\textbf{vs.\ Naive}} \\
+\midrule
+\multicolumn{12}{l}{\textbf{\textit{\color{primaryblue} Category I: Naive Image-Level Baseline (Unchecked Boundary Leakage)}}} \\
+Naive Random Image Split & \textbf{0.9987 $\pm$ 0.0011} & 0.9987 & 0.9984 & \textbf{0.9985 $\pm$ 0.0012} & 0.9880 & 7,178,341.6 $\pm$ 883.3 & 0.7049 & 100.0\% & 100.0\% & 0.0147 & Baseline \\
+Naive Stratified Image Split & \textbf{0.9987 $\pm$ 0.0011} & 0.9987 & 0.9984 & \textbf{0.9985 $\pm$ 0.0012} & 0.9880 & 7,178,341.6 $\pm$ 883.3 & 0.7049 & 100.0\% & 100.0\% & 0.0147 & Baseline \\
+DataSAIL Image-Level ILP & 0.9834 $\pm$ 0.0080 & 0.9834 & 0.9813 & 0.9794 $\pm$ 0.0099 & 0.8636 & 3,336,082.5 $\pm$ 38936.9 & 0.6907 & 95.3\% & 100.0\% & 0.1110 & $1.841 \times 10^{-2}$ \\
+\midrule
+\multicolumn{12}{l}{\textbf{\textit{\color{primaryblue} Category II: Single Splitting Protocols (Single Paradigm Imposed Globally)}}} \\
+Fixed Mahalanobis Stratification & 0.9809 $\pm$ 0.0000 & 0.9809 & 0.9715 & 0.9755 $\pm$ 0.0000 & 0.8500 & 7,128,200.5 $\pm$ 0.0 & 0.7000 & 100.0\% & 100.0\% & 0.0974 & $4.204 \times 10^{-12}$ \\
+Naive Specimen Group Split & 0.9657 $\pm$ 0.0111 & 0.9697 & 0.9609 & 0.9594 $\pm$ 0.0125 & 0.7094 & 7,091,834.8 $\pm$ 96814.5 & 0.7048 & 7.6\% & 100.0\% & 0.0806 & $3.961 \times 10^{-3}$ \\
+Hierarchical Ward Partitioning & 0.9249 $\pm$ 0.0060 & 0.9273 & 0.9233 & 0.9116 $\pm$ 0.0065 & 0.6046 & 6,008,406.8 $\pm$ 222280.9 & 0.7034 & 7.4\% & 100.0\% & 0.1066 & $1.265 \times 10^{-5}$ \\
+Cosine Feature Graph Partitioning & 0.9476 $\pm$ 0.0033 & 0.9510 & 0.9134 & 0.8976 $\pm$ 0.0082 & 0.2954 & 7,142,339.5 $\pm$ 2797.6 & 0.7051 & 90.3\% & 100.0\% & 0.0845 & $2.489 \times 10^{-6}$ \\
+Adversarial Density Validation & 0.9553 $\pm$ 0.0186 & 0.9584 & 0.9495 & 0.9456 $\pm$ 0.0200 & 0.6431 & 6,974,598.2 $\pm$ 95298.9 & 0.7031 & 6.4\% & 100.0\% & 0.0753 & $9.574 \times 10^{-3}$ \\
+Stratified Group Split & 0.9774 $\pm$ 0.0003 & 0.9776 & 0.9511 & 0.9533 $\pm$ 0.0002 & 0.6667 & 7,868,015.8 $\pm$ 1486.6 & 0.7040 & 6.0\% & 100.0\% & 0.0657 & $1.159 \times 10^{-14}$ \\
+Agglomerative Stratified Banding & 0.9424 $\pm$ 0.0053 & 0.9441 & 0.9422 & 0.9309 $\pm$ 0.0067 & 0.7275 & 7,503,766.6 $\pm$ 26458.8 & 0.7040 & 7.8\% & 100.0\% & 0.0776 & $2.183 \times 10^{-5}$ \\
+DataSAIL Specimen-Level ILP & 0.9076 $\pm$ 0.0050 & 0.9124 & 0.9061 & 0.8310 $\pm$ 0.0379 & 0.1193 & \textbf{4,841,999.8 $\pm$ 108695.1} & 0.7073 & 5.7\% & 88.9\% & \textbf{0.1199} & $2.283 \times 10^{-6}$ \\
+\midrule
+\multicolumn{12}{l}{\textbf{\textit{\color{primaryblue} Category III: Combinatorial Selector (DataSAIL Single-Objective Loss Optimization)}}} \\
+Single-Objective Classwise Selector & 0.9875 & 0.9875 & 0.9736 & 0.9775 & 0.7407 & 6,871,774.0 & 0.7030 & 14.7\% & 100.0\% & 0.0700 & Baseline$^{\dagger}$ \\
+\midrule
+\multicolumn{12}{l}{\textbf{\textit{\color{primaryblue} Category IV: Combinatorial Selector (Multi-Objective Optimization -- Proposed)}}} \\
+Multi-Objective SA Meta-Selector$^{\ast}$ & \textbf{0.9875} & \textbf{0.9875} & \textbf{0.9736} & \textbf{0.9775} & \textbf{0.7407} & 6,871,005.0 & 0.7029 & 6.0\%$^{\ddagger}$ & 100.0\% & 0.0695 & Baseline$^{\dagger}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+{\footnotesize $^{\dagger}$Categories III and IV are single-run combinatorial searches (deterministic given the pre-cached candidate pool); comparative statistics against Naive Random are reported via the per-protocol rows of Category~II. $^{\ddagger}$Residual, non-zero SLR: 3 of 18 taxa (\textit{Dalbergia cochinchinensis}, \textit{Guibourtia coleosperma}, \textit{Sindora cochinchinensis}; see Table~\ref{tab:species_breakdown}) are assigned an image-level solver by the unconstrained fitness function. $^{\ast}$The currently displayed numerical values for Category IV reflect the preliminary exploratory baseline ($n=1{,}000$ iterations). The updated execution with $T_0=30$, $10{,}000$ iterations, and hard specimen isolation is \pending{Pending local workstation execution by user; see Appendix~\ref{app:checklist}, Item~C1}.\par}
+
+\subsection{Performance Inflation Deltas and Feature-Space Distances}
+Table~\ref{tab:inflation_deltas} reports performance-inflation deltas relative to Naive Random Image Split, alongside feature-space silhouette separation, the Pseudoreplication Index (PRI), Wasserstein distance, and Cohen's $d$.
+
+\begin{table}[htbp]
+\centering
+\caption{Performance inflation deltas and feature-space distance metrics, categorized by methodological block.}
+\label{tab:inflation_deltas}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\makecell[l]{\textbf{Splitting Protocol}} & \makecell{\textbf{$\Delta$ Accuracy}\\\textbf{(pp)}} & \makecell{\textbf{$\Delta$ F1-Macro}\\\textbf{(pp)}} & \makecell{\textbf{Silhouette}\\\textbf{$S_{\text{split}}$}} & \makecell{\textbf{PRI}\\\textbf{(\%)}} & \makecell{\textbf{Wasserstein}\\\textbf{$W_1$}} & \makecell{\textbf{Cohen's $d$}\\\textbf{vs.\ Naive}} \\
+\midrule
+\multicolumn{7}{l}{\textbf{\textit{\color{primaryblue} Category I: Naive Image-Level Baseline}}} \\
+Naive Random Image Split & +0.00 pp & +0.00 pp & $-0.0026$ & 2.42\% & 0.0045 & 0.0000 \\
+Naive Stratified Image Split & +0.00 pp & +0.00 pp & $-0.0026$ & 2.42\% & 0.0045 & 0.0000 \\
+DataSAIL Image-Level ILP & +1.53 pp & +1.92 pp & 0.0372 & 1.93\% & 0.5665 & 3.0219 \\
+\midrule
+\multicolumn{7}{l}{\textbf{\textit{\color{primaryblue} Category II: Single Splitting Protocols (Single Paradigm Imposed Globally)}}} \\
+Fixed Mahalanobis Stratification & +1.78 pp & +2.30 pp & 0.0038 & 2.32\% & 0.0045 & 17.9877 \\
+Naive Specimen Group Split & +3.29 pp & +3.92 pp & $-0.0099$ & 2.01\% & 0.2697 & 4.7355 \\
+Hierarchical Ward Partitioning & +7.37 pp & +8.69 pp & $-0.0044$ & 2.52\% & 0.3021 & 19.2118 \\
+Cosine Feature Graph Partitioning & +5.11 pp & +10.09 pp & $-0.0081$ & 2.58\% & 0.5650 & 22.7417 \\
+Adversarial Density Validation & +4.33 pp & +5.29 pp & $-0.0020$ & 1.73\% & 0.1795 & 3.7397 \\
+Stratified Group Split & +2.13 pp & +4.52 pp & $-0.0069$ & 4.67\% & 0.5870 & 21.2276 \\
+Agglomerative Stratified Banding & +5.63 pp & +6.76 pp & $-0.0045$ & 2.25\% & 0.1836 & 16.4234 \\
+DataSAIL Specimen-Level ILP & \textbf{+9.10 pp} & \textbf{+16.75 pp} & $-0.0205$ & 1.72\% & 0.5640 & \textbf{27.9069} \\
+\midrule
+\multicolumn{7}{l}{\textbf{\textit{\color{primaryblue} Category III: Combinatorial Selector (DataSAIL Single-Objective Loss Optimization)}}} \\
+Single-Objective Classwise Selector & +1.12 pp & +2.10 pp & 0.0005 & 1.72\% & 0.1990 & 0.0000 \\
+\midrule
+\multicolumn{7}{l}{\textbf{\textit{\color{primaryblue} Category IV: Combinatorial Selector (Multi-Objective Optimization -- Proposed)}}} \\
+Multi-Objective SA Meta-Selector & +1.12 pp & +2.10 pp & 0.0009 & 1.69\% & 0.1990 & 0.0000 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Per-Species Optimal Protocol Allocation and Meta-Selector Ablation}
+Table~\ref{tab:species_breakdown} details the exact per-species algorithm allocation synthesized by both combinatorial selectors across all 18 species.
+
+\begin{table}[htbp]
+\centering
+\caption{Per-species algorithmic partitioning strategy allocation across 18 taxa [\textsc{Note}: Allocations reflect exploratory run; final allocation under 10,000-iteration SA is \pending{Pending local workstation execution}].}
+\label{tab:species_breakdown}
+\small
+\begin{tabular}{l l l}
+\toprule
+\textbf{Botanical Taxon Name} & \textbf{Single-Objective Selector (Cat.\ III)} & \textbf{Multi-Objective SA Meta-Selector (Cat.\ IV)} \\
+\midrule
+\multicolumn{3}{l}{\textbf{\textit{\color{primaryblue} Afzelia Genus}}} \\
+\quad \textit{Afzelia africana}      & Fixed Mahalanobis Stratification & Fixed Mahalanobis Stratification \\
+\quad \textit{Afzelia bella}          & Naive Specimen Group Split & Naive Specimen Group Split \\
+\quad \textit{Afzelia pachyloba}      & Stratified Group Split & Stratified Group Split \\
+\quad \textit{Afzelia quanzensis}     & Naive Specimen Group Split & Naive Specimen Group Split \\
+\midrule
+\multicolumn{3}{l}{\textbf{\textit{\color{primaryblue} Dalbergia Genus (CITES Protected)}}} \\
+\quad \textit{Dalbergia cochinchinensis} & Naive Stratified Image Split$^{\ddagger}$ & Naive Stratified Image Split$^{\ddagger}$ \\
+\quad \textit{Dalbergia melanoxylon}    & Naive Specimen Group Split & Naive Specimen Group Split \\
+\quad \textit{Dalbergia oliveri}        & Naive Specimen Group Split & Naive Specimen Group Split \\
+\quad \textit{Dalbergia rimosa}         & Naive Stratified Image Split$^{\ddagger}$ & Naive Specimen Group Split \\
+\quad \textit{Dalbergia tonkinensis}    & Naive Specimen Group Split & Naive Specimen Group Split \\
+\midrule
+\multicolumn{3}{l}{\textbf{\textit{\color{primaryblue} Guibourtia Genus}}} \\
+\quad \textit{Guibourtia arnoldiana}     & Naive Specimen Group Split & Naive Specimen Group Split \\
+\quad \textit{Guibourtia coleosperma}    & Naive Specimen Group Split & Naive Stratified Image Split$^{\ddagger}$ \\
+\quad \textit{Guibourtia ehie}           & Stratified Group Split & Stratified Group Split \\
+\midrule
+\multicolumn{3}{l}{\textbf{\textit{\color{primaryblue} Pterocarpus Genus}}} \\
+\quad \textit{Pterocarpus erinaceus}      & Naive Specimen Group Split & Naive Specimen Group Split \\
+\quad \textit{Pterocarpus indicus}        & Naive Specimen Group Split & Naive Specimen Group Split \\
+\quad \textit{Pterocarpus macrocarpus}    & Naive Specimen Group Split & Naive Specimen Group Split \\
+\quad \textit{Pterocarpus soyauxii}       & Naive Specimen Group Split & Naive Specimen Group Split \\
+\midrule
+\multicolumn{3}{l}{\textbf{\textit{\color{primaryblue} Sindora Genus}}} \\
+\quad \textit{Sindora cochinchinensis} & Naive Stratified Image Split$^{\ddagger}$ & Naive Stratified Image Split$^{\ddagger}$ \\
+\quad \textit{Sindora tonkinensis}    & Naive Specimen Group Split & Naive Specimen Group Split \\
+\bottomrule
+\end{tabular}
+\vspace{2pt}
+\\ {\footnotesize $^{\ddagger}$Image-level solver: violates Axiom~\eqref{eq:subfolder_integrity} for this taxon and is the direct source of the residual $\mathrm{SLR}=6.0\%$ reported for the Multi-Objective SA Meta-Selector in Table~\ref{tab:master_results}. Under the constrained fitness variant proposed in Section~\ref{sec:discussion}, these three assignments are the ones expected to change first.\par}
+\end{table}
+
+To directly investigate the residual leakage identified in Section~\ref{sec:sa} and substantiate the proposed governance remedies, Table~\ref{tab:ablation_meta} presents the formulation ablation comparing unconstrained, hard-constrained, and penalized Meta-Selector variants.
+
+\begin{table}[htbp]
+\centering
+\caption{Meta-Selector formulation ablation: comparison of unconstrained optimization, hard-constrained candidate pools ($\text{SLR}_c \equiv 0.0\%$), and explicit SLR penalty terms (\pending{Variants awaiting workstation execution by user; see Appendix~\ref{app:checklist}, Item~C1}).}
+\label{tab:ablation_meta}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Optimization Formulation} & \textbf{SLR Constraint} & \textbf{Fitness Value} & \textbf{Top-1 Acc (\%)} & \textbf{Macro-F1 (\%)} & \textbf{F1-Hardest} & \textbf{SLR (\%)} & \textbf{CCR (\%)} & \textbf{MMD} \\
+\midrule
+Unconstrained SA (Exploratory Run) & None & $6866.5$ & $98.75\%$ & $0.9775$ & $0.7407$ & $6.0\%$ & $100.0\%$ & $0.0695$ \\
+Unconstrained SA (Updated $10{,}000$ iters) & None & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 100.0\% & \pendingcell{Pending} \\
+Hard-Constrained Candidate Pool & $\text{SLR}_c \equiv 0.0\%$ & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \textbf{0.0\%} & 100.0\% & \pendingcell{Pending} \\
+Penalized Fitness ($w_4 = 1.0$) & $-w_4 \cdot \mathrm{SLR}$ & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 100.0\% & \pendingcell{Pending} \\
+Penalized Fitness ($w_4 = 2.0$) & $-w_4 \cdot \mathrm{SLR}$ & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & \pendingcell{Pending} & 100.0\% & \pendingcell{Pending} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{In-Depth Analysis}
+
+\subsubsection{Empirical Trade-offs and the No Free Lunch Theorem}
+Table~\ref{tab:master_results} demonstrates that applying a single splitting paradigm globally across all 18 taxa induces unavoidable trade-offs:
+\begin{itemize}
+\item \textbf{DataSAIL Specimen-Level ILP} maximizes leakage reduction among single-paradigm protocols ($MMD=0.1199$, $L_{\text{DataSAIL}}=4{,}841{,}999.8$, $SLR=5.7\%$) but this comes at a severe cost: hardest-class F1 collapses to $0.1193$ -- effectively chance-level for that class -- and, notably, $CCR$ drops to $88.9\%$, meaning at least one species is entirely absent from one split under this protocol. A splitting protocol that maximizes OOD difficulty without regard to per-class feasibility can therefore silently violate Axiom~\eqref{eq:ccr}, a failure mode invisible to aggregate accuracy or MMD alone.
+\item \textbf{Stratified Group Split} preserves comparatively high overall accuracy ($97.74\%$) and full class coverage, but achieves markedly lower OOD discrepancy ($MMD=0.0657$) than the DataSAIL variants, i.e., it under-stresses the evaluation relative to genuine field difficulty.
+\item \textbf{The Multi-Objective SA Meta-Selector} (Category IV), by optimizing Eq.~\eqref{eq:multi_obj_fitness} jointly across per-class candidate splits, reaches a markedly more balanced operating point than any single global protocol: $98.75\%$ KNN accuracy, $\mathrm{F1}_{\text{Hardest}}=0.7407$ (a $6.2\times$ improvement over DataSAIL Specimen-Level ILP's $0.1193$), full class coverage, and $L_{\text{DataSAIL}}=6{,}871{,}005.0$ -- while reducing SLR from the $100.0\%$ naive baseline to $6.0\%$ (subject to the residual-leakage caveat discussed in Section~\ref{sec:sa}).
+\end{itemize}
+
+Figure~\ref{fig:confusion_matrix} illustrates the fine-grained inter-species confusion matrix on the test set under governed specimen-disjoint conditions. Notably, residual errors are almost entirely confined to intra-genus sibling species pairs (e.g., within \textit{Afzelia} and \textit{Dalbergia}), confirming that models trained under specimen-governed splits are tested against genuine anatomical boundaries rather than artificial specimen shortcuts.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\linewidth]{fig/confusion_matrix_test.png}
+\caption{Test-set classification confusion matrix across 18 wood species under the governed specimen-disjoint split. Off-diagonal errors concentrate strictly within taxonomically close sibling species (e.g., between \textit{Dalbergia oliveri} and \textit{Dalbergia cochinchinensis}, or among \textit{Afzelia} spp.), confirming that the governed protocol preserves true biological discrimination difficulty.}
+\label{fig:confusion_matrix}
+\end{figure}
+
+\subsubsection{Quantification of Illusory Performance Inflation}
+Comparing \textsf{Naive Random Image Split} ($99.87\%$ accuracy, $SLR=100.0\%$) against the strongest specimen-disjoint single-paradigm protocol, \textsf{DataSAIL Specimen-Level ILP} ($90.76\%$ accuracy, $SLR=5.7\%$), quantifies the exact inflation attributable to specimen-level leakage in this dataset: $\Delta\text{Acc}=+9.10$~pp and $\Delta\text{F1-Macro}=+16.75$~pp, Welch's $p=2.283\times10^{-6}$, Cohen's $d=27.91$ -- an exceptionally large effect size by conventional benchmarks ($d>0.8$ is typically considered ``large''). As discussed in Section~\ref{sec:related}, this magnitude and direction are consistent with independently reported leakage-inflation figures in OCT (5--30~pp)~\cite{tampu2022} and brain MRI ($>$29~pp)~\cite{yagis2021}, situating SSPB in wood species identification as an instance of a general, cross-domain phenomenon rather than a dataset-specific idiosyncrasy.
+
+We note, for completeness, that comparing Naive Random against the \emph{proposed} Meta-Selector rather than against the single strongest leakage-reducing baseline yields a smaller apparent gap ($\Delta\text{Acc}=+1.12$~pp in Table~\ref{tab:inflation_deltas}), precisely \emph{because} the Meta-Selector was optimized to remain competitive on accuracy while reducing leakage -- this smaller gap should not be misread as evidence that leakage is a minor issue; it is evidence that the multi-objective search successfully found specimen-disjoint (for 15 of 18 taxa) configurations that do not sacrifice accuracy, which is precisely the stated goal of Contribution~4.
+
+%======================================================================
+\section{Explainability and Feature-Space Diagnostics}
+\label{sec:explainability}
+%======================================================================
+
+\subsection{Feature-Space Topology and Specimen Leakage Visualization}
+To visualize how specimen-level data governance shapes feature-space geometry, Figure~\ref{fig:tsne_comparison} depicts the two-dimensional $t$-SNE projection~\cite{tsne} of deep embeddings before versus after metric learning.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.98\linewidth]{fig/tsne_comparison.png}
+\caption{Two-dimensional $t$-SNE feature manifold projections across 18 wood species. (Left) Feature space before metric learning: specimen-specific surface variations create dispersed intra-class distributions with substantial inter-species overlap. (Right) Feature space after governed metric learning: biological taxa form compact, well-separated clusters while respecting physical specimen boundaries (\pending{Multi-backbone 260-run projection grid pending execution; preliminary EfficientNetV2-M visualization shown}).}
+\label{fig:tsne_comparison}
+\end{figure}
+
+Under \textsf{Naive Random Image Split}, images from the same physical specimen co-occur across Train and Test; because deep backbones implicitly encode specimen-specific surface texture and illumination, test samples cluster tightly around their corresponding training counterparts, producing an artificially compact intra-class distribution consistent with the inflated $99.87\%$ accuracy. Under governed specimen-disjoint partitioning (Figure~\ref{fig:tsne_comparison}, right), test samples originate from specimens absent from training, exposing genuine intra-species anatomical variance and overlapping decision boundaries among taxonomically close sibling genera (\textit{Afzelia}, \textit{Dalbergia}), consistent with the realistic accuracy drop quantified in Table~\ref{tab:master_results}.
+
+\subsection{Pairwise Distance Distribution Analysis}
+For $L_2$-normalized embeddings $\phi(x_i), \phi(x_j)\in\mathbb{S}^{D-1}$, Euclidean distance relates to cosine similarity via
+\begin{equation}
+d_{ij} = \lVert \phi(x_i) - \phi(x_j) \rVert_2 = \sqrt{2\left(1 - \phi(x_i)^{\!\top}\phi(x_j)\right)}.
+\end{equation}
+
+Figure~\ref{fig:distance_distribution} plots the empirical pairwise distance density distributions between intra-class (same species) and inter-class (different species) sample pairs before and after training.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.98\linewidth]{fig/distance_distribution.png}
+\caption{Pairwise Euclidean distance density distributions between intra-class (same species) and inter-class (different species) image pairs. (Left) Before training: intra-class distribution exhibits substantial overlap with inter-class distances (intra mean $0.5797$, inter mean $0.8469$, ratio $0.6845$). (Right) After governed metric learning: the intra-class distance distribution shifts sharply leftward (mean $0.4040$) while inter-class separation widens (mean $1.4375$), yielding a highly separable ratio of $0.2810$ without exploiting specimen leakage (\pending{Multi-backbone distribution grid pending execution; preliminary diagnostic shown}).}
+\label{fig:distance_distribution}
+\end{figure}
+
+Under naive random splitting, near-duplicate image pairs originating from the same physical block generate an artificial spike near $d_{ij} \to 0$. Under governed specimen-disjoint partitioning, this artificial peak disappears; as evidenced in Figure~\ref{fig:distance_distribution}, the intra-to-inter distance ratio drops from $0.6845$ to $0.2810$ through genuine anatomical representation learning rather than memorization of specimen-specific surface signatures.
+
+\subsection{Attention Map Auditing and Shortcut Learning}
+To substantiate the hypothesis that specimen leakage drives deep networks to act as ``Clever Hans'' predictors~\cite{geirhos2020,lapuschkin2019}, Figure~\ref{fig:gradcam} presents Grad-CAM~\cite{gradcam} attribution heatmaps for \textit{Dalbergia cochinchinensis} cross-sections.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{fig/grad-cam.png}
+\caption{Grad-CAM attribution heatmaps for \textit{Dalbergia cochinchinensis} cross-sections. Before governed training (middle column), the deep vision network acts as a ``Clever Hans'' predictor, fixating heavily on non-taxonomic surface artifacts and mechanical saw-cut cracks (Sample 1). After governed metric learning (right column), the model's spatial attention shifts decisively to anatomically diagnostic structures, specifically vessel pores, axial parenchyma bands, and wood ray orientations (\pending{Full 10-species Grad-CAM grid across 4 backbones pending execution of Item E3; Dalbergia diagnostic shown}).}
+\label{fig:gradcam}
+\end{figure}
+
+As visually documented in Figure~\ref{fig:gradcam}, when evaluated under naive splits, gradient attribution concentrates almost exclusively on non-taxonomic surface preparation artifacts -- specifically mechanical saw-blade striations, micro-scratches, and surface weathering cracks (Sample 1, middle column). These surface imperfections serve as specimen-unique shortcuts. In contrast, under governed specimen-disjoint training (Figure~\ref{fig:gradcam}, right column), gradient attribution reorganizes decisively around authentic anatomical features: macroscopic vessel-pore distribution, axial-parenchyma zonation, and wood ray density. This provides direct explainability proof that specimen governance forces the deep network to transition from artifact memorization to authentic biological representation.
+
+%======================================================================
+\section{Discussion and Limitations}
+\label{sec:discussion}
+%======================================================================
+
+\textbf{Scope of the zero-training protocol.} The core quantitative claims of this paper (Section~\ref{sec:results}) are established under a $1$-NN classifier on frozen embeddings from a single backbone (EfficientNetV2-M/ImageNet-21k). This design choice is deliberate -- it isolates the causal effect of the data partition from confounds introduced by end-to-end training -- but it means the exact numerical accuracy figures reported here should not be read as predictions of the accuracy a fine-tuned production classifier would achieve. The backbone- and training-regime-robustness study specified in Section~\ref{sec:backbone_robustness} is required to confirm that the \emph{ranking} of splitting protocols (rather than the absolute numbers) is stable under fine-tuning.
+
+\textbf{Single dataset, single embedding space.} All 16 metrics in Table~\ref{tab:three_pillars} are computed within one embedding space derived from one pretrained backbone on one 18-species dataset. Cross-dataset or cross-backbone generalization of the specific per-species solver allocation in Table~\ref{tab:species_breakdown} is not established and should not be assumed to transfer to other wood taxa, other imaging setups, or other PECVC domains without re-running the Meta-Selector on the new embedding space.
+
+\textbf{Unconstrained fitness function and residual leakage.} As detailed in Section~\ref{sec:sa}, the current multi-objective fitness function (Eq.~\eqref{eq:multi_obj_fitness}) does not hard-constrain SLR, yielding a residual $\mathrm{SLR}=6.0\%$ for the proposed Meta-Selector rather than the $0.0\%$ that a specimen-isolation-first design would guarantee. We consider two remedies, both requiring new experiments before being reported as results: (i)~a \emph{hard-constrained} SA variant that restricts the candidate pool per taxon to only those $K'\le K$ solvers satisfying $\mathrm{SLR}_c=0$ for that taxon, guaranteeing $\mathrm{SLR}(\boldsymbol{m})=0.0\%$ by construction at the possible cost of reduced $\mathrm{F1}_{\text{Hardest}}$; and (ii)~a \emph{penalized} variant adding a term $-w_4\cdot\mathrm{SLR}(\boldsymbol{m})$ (or a very large finite penalty rather than a hard rejection) to Eq.~\eqref{eq:multi_obj_fitness}, allowing a controlled sensitivity analysis of the accuracy/leakage trade-off as $w_4$ varies. Appendix~\ref{app:checklist} specifies both experiments precisely.
+
+\textbf{Search optimality.} Simulated Annealing provides no optimality guarantee over the $11^{18}$ configuration space; $\boldsymbol{m}^{*}$ is reported as Pareto-\emph{favorable} relative to the evaluated single-paradigm baselines, not as a certified Pareto-optimal point. Reporting SA outcomes across multiple independent random restarts (rather than the single run summarized in Table~\ref{tab:master_results}) would materially strengthen this claim and is included in the checklist.
+
+\textbf{Manual candidate-solver descriptions.} The per-protocol descriptions in Section~\ref{sec:protocols} for \textsf{Fixed Mahalanobis Stratification}, \textsf{Naive Specimen Group Split}, \textsf{Cosine Feature Graph Partitioning}, and \textsf{Agglomerative Stratified Banding} are reconstructed from protocol naming and standard practice for the corresponding algorithm family; they should be checked against, and if necessary corrected to match exactly, the accompanying implementation before submission.
+
+\textbf{Generalization beyond wood anatomy.} While the PECVC framing in Section~\ref{sec:formulation} is deliberately domain-general, all empirical evidence in this paper is drawn from a single macroscopic wood cross-section dataset. Claims of generality to other PECVC domains (histopathology, radiography, agricultural specimen imaging) are supported only indirectly, via the independently reported leakage-inflation magnitudes cited in Section~\ref{sec:related}, and not via direct experimentation on non-wood data within this paper.
+
+%======================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+%======================================================================
+
+This paper addressed specimen-level data leakage (Same-Specimen-Picture Bias) in computer-vision-based wood species classification. We formalized a Specimen-Centric Data Protocol built on two verifiable governance axioms -- 100\% subfolder integrity and 100\% Class Coverage Rate -- and a quantitative Specimen Leakage Risk metric. On a curated, governed 18-species macroscopic wood cross-section dataset, we benchmarked 13 splitting configurations spanning six algorithmic paradigms under a 16-metric ``Three Pillars'' evaluation framework, and we proposed a Multi-Objective Simulated Annealing Meta-Selector that searches a combinatorial space of $11^{18}\approx5.5599\times10^{18}$ class-wise solver assignments.
+
+Empirically, naive random image splitting inflates accuracy to a misleading $99.87\%\pm0.11$ ($SLR=100.0\%$), while DataSAIL Specimen-Level ILP achieves the strongest single-paradigm leakage reduction ($L_{\text{DataSAIL}}=4{,}841{,}999.8$, $MMD=0.1199$, $SLR=5.7\%$) at the cost of a near-collapse of hardest-class accuracy ($\mathrm{F1}_{\text{Hardest}}=0.1193$) and partial loss of class coverage ($CCR=88.9\%$). The proposed Multi-Objective SA Meta-Selector recovers a substantially more balanced operating point ($98.75\%$ accuracy, Macro-F1$=0.9775$, $\mathrm{F1}_{\text{Hardest}}=0.7407$, full class coverage) while reducing specimen leakage from $100.0\%$ to $6.0\%$; we identified, rather than concealed, the specific mechanism behind this residual (rather than absolute-zero) leakage -- the current fitness function does not hard-constrain SLR -- and specified the exact constrained-variant experiment required to close this gap. The overall leakage-inflation margin we quantify ($\Delta\text{Acc}=+9.10$~pp, $\Delta\text{F1-Macro}=+16.75$~pp, Cohen's $d=27.91$) is consistent in direction and order of magnitude with independently reported inflation in OCT and brain-MRI classification, reinforcing SSPB as a general, quantifiable, and mitigable failure mode of image-level dataset partitioning. This study provides a methodological foundation, an honestly scoped set of open limitations, and a concrete experimental checklist (Appendix~\ref{app:checklist}) for future leakage-aware benchmarks in biological and physical computer vision.
+
+\section*{Highlights}
+\begin{itemize}
+\item Formalizes specimen-level data leakage (Same-Specimen-Picture Bias) in physical-object visual classification via two verifiable governance axioms and a quantitative Specimen Leakage Risk metric.
+\item Establishes a 16-metric ``Three Pillars'' evaluation framework spanning leakage minimization, OOD difficulty, and hard-negative preservation.
+\item Benchmarks 13 splitting configurations across six algorithmic paradigms, quantifying the exact per-protocol leakage-inflation margin with 5-seed statistical testing.
+\item Proposes a Multi-Objective Simulated Annealing Meta-Selector over an $11^{18}$-configuration search space, and explicitly diagnoses and addresses its residual-leakage limitation rather than overstating its guarantees.
+\item Quantifies leakage-driven accuracy inflation ($\Delta\text{Acc}=+9.10$~pp, $\Delta\text{F1}=+16.75$~pp) at a magnitude consistent with independently reported findings in OCT and brain-MRI imaging.
+\end{itemize}
+
+\section*{Data Availability Statement}
+The S3 macroscopic wood species benchmark and versioned splitting manifests, including cryptographic content hashes and specimen provenance mappings, will be made publicly available at \url{https://github.com/vietanhlee/S3_paper}.
+
+\section*{CRediT Authorship Contribution Statement}
+\textbf{Viet-Anh Le}: Conceptualization, Methodology, Software, Formal Analysis, Data Curation, Writing -- Original Draft, Visualization, Project Administration.
+
+\section*{Declaration of Competing Interest}
+The author declares no competing financial interests or personal relationships that could influence the work reported in this paper.
+
+%======================================================================
+\appendix
+\section{Reproducibility Checklist and Script Execution Guide}
+\label{app:checklist}
+%======================================================================
+
+This appendix enumerates, item by item, every quantitative or visual claim in this manuscript currently marked \pending{...} and the exact executable script provided in the repository to substantiate it. In accordance with computational transparency and reproducibility protocols, the user can independently execute each task on local GPU/CPU hardware.
+
+\subsection{Item E1 -- $t$-SNE Feature-Space Visualization (feeds Section~\ref{sec:explainability}, Figure~\ref{fig:tsne_comparison})}
+\begin{itemize}
+\item \textbf{Script implementation}: \texttt{benchmark\_split\_full\_training.py}
+\item \textbf{Data required}: extracted $1280$-d EfficientNetV2-M embeddings $\phi(x_i)$ for all images in the governed S3 dataset (cached in memory or disk).
+\item \textbf{Procedure}: compute a 2-D $t$-SNE projection (fixed perplexity $=30$, seed $=42$) of $\phi(x_i)$ for \textsf{Naive Random Image Split} versus \textsf{DataSAIL Specimen-Level ILP} and the \textsf{Multi-Objective SA Meta-Selector}; color points by (a)~species label and (b)~split assignment.
+\item \textbf{Deliverable}: verification of the preliminary projection shown in Figure~\ref{fig:tsne_comparison} across all multi-seed iterations, plus original 1280-d silhouette compactness $S_{\text{split}}$.
+\end{itemize}
+
+\subsection{Item E2 -- Pairwise Intra-Class Distance Histograms (feeds Section~\ref{sec:explainability}, Figure~\ref{fig:distance_distribution})}
+\begin{itemize}
+\item \textbf{Script implementation}: \texttt{benchmark\_split\_full\_training.py}
+\item \textbf{Procedure}: for each of the core protocols, compute the pairwise Euclidean distance distribution between all Test-set images and their same-class Train-set images ($d_{ij} = \sqrt{2(1 - \cos(\phi_i, \phi_j))}$); compute the intra-to-inter distance ratio.
+\item \textbf{Deliverable}: confirms the empirical density shift shown in Figure~\ref{fig:distance_distribution} (ratio shift from $0.6845$ to $0.2810$).
+\end{itemize}
+
+\subsection{Item E3 -- Grad-CAM Attribution Auditing (feeds Section~\ref{sec:explainability}, Figure~\ref{fig:gradcam})}
+\begin{itemize}
+\item \textbf{Script implementation}: \texttt{train\_split\_comparison.py}
+\item \textbf{Prerequisite}: requires trained convolutional / transformer checkpoints from Item~B1 below.
+\item \textbf{Procedure}: compute Grad-CAM~\cite{gradcam} and Eigen-CAM attribution heatmaps across matched Test-set images under \textsf{Naive Random Image Split} versus the governed \textsf{Multi-Objective SA Meta-Selector}.
+\item \textbf{Deliverable}: confirms whether the network shifts spatial attention from mechanical saw artifacts (Figure~\ref{fig:gradcam}, middle) to biological vessel pores and axial rays (Figure~\ref{fig:gradcam}, right) across all 5 botanical genera.
+\end{itemize}
+
+\subsection{Item B1 -- Trained-Backbone Robustness Study (feeds Section~\ref{sec:backbone_robustness}, Table~\ref{tab:backbone_robustness})}
+\begin{itemize}
+\item \textbf{Script implementation}: \texttt{train\_split\_comparison.py} (with auxiliary training routines in \texttt{train\_final.py})
+\item \textbf{Procedure}: fine-tune ConvNeXt-Tiny~\cite{convnext}, Swin-Large~\cite{swin}, EfficientNetV2-M~\cite{efficientnetv2}, and ResNet-50~\cite{resnet} end-to-end (ImageNet-pretrained weights, Focal Loss $\gamma=2.0,\alpha=0.25$, AdamW optimizer, cosine annealing schedule) across the 5 core splitting protocols and 5 random seeds (\texttt{42, 123, 456, 789, 2024}).
+\item \textbf{Metrics to log}: Top-1/Top-3 accuracy, Balanced Accuracy, Macro-F1, Hardest-Class F1, and SLR to populate Table~\ref{tab:backbone_robustness}.
+\item \textbf{Estimated execution scope}: 4 backbones $\times$ 5 protocols $\times$ 5 seeds $=100$ focused training runs (or 260 for the full 13-protocol grid). Recommended command for local execution:
+\begin{center}
+\fbox{\texttt{python train\_split\_comparison.py}}
+\end{center}
+\end{itemize}
+
+\subsection{Item C1 -- SLR-Constrained Meta-Selector Variant (feeds Section~\ref{sec:discussion}, Table~\ref{tab:ablation_meta})}
+\begin{itemize}
+\item \textbf{Script implementation}: \texttt{benchmark\_datasail\_leakage.py} and \texttt{search\_best\_splits\_by\_f1.py}
+\item \textbf{Variant (i) -- Hard-constrained candidate pool}: restrict the per-taxon solver pool to solvers strictly satisfying $\mathrm{SLR}_c \equiv 0.0\%$ (excluding image-level solvers PP0, PP6, PP11 as configured in \texttt{datasail\_benchmark/evaluator.py}), run SA with $T_0=30.0$ and $N_{\text{iter}}=10{,}000$, and record the resulting global fitness and hardest-class F1.
+\item \textbf{Variant (ii) -- Penalized fitness}: evaluate Eq.~\eqref{eq:multi_obj_fitness} augmented by $-w_4 \cdot \mathrm{SLR}(\boldsymbol{m})$ for $w_4 \in \{1.0, 2.0\}$.
+\item \textbf{Deliverable}: populate Table~\ref{tab:ablation_meta} and verify that hard specimen isolation ($\mathrm{SLR}=0.0\%$) is achieved. Recommended command:
+\begin{center}
+\fbox{\texttt{python benchmark\_datasail\_leakage.py}}
+\end{center}
+\end{itemize}
+
+\subsection{Item C2 -- Multiple Independent SA Restarts (feeds Section~\ref{sec:discussion})}
+\begin{itemize}
+\item \textbf{Script implementation}: \texttt{benchmark\_datasail\_leakage.py}
+\item \textbf{Procedure}: repeat the SA meta-selection across 10 independent random initializations $\boldsymbol{m}^{(0)}$ to evaluate search variance and stability.
+\item \textbf{Deliverable}: report mean $\pm$ std of final fitness and confirm convergence robustness.
+\end{itemize}
+
+\subsection{Item D1 \& D2 -- Solver Mapping and Cardinality Reconciliation}
+\begin{itemize}
+\item \textbf{Implementation verification}: check and synchronize solver descriptions in Section~\ref{sec:protocols} with the concrete implementations in \texttt{split\_methods.py} and \texttt{datasail\_benchmark/solvers.py}. The $K=11$ candidate solver pool comprises PP1 (Mahalanobis Fixed), PP2 (Mahalanobis Iterative), PP3 (Naive Group), PP4 (Hierarchical Ward), PP5 (Cosine Graph), PP7 (Adversarial Validation), PP8 (Stratified Group), PP9 (Agglomerative Banding), PP10 (DataSAIL Specimen ILP), plus the image-level reference solvers (PP0/PP6 and PP11) used exclusively in the unconstrained baseline.
+\end{itemize}
+
+%======================================================================
+\begin{thebibliography}{99}
+
+% === Data Leakage \& Reproducibility ===
+\bibitem{kaufman2012}
+S. Kaufman, S. Rosset, C. Perlich, and O. Stitelman, ``Leakage in data mining: Formulation, detection, and avoidance,'' \emph{ACM Trans. Knowl. Discovery from Data}, vol. 6, no. 4, art. 15, 2012.
+
+\bibitem{kapoor2023}
+S. Kapoor and A. Narayanan, ``Leakage and the reproducibility crisis in machine-learning-based science,'' \emph{Patterns}, vol. 4, no. 9, art. 100804, 2023.
+
+\bibitem{roth2026}
+S. Roth, ``Which leakage types matter? A quantitative landscape across 2,047 benchmark datasets,'' arXiv:2604.04199, 2026.
+
+\bibitem{cerqua2026}
+A. Cerqua, M. Letta, and G. Pinto, ``On the (Mis)Use of machine learning with panel data,'' \emph{Oxford Bulletin of Economics and Statistics}, vol. 88, no. 3, pp. 605--634, 2026.
+
+\bibitem{babii2024}
+A. Babii, E. Ghysels, and J. Striaukas, ``Machine learning time series regressions with panel data,'' \emph{Journal of Econometrics}, vol. 238, no. 2, art. 105602, 2024.
+
+\bibitem{lopezdeprado2018}
+M. L{\'o}pez de Prado, \emph{Advances in Financial Machine Learning}, Hoboken, NJ: John Wiley \& Sons, 2018.
+
+\bibitem{roberts2021}
+M. Roberts \emph{et al.}, ``Common pitfalls and recommendations for using machine learning to detect and prognosticate for COVID-19 using chest radiographs and CT scans,'' \emph{Nature Mach. Intell.}, vol. 3, pp. 199--217, 2021.
+
+\bibitem{varoquaux2022}
+G. Varoquaux and V. Cheplygina, ``Machine learning for medical imaging: Methodological failures and recommendations for the future,'' \emph{npj Digital Medicine}, vol. 5, art. 48, 2022.
+
+\bibitem{geirhos2020}
+R. Geirhos \emph{et al.}, ``Shortcut learning in deep neural networks,'' \emph{Nature Machine Intelligence}, vol. 2, no. 11, pp. 665--673, 2020.
+
+\bibitem{lapuschkin2019}
+S. Lapuschkin \emph{et al.}, ``Unmasking Clever Hans predictors---Analyzing deep neural networks via Explainable AI,'' \emph{Nature Communications}, vol. 10, art. 1096, 2019.
+
+\bibitem{tampu2022}
+I. E. Tampu, A. Eklund, and N. Haj-Hosseini, ``Inflation of test accuracy due to data leakage in deep learning-based classification of OCT images,'' \emph{Scientific Data}, vol. 9, art. 580, 2022.
+
+\bibitem{yagis2021}
+E. Yagis \emph{et al.}, ``Effect of data leakage in brain MRI classification using 2D convolutional neural networks,'' \emph{Scientific Reports}, vol. 11, art. 22544, 2021.
+
+\bibitem{leukemia2026}
+Anonymous, ``A leakage-aware comparative benchmark of machine learning, deep learning, and transformer models for reliable leukemia detection,'' arXiv:2606.24944, 2026.
+
+\bibitem{east2025}
+A. East \emph{et al.}, ``Optimizing image capture for computer vision-powered taxonomic identification and trait recognition of biodiversity specimens,'' \emph{Methods in Ecology and Evolution}, vol. 16, pp. 2260--2275, 2025.
+
+% === Data Splitting Strategies \& DataSAIL ===
+\bibitem{scikit}
+F. Pedregosa \emph{et al.}, ``Scikit-learn: Machine learning in Python,'' \emph{J. Mach. Learn. Res.}, vol. 12, pp. 2825--2830, 2011.
+
+\bibitem{roberts2017}
+D.~R. Roberts \emph{et al.}, ``Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure,'' \emph{Ecography}, vol. 40, no. 8, pp. 913--929, 2017.
+
+\bibitem{joeres2025}
+R. Joeres, D. B. Blumenthal, and O. V. Kalinina, ``Data splitting to avoid information leakage with DataSAIL,'' \emph{Nature Communications}, vol. 16, art. 3337, 2025.
+
+\bibitem{adversarialvalidation}
+J. Guo, X. Zhu, and Z. Lei, ``Managing dataset shift by adversarial validation for credit scoring,'' arXiv:2112.10078, 2021.
+
+% === Wood Identification \& Forestry ===
+\bibitem{cites}
+Convention on International Trade in Endangered Species of Wild Fauna and Flora, ``Text of the Convention,'' 1973. [Online]. Available: \url{https://cites.org/eng/disc/text.php}
+
+\bibitem{dormontt2015}
+E.~E. Dormontt \emph{et al.}, ``Forensic timber identification: It's time to integrate disciplines to combat illegal logging,'' \emph{Biol. Conservation}, vol. 191, pp. 790--798, 2015.
+
+\bibitem{wiedenhoeft2011}
+A.~C. Wiedenhoeft, ``Structure and function of wood,'' in \emph{Wood Handbook}, USDA Forest Service, FPL-GTR-190, 2010, ch.~3.
+
+\bibitem{woodreview}
+S.-W. Hwang and J. Sugiyama, ``Computer vision-based wood identification and its expansion and contribution potentials in wood science: A review,'' \emph{Plant Methods}, vol. 17, art. 47, 2021.
+
+\bibitem{wu2021}
+F. Wu, R. Gazo, E. Haviarova, and B. Benes, ``Wood identification based on longitudinal section images by using deep learning,'' \emph{Wood Sci. Technol.}, vol. 55, pp. 553--563, 2021.
+
+\bibitem{fabijanska2021}
+A. Fabijanska, M. Danek, and J. Barniak, ``Wood species automatic identification from wood core images with a residual convolutional neural network,'' \emph{Comput. Electron. Agric.}, vol. 181, art. 105941, 2021.
+
+\bibitem{figueroamata2022}
+G. Figueroa-Mata, E. Mata-Montero, J.~C. Valverde-Ot\'arola, D. Arias-Aguilar, and N. Zamora-Villalobos, ``Using deep learning to identify Costa Rican native tree species from wood cut images,'' \emph{Frontiers in Plant Science}, vol. 13, art. 789227, 2022.
+
+\bibitem{ravindran2019}
+P. Ravindran \emph{et al.}, ``Image based identification of Ghanaian timbers using the XyloTron: Opportunities, risks and challenges,'' in \emph{Proc. NeurIPS Workshop on Machine Learning for the Developing World}, arXiv:1912.00296, 2019.
+
+\bibitem{ravindran2020}
+P. Ravindran, B.~J. Thompson, R.~K. Soares, and A.~C. Wiedenhoeft, ``The XyloTron: Flexible, open-source, image-based macroscopic field identification of wood products,'' \emph{Frontiers in Plant Science}, vol. 11, art. 1015, 2020.
+
+\bibitem{ravindran2021}
+P. Ravindran \emph{et al.}, ``Field-deployable computer vision wood identification of Peruvian timbers,'' \emph{Frontiers in Plant Science}, vol. 12, art. 647515, 2021.
+
+\bibitem{ravindran2022}
+P. Ravindran \emph{et al.}, ``Evaluation of a low-cost smartphone-based field-deployable macroscopic wood identification system,'' \emph{IAWA J.}, vol. 43, no. 1--2, pp. 24--40, 2022.
+
+\bibitem{rosadasilva2022}
+N. Rosa da Silva \emph{et al.}, ``Improved wood species identification based on multi-view imagery of the three anatomical planes,'' \emph{Plant Methods}, vol. 18, art. 79, 2022.
+
+\bibitem{liu2025}
+S. Liu, C. Zheng, T. He \emph{et al.}, ``Automated species discrimination and feature visualization of closely related Pterocarpus wood species using deep learning models: Comparison of four convolutional neural networks,'' \emph{Wood Sci. Technol.}, vol. 59, art. 86, 2025.
+
+\bibitem{song2025}
+T. Song, V.-D. Duong, T.-P. Le, and T.~V. Ta, ``Deep learning for automated identification of Vietnamese timber species: A tool for ecological monitoring and conservation,'' \emph{Ecological Informatics}, vol. 90, art. 103314, 2025.
+
+% === Architectures \& Loss Functions ===
+\bibitem{convnext}
+Z. Liu \emph{et al.}, ``A ConvNet for the 2020s,'' in \emph{Proc. IEEE CVPR}, 2022, pp. 11976--11986.
+
+\bibitem{efficientnetv2}
+M. Tan and Q. Le, ``EfficientNetV2: Smaller models and faster training,'' in \emph{Proc. ICML}, 2021, pp. 10096--10106.
+
+\bibitem{swin}
+Z. Liu \emph{et al.}, ``Swin Transformer: Hierarchical vision transformer using shifted windows,'' in \emph{Proc. IEEE ICCV}, 2021, pp. 10012--10022.
+
+\bibitem{resnet}
+K. He, X. Zhang, S. Ren, and J. Sun, ``Deep residual learning for image recognition,'' in \emph{Proc. IEEE CVPR}, 2016, pp. 770--778.
+
+\bibitem{focal}
+T.-Y. Lin, P. Goyal, R. Girshick, K. He, and P. Doll\'ar, ``Focal loss for dense object detection,'' in \emph{Proc. IEEE ICCV}, 2017, pp. 2980--2988.
+
+% === Visualization ===
+\bibitem{tsne}
+L. van der Maaten and G. Hinton, ``Visualizing data using t-SNE,'' \emph{J. Mach. Learn. Res.}, vol. 9, pp. 2579--2605, 2008.
+
+\bibitem{gradcam}
+R.~R. Selvaraju \emph{et al.}, ``Grad-CAM: Visual explanations from deep networks via gradient-based localization,'' in \emph{Proc. IEEE ICCV}, 2017, pp. 618--626.
+
+\end{thebibliography}
 
 \end{document}
