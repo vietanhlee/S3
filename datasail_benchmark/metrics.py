@@ -152,19 +152,42 @@ def compute_pseudoreplication_index(
 
 
 def compute_class_coverage_rate(
-	df_all: pd.DataFrame,
-	df_train: pd.DataFrame,
-	df_val: pd.DataFrame,
-	df_test: pd.DataFrame,
+	df_all_or_train: Any,
+	df_train_or_val: Any,
+	df_val_or_test: Any,
+	df_test_or_classes: Any = None,
 ) -> float:
-	"""Tính Class Coverage Rate (CCR): Tỷ lệ % các class có mặt ở cả 3 tập (100.0%)."""
-	all_classes = set(df_all["label"].unique())
+	"""Tính Class Coverage Rate (CCR): Tỷ lệ % các class có mặt ở cả 3 tập (100.0%).
+	Hỗ trợ cả 2 chữ ký:
+	1. compute_class_coverage_rate(df_all, df_train, df_val, df_test)
+	2. compute_class_coverage_rate(df_train, df_val, df_test, class_names)
+	"""
+	if df_test_or_classes is not None and isinstance(df_test_or_classes, (list, set, tuple)):
+		df_train = df_all_or_train
+		df_val = df_train_or_val
+		df_test = df_val_or_test
+		all_classes = set(df_test_or_classes)
+	else:
+		df_all = df_all_or_train
+		df_train = df_train_or_val
+		df_val = df_val_or_test
+		df_test = df_test_or_classes
+		if isinstance(df_all, (list, set, tuple)):
+			all_classes = set(df_all)
+		elif hasattr(df_all, "columns") and "label" in df_all.columns:
+			all_classes = set(df_all["label"].unique())
+		else:
+			all_classes = set()
+
+	tr_classes = set(df_train["label"].unique()) if hasattr(df_train, "columns") and "label" in df_train.columns else set()
+	va_classes = set(df_val["label"].unique()) if hasattr(df_val, "columns") and "label" in df_val.columns else set()
+	te_classes = set(df_test["label"].unique()) if hasattr(df_test, "columns") and "label" in df_test.columns else set()
+
+	if not all_classes:
+		all_classes = tr_classes | va_classes | te_classes
+
 	if not all_classes:
 		return 100.0
-
-	tr_classes = set(df_train["label"].unique())
-	va_classes = set(df_val["label"].unique())
-	te_classes = set(df_test["label"].unique())
 
 	covered_classes = tr_classes & va_classes & te_classes
 	return float((len(covered_classes) / len(all_classes)) * 100.0)
