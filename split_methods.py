@@ -136,6 +136,9 @@ def _mahalanobis_distances(embeddings: np.ndarray, eps: float = 1e-6) -> np.ndar
 	n_samples = embeddings.shape[0]
 	if n_samples <= 1:
 		return np.zeros(n_samples, dtype=np.float32)
+	if n_samples == 2:
+		mean = embeddings.mean(axis=0)
+		return np.linalg.norm(embeddings - mean, axis=1).astype(np.float32)
 
 	mean = embeddings.mean(axis=0)
 	cov = np.cov(embeddings, rowvar=False)
@@ -418,17 +421,7 @@ def mahalanobis_iterative_split(
 
 		# Trường hợp đặc biệt: < 3 subfolders
 		if n_subfolders < 3:
-			# Tính khoảng cách Mahalanobis để biết cái nào gần/xa hơn
-			cov = np.cov(subfolder_embs, rowvar=False)
-			cov = np.atleast_2d(cov)
-			cov += np.eye(cov.shape[0]) * eps
-			cov_inv = np.linalg.pinv(cov)
-			global_centroid = subfolder_embs.mean(axis=0)
-			
-			dists = [_mahalanobis_dist_to_centroid(emb, global_centroid, cov_inv)[0] for emb in subfolder_embs]
-			sorted_idx = np.argsort(-np.array(dists)) # giảm dần: xa nhất lên đầu
-			
-			groups = [subfolder_groups.get_group(subfolder_names[i]).index.tolist() for i in sorted_idx]
+			groups = [subfolder_groups.get_group(sf_name).index.tolist() for sf_name in subfolder_names]
 			tr, va, te = _split_by_groups(groups, train_ratio, val_ratio, seed, sorted_descending=True)
 			train_idx.extend(tr)
 			val_idx.extend(va)

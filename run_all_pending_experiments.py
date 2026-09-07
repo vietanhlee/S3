@@ -363,7 +363,7 @@ def run_sa_meta_selector_flexible(
         knn_res = compute_knn_metrics(embeddings, df_tr, df_te, class_to_idx, path_to_idx)
         hardest_f1 = knn_res["hardest_class_f1"]
         slr_val = compute_specimen_leakage_risk(df_tr, df_va, df_te)
-        ccr_val = compute_class_coverage_rate(df_tr, df_va, df_te, class_names)
+        ccr_val = compute_class_coverage_rate(df_filtered, df_tr, df_va, df_te)
 
         # Tính toán fitness function (phạt nếu có rò rỉ dữ liệu)
         fitness = (
