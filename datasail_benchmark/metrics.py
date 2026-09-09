@@ -308,7 +308,7 @@ def compute_knn_metrics(
 	X_te = embeddings[te_indices]
 	y_te = np.array([class_to_idx[lbl] for lbl in df_test["label"]])
 
-	knn = KNeighborsClassifier(n_neighbors=k, metric="cosine")
+	knn = KNeighborsClassifier(n_neighbors=k, metric="cosine", n_jobs=-1)
 	knn.fit(X_tr, y_tr)
 
 	preds = knn.predict(X_te)

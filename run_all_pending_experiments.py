@@ -33,8 +33,8 @@ Hướng dẫn sử dụng:
       python run_all_pending_experiments.py --data-path "g:/S3_paper/S3" --task all
   - Chạy riêng Task A (Bảng 5 & Category IV):
       python run_all_pending_experiments.py --task ablation
-  - Chạy riêng Task B (Bảng 4 Fine-tuning):
-      python run_all_pending_experiments.py --task backbones
+  - Chạy riêng Task B (Bảng 4 Fine-tuning với 3 seeds tùy chọn):
+      python run_all_pending_experiments.py --task backbones --epochs 3 --sa-iters 1000 --num-seeds 3
   - Chỉ xuất lại mã bảng LaTeX từ kết quả đã lưu và patch vào main.tex:
       python run_all_pending_experiments.py --export-latex --patch-paper
 """
@@ -597,6 +597,9 @@ def train_and_eval_single_run(
     optimizer = torch.optim.AdamW(trainable_params, lr=lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
+    use_amp = (device.type == "cuda")
+    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+
     best_val_loss = float("inf")
     best_state = None
 
@@ -606,10 +609,12 @@ def train_and_eval_single_run(
         for imgs, targets in train_loader:
             imgs, targets = imgs.to(device), targets.to(device)
             optimizer.zero_grad()
-            logits = model(imgs)
-            loss = criterion(logits, targets)
-            loss.backward()
-            optimizer.step()
+            with torch.cuda.amp.autocast(enabled=use_amp):
+                logits = model(imgs)
+                loss = criterion(logits, targets)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             train_loss += loss.item() * len(targets)
         train_loss /= len(train_ds)
 
@@ -618,8 +623,9 @@ def train_and_eval_single_run(
         with torch.no_grad():
             for imgs, targets in val_loader:
                 imgs, targets = imgs.to(device), targets.to(device)
-                logits = model(imgs)
-                loss = criterion(logits, targets)
+                with torch.cuda.amp.autocast(enabled=use_amp):
+                    logits = model(imgs)
+                    loss = criterion(logits, targets)
                 val_loss += loss.item() * len(targets)
         val_loss /= len(val_ds)
         scheduler.step()
@@ -637,9 +643,10 @@ def train_and_eval_single_run(
     with torch.no_grad():
         for imgs, targets in test_loader:
             imgs = imgs.to(device)
-            logits = model(imgs)
-            probs = F.softmax(logits, dim=1)
-            preds = torch.argmax(logits, dim=1)
+            with torch.cuda.amp.autocast(enabled=use_amp):
+                logits = model(imgs)
+                probs = F.softmax(logits, dim=1)
+                preds = torch.argmax(logits, dim=1)
 
             all_preds.extend(preds.cpu().numpy())
             all_probs.append(probs.cpu().numpy())
@@ -698,6 +705,7 @@ def run_task_backbones(
     epochs: int = 15,
     batch_size: int = 64,
     quick: bool = False,
+    sa_iters: int = 3000,
 ) -> pd.DataFrame:
     """Chạy toàn bộ lưới 4 Backbones x 4 Protocols x Seeds phục vụ Bảng 4."""
     print("\n" + "=" * 80)
@@ -707,7 +715,7 @@ def run_task_backbones(
     print("-> Đang chuẩn bị các tập phân tách dữ liệu (Splits Cache) cho từng giao thức...")
     splits_cache: Dict[str, Dict[int, Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]] = {}
 
-    sa_split_iters = 500 if quick else 3000
+    sa_split_iters = 500 if quick else sa_iters
 
     for proto in TABLE4_PROTOCOLS:
         p_id = proto["id"]
@@ -1088,6 +1096,8 @@ def main():
     parser.add_argument("--epochs", type=int, default=15, help="Số epoch fine-tuning (mặc định: 15).")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size (mặc định: 64).")
     parser.add_argument("--sa-iters", type=int, default=10000, help="Số vòng lặp SA (mặc định: 10,000).")
+    parser.add_argument("--num-seeds", type=int, default=None,
+                        help="Số lượng seeds chạy thực nghiệm (1-5, mặc định: 5 hoặc 1 nếu --quick).")
     parser.add_argument("--data-path", type=str, default=None,
                         help="Đường dẫn trực tiếp đến thư mục chứa dữ liệu ảnh S3 (ví dụ: 'g:/S3_paper/S3' hoặc './S3').")
     parser.add_argument("--export-latex", action="store_true", help="Chỉ xuất lại bảng mã LaTeX từ kết quả đã có.")
@@ -1145,7 +1155,11 @@ def main():
 
     sa_iterations = 500 if args.quick else args.sa_iters
     fine_tune_epochs = 2 if args.quick else args.epochs
-    seeds_to_run = [42] if args.quick else BENCHMARK_SEEDS
+    if args.num_seeds is not None:
+        valid_n = max(1, min(len(BENCHMARK_SEEDS), args.num_seeds))
+        seeds_to_run = BENCHMARK_SEEDS[:valid_n]
+    else:
+        seeds_to_run = [42] if args.quick else BENCHMARK_SEEDS
 
     # 1. TASK A: Ablation Table 5
     if args.task in ["all", "ablation"]:
@@ -1181,6 +1195,7 @@ def main():
             epochs=fine_tune_epochs,
             batch_size=args.batch_size,
             quick=args.quick,
+            sa_iters=sa_iterations,
         )
 
     # 4. TASK D: Xuất mã LaTeX & cập nhật bài báo nếu có cờ
