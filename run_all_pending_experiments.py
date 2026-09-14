@@ -99,11 +99,11 @@ IMAGE_LEVEL_SOLVERS = ["PP0_Stratified_Random", "PP6_Stratified_Random", "PP11_D
 
 FORMAL_PROTOCOL_NAMES = {
     "PP0_Stratified_Random": "Naive Random Image Split",
-    "PP1_Mahalanobis_Fixed": "Fixed Mahalanobis Stratification",
+    "PP1_Mahalanobis_Fixed": "Fixed Mahalanobis Strat. (Continuous Metric)",
     "PP2_Mahalanobis_Iterative": "Iterative Mahalanobis Allocation",
     "PP3_Group_Based": "Naive Specimen Group Split",
     "PP4_Hierarchical_Clustering": "Hierarchical Ward Partitioning",
-    "PP5_Cosine_Graph": "Cosine Feature Graph Partitioning",
+    "PP5_Cosine_Graph": "Cosine Feature Graph (Continuous Graph)",
     "PP6_Stratified_Random": "Naive Stratified Image Split",
     "PP7_Adversarial_Validation": "Adversarial Density Validation",
     "PP8_StratifiedGroupKFold": "Stratified Group Split",
@@ -443,10 +443,23 @@ def run_task_ablation(
 
     ablation_definitions = [
         {
+            "id": "proposed_full",
+            "name": "Proposed Meta-Selector (Full)",
+            "constraint": r"Balanced SA $(1.0, 0.5, 0.5)$",
+            "candidate_pool": ALL_SOLVERS,
+            "w_datasail": 1.0,
+            "w_mmd": 0.5,
+            "w_hardest_f1": 0.5,
+            "w_slr": 0.0,
+        },
+        {
             "id": "unconstrained",
-            "name": "Unconstrained SA (Updated 10,000 iters)",
+            "name": "Unconstrained SA (10,000 iters)",
             "constraint": "None",
             "candidate_pool": ALL_SOLVERS,
+            "w_datasail": 1.0,
+            "w_mmd": 0.0,
+            "w_hardest_f1": 0.0,
             "w_slr": 0.0,
         },
         {
@@ -454,6 +467,9 @@ def run_task_ablation(
             "name": "Hard-Constrained Candidate Pool",
             "constraint": r"$\text{SLR}_c \equiv 0.0\%$",
             "candidate_pool": {k: v for k, v in ALL_SOLVERS.items() if k not in IMAGE_LEVEL_SOLVERS},
+            "w_datasail": 1.0,
+            "w_mmd": 0.5,
+            "w_hardest_f1": 0.5,
             "w_slr": 0.0,
         },
         {
@@ -461,6 +477,9 @@ def run_task_ablation(
             "name": "Penalized Fitness ($w_4 = 1.0$)",
             "constraint": r"$-w_4 \cdot \mathrm{SLR}$",
             "candidate_pool": ALL_SOLVERS,
+            "w_datasail": 1.0,
+            "w_mmd": 0.5,
+            "w_hardest_f1": 0.5,
             "w_slr": 1.0,
         },
         {
@@ -468,6 +487,9 @@ def run_task_ablation(
             "name": "Penalized Fitness ($w_4 = 2.0$)",
             "constraint": r"$-w_4 \cdot \mathrm{SLR}$",
             "candidate_pool": ALL_SOLVERS,
+            "w_datasail": 1.0,
+            "w_mmd": 0.5,
+            "w_hardest_f1": 0.5,
             "w_slr": 2.0,
         },
     ]
@@ -483,9 +505,9 @@ def run_task_ablation(
             class_to_idx=class_to_idx,
             path_to_idx=path_to_idx,
             candidate_solvers=item["candidate_pool"],
-            w_datasail=1.0,
-            w_mmd=0.5,
-            w_hardest_f1=0.5,
+            w_datasail=item.get("w_datasail", 1.0),
+            w_mmd=item.get("w_mmd", 0.5),
+            w_hardest_f1=item.get("w_hardest_f1", 0.5),
             w_slr=item["w_slr"],
             n_iters=n_iters,
             seed=seed,
@@ -499,6 +521,7 @@ def run_task_ablation(
             "macro_f1": metrics["knn_f1_macro"] * 100.0,
             "hardest_f1": metrics["hardest_class_f1"] * 100.0,
             "datasail_loss": metrics["datasail_loss"],
+            "mmd_distance": metrics.get("mmd_distance", 0.0),
             "slr_percent": metrics["slr_percent"],
             "ccr_percent": metrics["ccr_percent"],
             "runtime_seconds": runtime,
@@ -522,6 +545,7 @@ def run_task_ablation(
             "DataSAIL Loss": f"{record['datasail_loss']:,.1f}",
             "SLR (%)": f"{record['slr_percent']:.1f}%",
             "CCR (%)": f"{record['ccr_percent']:.1f}%",
+            "MMD": f"{record['mmd_distance']:.4f}",
             "Runtime (s)": f"{runtime:.1f}s",
         })
 
@@ -927,13 +951,14 @@ def generate_filled_latex_code(output_dir: Path) -> str:
         latex_snippets.append(r"\caption{Meta-Selector formulation ablation: comparison of unconstrained optimization, hard-constrained candidate pools ($\text{SLR}_c \equiv 0.0\%$), and explicit SLR penalty terms.}")
         latex_snippets.append(r"\label{tab:sa_ablation}")
         latex_snippets.append(r"\resizebox{\textwidth}{!}{%")
-        latex_snippets.append(r"\begin{tabular}{llccccccc}")
+        latex_snippets.append(r"\begin{tabular}{llcccccccc}")
         latex_snippets.append(r"\toprule")
-        latex_snippets.append(r"\textbf{Optimization Formulation} & \textbf{Constraint Mechanism} & \textbf{Accuracy (\%)} & \textbf{Macro-F1 (\%)} & \makecell{\textbf{Hardest-Class}\\\textbf{F1 (\%)}} & \makecell{\textbf{DataSAIL}\\\textbf{Loss $L(\pi)$}} & \textbf{SLR (\%)} & \textbf{CCR (\%)} & \textbf{Runtime (s)} \\")
+        latex_snippets.append(r"\makecell[l]{\textbf{Optimization}\\\textbf{Formulation}} & \makecell{\textbf{Constraint}\\\textbf{Mechanism}} & \makecell{\textbf{Accuracy}\\\textbf{(\%)}} & \makecell{\textbf{Macro-F1}\\\textbf{(\%)}} & \makecell{\textbf{Hardest-Class}\\\textbf{F1 (\%)}} & \makecell{\textbf{DataSAIL}\\\textbf{Loss $L(\pi)$}} & \makecell{\textbf{SLR}\\\textbf{(\%)}} & \makecell{\textbf{CCR}\\\textbf{(\%)}} & \textbf{MMD} & \makecell{\textbf{Runtime}\\\textbf{(s)}} \\")
         latex_snippets.append(r"\midrule")
 
         for _, row in df_t5.iterrows():
-            line = f"{row['Optimization Formulation']} & {row['Constraint Mechanism']} & {row['Accuracy (%)']} & {row['Macro-F1 (%)']} & {row['Hardest-F1 (%)']} & {row['DataSAIL Loss']} & {row['SLR (%)']} & {row['CCR (%)']} & {row['Runtime (s)']}" + " \\\\"
+            mmd_val = f"{row['MMD']}" if "MMD" in row and pd.notna(row["MMD"]) else "-"
+            line = f"{row['Optimization Formulation']} & {row['Constraint Mechanism']} & {row['Accuracy (%)']} & {row['Macro-F1 (%)']} & {row['Hardest-F1 (%)']} & {row['DataSAIL Loss']} & {row['SLR (%)']} & {row['CCR (%)']} & {mmd_val} & {row['Runtime (s)']}" + " \\\\"
             latex_snippets.append(line)
 
         latex_snippets.append(r"\bottomrule")
@@ -991,6 +1016,14 @@ def patch_paper_main_tex(paper_path: Path, output_dir: Path) -> None:
     """Tự động thay thế các cell pending trong paper/main.tex bằng các số liệu mới tính."""
     if not paper_path.exists():
         print(f"[Patch Paper] Không tìm thấy file {paper_path} để cập nhật.")
+        return
+
+    with open(paper_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    has_pending = any("pendingcell" in l for l in lines)
+    if not has_pending:
+        print(f"[Patch Paper] Thông báo: File {paper_path} hiện đã có đầy đủ 100% số liệu thực nghiệm chuẩn (không còn \\pendingcell). Bản thảo đã ở trạng thái hoàn thiện sẵn sàng!")
         return
 
     table5_path = output_dir / "table5_ablation.csv"

@@ -1,0 +1,772 @@
+path,label,genus,species,subfolder
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie43.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie31.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie10.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie39.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie44.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie37.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie39.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie27.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie55.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie0.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie54.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie20.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie52.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie24.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie38.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie32.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie26.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie1.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie24.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie41.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie33.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie37.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie31.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie56.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie57.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie41.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie72.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie27.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie23.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie53.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie19.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie4.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie27.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie20.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie48.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie76.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie8.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie40.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie37.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie2.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie17.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 2/doussie26.png,Afzelia africana,Afzelia,africana,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie40.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie20.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 1/doussie1.png,Afzelia africana,Afzelia,africana,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/dọc 1/doussie51.png,Afzelia africana,Afzelia,africana,dọc 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia africana/ngang 2/doussie29.png,Afzelia africana,Afzelia,africana,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_GCJA653/Afzelia bella_GCJA653_(116).png,Afzelia bella,Afzelia,bella,Afzelia bella_GCJA653
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_32137.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QUAV174/Afzelia bella_QUAV174_(305).png,Afzelia bella,Afzelia,bella,Afzelia bella_QUAV174
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QUAV174/Afzelia bella_QUAV174_(312).png,Afzelia bella,Afzelia,bella,Afzelia bella_QUAV174
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(198).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_AMRX692/Afzelia bella_AMRX692_(64).png,Afzelia bella,Afzelia,bella,Afzelia bella_AMRX692
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(173).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QUAV174/Afzelia bella_QUAV174_(302).png,Afzelia bella,Afzelia,bella,Afzelia bella_QUAV174
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_3217.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_AKMX287/Afzelia bella_AKMX287_(14).png,Afzelia bella,Afzelia,bella,Afzelia bella_AKMX287
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_32129.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QCYD170/Afzelia bella_QCYD170_(261).png,Afzelia bella,Afzelia,bella,Afzelia bella_QCYD170
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_AKMX287/Afzelia bella_AKMX287_(7).png,Afzelia bella,Afzelia,bella,Afzelia bella_AKMX287
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_HYBT691/Afzelia bella_HYBT691_(132).png,Afzelia bella,Afzelia,bella,Afzelia bella_HYBT691
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QUAV174/Afzelia bella_QUAV174_(308).png,Afzelia bella,Afzelia,bella,Afzelia bella_QUAV174
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(181).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_32135.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_HYBT691/Afzelia bella_HYBT691_(158).png,Afzelia bella,Afzelia,bella,Afzelia bella_HYBT691
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_32132.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_HYBT691/Afzelia bella_HYBT691_(150).png,Afzelia bella,Afzelia,bella,Afzelia bella_HYBT691
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_32134.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_32116.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(185).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_OGHV743/Afzelia bella_OGHV743_(220).png,Afzelia bella,Afzelia,bella,Afzelia bella_OGHV743
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_GCJA653/Afzelia bella_GCJA653_(115).png,Afzelia bella,Afzelia,bella,Afzelia bella_GCJA653
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_HYBT691/Afzelia bella_HYBT691_(154).png,Afzelia bella,Afzelia,bella,Afzelia bella_HYBT691
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(187).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_AMRX692/Afzelia bella_AMRX692_(66).png,Afzelia bella,Afzelia,bella,Afzelia bella_AMRX692
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(176).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_AMRX692/Afzelia bella_AMRX692_(44).png,Afzelia bella,Afzelia,bella,Afzelia bella_AMRX692
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QCYD170/Afzelia bella_QCYD170_(270).png,Afzelia bella,Afzelia,bella,Afzelia bella_QCYD170
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_FFCA657/Afzelia bella_FFCA657_9_32138.png,Afzelia bella,Afzelia,bella,Afzelia bella_FFCA657
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(165).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_HYBT691/Afzelia bella_HYBT691_(138).png,Afzelia bella,Afzelia,bella,Afzelia bella_HYBT691
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_HYBT691/Afzelia bella_HYBT691_(136).png,Afzelia bella,Afzelia,bella,Afzelia bella_HYBT691
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_OGHV743/Afzelia bella_OGHV743_(214).png,Afzelia bella,Afzelia,bella,Afzelia bella_OGHV743
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QCYD170/Afzelia bella_QCYD170_(246).png,Afzelia bella,Afzelia,bella,Afzelia bella_QCYD170
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_QCYD170/Afzelia bella_QCYD170_(259).png,Afzelia bella,Afzelia,bella,Afzelia bella_QCYD170
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_HYBT691/Afzelia bella_HYBT691_(128).png,Afzelia bella,Afzelia,bella,Afzelia bella_HYBT691
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia bella/Afzelia bella_LYSV052/Afzelia bella_LYSV052_(162).png,Afzelia bella,Afzelia,bella,Afzelia bella_LYSV052
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/2.1.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/5.2.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/4.3.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/5.1.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/5.3.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/3.1.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/6.3.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/3.4.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/1.4.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/4.2.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/1.2.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/4.4.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/2.4.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/4.1.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/3.3.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/5.4.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/3.2.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/2.3.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/6.2.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/2.2.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/1.3.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/6.4.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/1.1.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia pachyloba/m.2/6.1.png,Afzelia pachyloba,Afzelia,pachyloba,m.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/146.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/134.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/119.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/137.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/10.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/114.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/143.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/117.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/147.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/139.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/124.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/153.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/152.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/113.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/15.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/135.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/133.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/127.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/136.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/18.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/130.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/11.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/121.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/17.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/122.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/151.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/118.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/138.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/14.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/132.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/126.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/125.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/120.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/149.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/110.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/115.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/112.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/13.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/131.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/142.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/150.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/128.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/116.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/129.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/123.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/140.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/141.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/19.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/145.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/144.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/148.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Afzelia quanzensis/ngang 3/16.png,Afzelia quanzensis,Afzelia,quanzensis,ngang 3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.1 (27).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (22).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (34).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (6).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.8 (13).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.6 (15).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.5 (12).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (7).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (21).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (17).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.7 (22).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (27).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (12).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (28).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.6 (29).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (5).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.1 (17).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.6 (2).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (28).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (15).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.7 (5).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.7 (26).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.7 (10).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (31).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (30).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (30).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.3 (29).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.1 (29).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.3 (20).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (20).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (16).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.7 (29).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (25).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.3 (19).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (20).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (5).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (24).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (4).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (31).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.8 (8).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (20).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (8).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (35).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (11).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.5 (34).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (19).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.1 (14).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (23).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.6 (11).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (9).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.8 (29).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (36).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (21).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (9).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.8 (34).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.1 (26).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.10 (18).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.6 (19).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.6 (12).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.5 (9).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.7 (23).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.1 (23).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (33).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.5 (2).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.9 (8).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.5 (17).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.6 (17).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.2 (2).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.4 (34).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia cochinchinensis/Dalbergia cochinchinensis_3280/Dalbergia cochinchinensis.3280.8 (35).png,Dalbergia cochinchinensis,Dalbergia,cochinchinensis,Dalbergia cochinchinensis_3280
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (43).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (60).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (42).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (35).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (40).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (51).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (32).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (45).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (44).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (31).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (54).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (46).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (58).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (49).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (39).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (33).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (55).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (53).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (59).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (34).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (47).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (57).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (52).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (50).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (37).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (36).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (48).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (56).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (41).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia melanoxylon/3352. Dalbergia melanoxylon.2/3352. Dalbergia melanoxylon.2 (38).png,Dalbergia melanoxylon,Dalbergia,melanoxylon,3352. Dalbergia melanoxylon.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (30).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (13).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (27).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (14).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (25).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (10).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (20).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (4).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (31).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (2).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (23).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (17).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (19).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (18).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (3).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (11).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (29).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (15).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (1).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (16).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (9).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (28).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (7).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (26).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (22).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (6).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (32).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (8).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (24).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (5).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (12).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia oliveri/Dalbergia oliveri_3237.10/Dalbergia oliveri_3237.10_ (21).png,Dalbergia oliveri,Dalbergia,oliveri,Dalbergia oliveri_3237.10
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(7).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(6).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(5).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(27).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(2).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(30).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(8).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(11).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(1).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(18).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(29).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(21).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(19).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(9).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(22).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(4).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(20).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(10).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(13).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(3).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(23).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(12).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(16).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(14).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(24).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(17).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(26).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(15).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(25).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia rimosa/3414. Dalbergia rimosa.1/3414. Dalbergia rimosa.1(28).png,Dalbergia rimosa,Dalbergia,rimosa,3414. Dalbergia rimosa.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(157).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(150).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(139).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(156).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(133).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(140).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(148).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(147).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(145).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(135).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(154).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(151).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(138).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(143).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(141).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(137).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(155).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(158).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(159).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(136).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(149).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(134).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(142).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(144).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(146).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(152).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(161).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(160).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Dalbergia tonkinensis/3353. Dalbergia tonkinensis.5/3353. Dalbergia tonkinensis.5.(153).png,Dalbergia tonkinensis,Dalbergia,tonkinensis,3353. Dalbergia tonkinensis.5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (19).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (13).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (6).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (21).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (25).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (28).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (9).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (8).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (20).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (12).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (7).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (29).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (26).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (18).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (15).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (32).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (17).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (24).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (27).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (5).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (4).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (1).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (14).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (3).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (10).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (16).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (22).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (30).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (23).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (31).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (2).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia arnoldiana/3411. Guibourtia arnoldiana.1/3411. Guibourtia arnoldiana.1 (11).png,Guibourtia arnoldiana,Guibourtia,arnoldiana,3411. Guibourtia arnoldiana.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (23).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (13).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.11 (9).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.11 (20).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.1 (30).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.6 (35).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.1 (11).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (9).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (6).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (9).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (19).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.1 (28).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.7 (13).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (24).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (29).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (15).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (36).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.9 (14).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (22).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.7 (28).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (1).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (13).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (4).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (25).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (12).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.11 (19).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (33).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.7 (5).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (28).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.9 (16).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (21).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.1 (12).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (12).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.9 (34).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (16).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (10).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (28).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.11 (16).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (4).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (23).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.11 (23).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.1 (29).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (1).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (25).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (14).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.6 (15).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.9 (26).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (4).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (36).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.7 (12).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (7).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.2 (21).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (27).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (35).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (14).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.1 (13).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.11 (8).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.6 (1).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (23).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.7 (9).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.7 (33).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.3 (24).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (20).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (31).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.4 (13).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.9 (25).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.1 (35).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.9 (21).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.11 (26).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.6 (16).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.10 (16).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia coleosperma/dọc/Guibourtia coleosperma_3253.8 (30).png,Guibourtia coleosperma,Guibourtia,coleosperma,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(200).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(188).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(190).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(183).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(185).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(189).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(165).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(196).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(170).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(193).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(181).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(192).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(198).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(169).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(178).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(182).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(166).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(179).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(164).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(163).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(184).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(176).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(199).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(187).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(186).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(194).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(162).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(177).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(168).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(173).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(197).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(174).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(195).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(167).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(171).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(191).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(175).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(172).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(161).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Guibourtia ehie/Guibourtia ehie_PRQC042_5/Guibourtia ehie_PRQC042_5_(180).png,Guibourtia ehie,Guibourtia,ehie,Guibourtia ehie_PRQC042_5
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(13).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(4).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(18).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(21).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(8).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(17).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(26).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(24).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(29).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(7).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(2).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(15).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(30).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(35).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(12).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(23).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(9).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(16).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(3).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(33).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(27).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(34).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(20).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(6).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(11).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(10).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(1).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(31).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(19).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(25).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(14).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(22).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(28).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(5).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus erinaceus/3403. Pterocarpus erinaceus.1/3403. Pterocarpus erinaceus.1(32).png,Pterocarpus erinaceus,Pterocarpus,erinaceus,3403. Pterocarpus erinaceus.1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (80).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (86).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (83).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (75).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (91).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (69).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (93).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (62).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (78).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (82).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (77).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (61).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (72).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (66).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (64).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (79).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (65).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (74).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (68).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (81).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (71).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (90).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (60).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (70).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (63).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (85).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (73).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (87).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (76).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (89).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (67).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (84).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (88).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (92).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus indicus/3395. Pterocarpus indicus.3/3395. Pterocarpus indicus.3 (94).png,Pterocarpus indicus,Pterocarpus,indicus,3395. Pterocarpus indicus.3
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/110.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/120.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/124.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/144.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/128.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/129.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/115.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/140.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/145.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/19.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/114.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/118.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/133.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/14.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/136.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/131.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/113.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/112.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/11.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/111.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/122.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/137.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/116.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/15.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/149.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/142.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/13.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/12.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/16.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/127.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/143.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/17.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/125.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/117.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/148.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/147.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/119.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/121.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/126.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/123.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/135.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/130.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/134.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/132.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/139.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus macrocarpus/dọc 4/10.png,Pterocarpus macrocarpus,Pterocarpus,macrocarpus,dọc 4
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/148.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/13.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/149.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/154.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/117.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/119.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/144.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/152.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/135.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/146.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/18.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/116.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/120.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/12.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/128.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/11.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/16.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/14.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/110.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/127.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/136.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/131.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/111.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/113.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/147.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/124.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/129.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/126.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/151.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/150.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/153.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/125.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/132.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/142.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/137.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/140.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/114.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/123.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/121.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/115.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/134.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/139.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/112.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/145.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/141.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/19.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/155.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/17.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/15.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/122.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/143.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/138.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/118.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/130.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Pterocarpus soyauxii/ngang 1/133.png,Pterocarpus soyauxii,Pterocarpus,soyauxii,ngang 1
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ65.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ50.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ72.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ21.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ58.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ97.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ50.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ48.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ47.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ4.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ29.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ57.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ25.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ14.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ32.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ51.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ99.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ13.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ13.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ92.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ54.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ61.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ48.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ22.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ53.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ64.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ85.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ52.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ56.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ14.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ28.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ79.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ1.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ18.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ16.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ30.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ29.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ34.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ68.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ49.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ69.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ2.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ103.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ8.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ77.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ10.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ34.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ27.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ102.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ46.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ94.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ63.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ59.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ53.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ75.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ36.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ17.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ55.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ42.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang/gụ57.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ4.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ62.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ59.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ76.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ103.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ58.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/ngang 2/gụ42.png,Sindora cochinchinensis,Sindora,cochinchinensis,ngang 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ32.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc/gụ22.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora cochinchinensis/dọc 2/gụ9.png,Sindora cochinchinensis,Sindora,cochinchinensis,dọc 2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (55).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (63).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (57).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (36).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (38).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (43).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (35).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (58).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (42).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (41).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (39).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (54).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (40).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (56).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (46).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (47).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (49).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (64).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (37).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (65).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (34).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (61).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (62).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (52).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (53).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (44).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (45).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (60).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (51).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (48).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (59).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3/Sindora tonkinensis/3381. Sindora tonkinensis.2/3381. Sindora tonkinensis.2 (50).png,Sindora tonkinensis,Sindora,tonkinensis,3381. Sindora tonkinensis.2

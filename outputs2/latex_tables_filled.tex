@@ -1,0 +1,35 @@
+% ======================================================================
+% TABLE 4: MULTI-BACKBONE ROBUSTNESS BENCHMARK (FILLED)
+% ======================================================================
+\begin{table*}[htbp]
+\centering
+\caption{Multi-backbone robustness benchmark under Focal Loss ($\gamma=2.0, \alpha=0.25$) fine-tuning across representative vision architectures and splitting protocols (Mean $\pm$ Std across 5 seeds).}
+\label{tab:backbone_robustness}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccccc}
+\toprule
+\textbf{Vision Architecture} & \textbf{Splitting Protocol} & \textbf{Top-1 Acc (\%)} & \textbf{Top-3 Acc (\%)} & \textbf{Balanced Acc (\%)} & \textbf{Macro F1 (\%)} & \makecell{\textbf{Hardest-Class}\\\textbf{F1 (\%)}} & \textbf{SLR (\%)} \\
+\midrule
+\multirow{4}{*}{\textbf{ConvNeXt-Tiny}} & Naive Random Image Split & 98.84 $\pm$ 0.25 & 99.96 $\pm$ 0.04 & 98.70 $\pm$ 0.13 & 98.41 $\pm$ 0.46 & 84.94 $\pm$ 6.37 & 100.0\% \\
+ & Stratified Group Split & 94.81 $\pm$ 0.71 & 99.59 $\pm$ 0.14 & 89.85 $\pm$ 1.12 & 88.91 $\pm$ 0.97 & 25.88 $\pm$ 2.69 & 6.0\% \\
+ & DataSAIL Specimen-Level ILP & 86.95 $\pm$ 1.43 & 99.27 $\pm$ 0.28 & 85.87 $\pm$ 0.12 & 77.41 $\pm$ 0.06 & 0.00 $\pm$ 0.00 & 5.6\% \\
+ & Multi-Objective SA Meta-Selector & 91.83 $\pm$ 0.49 & 99.38 $\pm$ 0.48 & 91.39 $\pm$ 0.20 & 89.76 $\pm$ 0.71 & 34.21 $\pm$ 34.21 & 7.8\% \\
+\midrule
+\multirow{4}{*}{\textbf{Swin-Large}} & Naive Random Image Split & 99.21 $\pm$ 0.12 & 100.00 $\pm$ 0.00 & 98.18 $\pm$ 0.20 & 98.61 $\pm$ 0.20 & 83.53 $\pm$ 1.47 & 100.0\% \\
+ & Stratified Group Split & 98.20 $\pm$ 0.27 & 100.00 $\pm$ 0.00 & 96.61 $\pm$ 0.51 & 96.43 $\pm$ 1.07 & 71.59 $\pm$ 13.26 & 6.0\% \\
+ & DataSAIL Specimen-Level ILP & 91.06 $\pm$ 0.65 & 99.85 $\pm$ 0.15 & 90.99 $\pm$ 2.40 & 88.05 $\pm$ 4.24 & 0.00 $\pm$ 0.00 & 5.6\% \\
+ & Multi-Objective SA Meta-Selector & 92.44 $\pm$ 0.01 & 99.69 $\pm$ 0.18 & 91.90 $\pm$ 0.63 & 90.31 $\pm$ 0.64 & 45.83 $\pm$ 19.74 & 7.8\% \\
+\midrule
+\multirow{4}{*}{\textbf{EfficientNetV2-M}} & Naive Random Image Split & 99.17 $\pm$ 0.00 & 99.96 $\pm$ 0.04 & 98.75 $\pm$ 0.38 & 98.88 $\pm$ 0.22 & 91.21 $\pm$ 5.49 & 100.0\% \\
+ & Stratified Group Split & 95.38 $\pm$ 0.85 & 99.56 $\pm$ 0.11 & 90.09 $\pm$ 1.73 & 90.81 $\pm$ 1.63 & 45.13 $\pm$ 7.04 & 6.0\% \\
+ & DataSAIL Specimen-Level ILP & 87.91 $\pm$ 2.44 & 98.82 $\pm$ 0.42 & 90.08 $\pm$ 2.92 & 85.12 $\pm$ 6.20 & 0.00 $\pm$ 0.00 & 5.6\% \\
+ & Multi-Objective SA Meta-Selector & 92.18 $\pm$ 2.79 & 99.44 $\pm$ 0.29 & 93.34 $\pm$ 1.43 & 92.09 $\pm$ 1.46 & 55.68 $\pm$ 10.40 & 7.8\% \\
+\midrule
+\multirow{4}{*}{\textbf{ResNet-50}} & Naive Random Image Split & 93.55 $\pm$ 0.29 & 99.54 $\pm$ 0.04 & 90.71 $\pm$ 0.16 & 90.69 $\pm$ 0.39 & 31.33 $\pm$ 15.33 & 100.0\% \\
+ & Stratified Group Split & 91.72 $\pm$ 1.34 & 99.40 $\pm$ 0.11 & 85.76 $\pm$ 1.99 & 84.86 $\pm$ 1.92 & 0.00 $\pm$ 0.00 & 6.0\% \\
+ & DataSAIL Specimen-Level ILP & 76.24 $\pm$ 0.07 & 96.83 $\pm$ 0.61 & 80.08 $\pm$ 0.65 & 70.17 $\pm$ 0.25 & 0.00 $\pm$ 0.00 & 5.6\% \\
+ & Multi-Objective SA Meta-Selector & 84.84 $\pm$ 4.96 & 95.99 $\pm$ 2.82 & 86.37 $\pm$ 2.34 & 85.45 $\pm$ 3.30 & 48.61 $\pm$ 2.78 & 7.8\% \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
