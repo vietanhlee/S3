@@ -31,19 +31,57 @@ def run_command(cmd: list):
         sys.exit(result.returncode)
 
 
+def find_data_directory(requested_dir: str = None) -> str:
+    """Tự động tìm kiếm thư mục chứa dữ liệu ảnh trên Kaggle, Colab hoặc Local."""
+    candidate_dirs = []
+    if requested_dir:
+        candidate_dirs.append(Path(requested_dir))
+
+    candidate_dirs.extend([
+        Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"),
+        Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin"),
+        Path("/kaggle/input/s3-origin/S3"),
+        Path("/kaggle/input/s3-origin"),
+        Path("/kaggle/input/s3/S3"),
+        Path("/kaggle/input/s3"),
+        Path("./S3"),
+        Path("../S3"),
+        Path("data/S3")
+    ])
+
+    for cand in candidate_dirs:
+        if cand.exists() and cand.is_dir():
+            subdirs = [p for p in cand.iterdir() if p.is_dir()]
+            if len(subdirs) >= 3:
+                return str(cand)
+    return requested_dir or "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Điều phối toàn bộ Pipeline thực nghiệm IC4SDMacroWood")
+    parser.add_argument("--all", action="store_true",
+                        help="Chạy toàn bộ quy trình thực nghiệm (tương đương --step all)")
     parser.add_argument("--step", type=str, default="all", choices=["all", "assets", "classify", "metric"],
                         help="Bước cần thực hiện: assets | classify | metric | all")
     parser.add_argument("--data-dir", type=str, default="/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3",
                         help="Đường dẫn đến thư mục chứa 19 lớp ảnh macro")
-    parser.add_argument("--classify-epochs", type=int, default=22, help="Số epochs cho bài toán phân loại")
+    parser.add_argument("--classify-epochs", type=int, default=30, help="Số epochs cho bài toán phân loại")
     parser.add_argument("--classify-loss", type=str, default="focal", choices=["focal", "cross_entropy", "both"],
                         help="Hàm mất mát phân loại: 'focal', 'cross_entropy', hoặc 'both' (chạy cả hai để so sánh)")
-    parser.add_argument("--metric-epochs", type=int, default=30, help="Số epochs cho Semi-Hard Triplet Loss")
+    parser.add_argument("--metric-epochs", type=int, default=40, help="Số epochs cho Semi-Hard Triplet Loss")
     parser.add_argument("--metric-margin", type=float, default=0.5, help="Margin d^2 cho Semi-Hard Triplet Loss")
     parser.add_argument("--extract-embeddings", action="store_true", help="Trích xuất convnext_tiny.npy khi tạo assets")
     args = parser.parse_args()
+
+    # Nếu truyền cờ --all, tự động đặt step là 'all'
+    if args.all:
+        args.step = "all"
+
+    # Tự động dò tìm thư mục dữ liệu thật trên Kaggle/Colab nếu đường dẫn truyền vào chưa khớp
+    detected_data_dir = find_data_directory(args.data_dir)
+    if Path(detected_data_dir).exists():
+        args.data_dir = detected_data_dir
+        print(f"[*] Thư mục dữ liệu sử dụng: {args.data_dir}")
 
     python_bin = sys.executable
 

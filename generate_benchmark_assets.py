@@ -468,6 +468,26 @@ def main():
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
+    if not data_dir.exists():
+        candidate_dirs = [
+            Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"),
+            Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin"),
+            Path("/kaggle/input/s3-origin/S3"),
+            Path("/kaggle/input/s3-origin"),
+            Path("/kaggle/input/s3/S3"),
+            Path("/kaggle/input/s3"),
+            Path("./S3"),
+            Path("../S3"),
+            Path("data/S3")
+        ]
+        for cand in candidate_dirs:
+            if cand.exists() and cand.is_dir():
+                subdirs = [p for p in cand.iterdir() if p.is_dir()]
+                if len(subdirs) >= 3:
+                    data_dir = cand
+                    print(f"[*] Tự động phát hiện thư mục ảnh thực tế tại: {data_dir}")
+                    break
+
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
