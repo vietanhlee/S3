@@ -34,7 +34,7 @@ import sys
 import json
 import argparse
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -205,14 +205,16 @@ class MetricDataset(Dataset):
         self.df = df.reset_index(drop=True)
         self.class_to_idx = class_to_idx
         self.transform = transform
-        self.labels = [class_to_idx[lbl] for lbl in self.df["class_name"]]
+        col_lbl = "class_name" if "class_name" in self.df.columns else "label"
+        self.labels = [class_to_idx[lbl] for lbl in self.df[col_lbl]]
 
     def __len__(self) -> int:
         return len(self.df)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         row = self.df.iloc[idx]
-        img_path = row["image_path"]
+        col_img = "image_path" if "image_path" in row else "path"
+        img_path = row[col_img]
 
         try:
             with Image.open(img_path) as img:
@@ -407,10 +409,119 @@ def extract_features(model: nn.Module, loader: DataLoader, device: torch.device)
     return np.concatenate(all_embs, axis=0), np.array(all_labels)
 
 
+def load_or_generate_dataset_split(
+    split_csv_path: Optional[str] = "paper_data_assets/splits/split_canonical.csv",
+    metadata_csv_path: Optional[str] = "paper_data_assets/metadata/metadata.csv",
+    data_dir: Optional[str] = None,
+    seed: int = 42
+) -> pd.DataFrame:
+    """
+    Nạp dữ liệu phân vùng từ file CSV có sẵn hoặc tự động quét thư mục ảnh gốc và chia split.
+    Đảm bảo 100% không bị dừng đột ngột khi chạy trên Kaggle/Colab/Local.
+    """
+    # 1. Thử nạp từ split_canonical.csv nếu tồn tại
+    if split_csv_path and Path(split_csv_path).exists():
+        print(f"[+] Nạp phân vùng dữ liệu từ: {split_csv_path}")
+        df = pd.read_csv(split_csv_path)
+    elif metadata_csv_path and Path(metadata_csv_path).exists():
+        print(f"[*] Sử dụng file metadata có sẵn: {metadata_csv_path}")
+        df = pd.read_csv(metadata_csv_path)
+    else:
+        # 2. Không tìm thấy file CSV -> Tự động dò tìm thư mục ảnh gốc
+        candidate_dirs = []
+        if data_dir:
+            candidate_dirs.append(Path(data_dir))
+
+        candidate_dirs.extend([
+            Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"),
+            Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin"),
+            Path("/kaggle/input/s3-origin/S3"),
+            Path("/kaggle/input/s3-origin"),
+            Path("/kaggle/input/s3/S3"),
+            Path("/kaggle/input/s3"),
+            Path("./S3"),
+            Path("../S3"),
+            Path("data/S3")
+        ])
+
+        found_data_root = None
+        for cand in candidate_dirs:
+            if cand.exists() and cand.is_dir():
+                subdirs = [p for p in cand.iterdir() if p.is_dir()]
+                if len(subdirs) >= 3:
+                    found_data_root = cand
+                    break
+
+        if found_data_root is None:
+            print("\n" + "=" * 76)
+            print("[!] LỖI: Không tìm thấy file split CSV và cũng không tự động tìm thấy thư mục ảnh!")
+            print("=" * 76)
+            print(f"  - File split kiểm tra   : {split_csv_path}")
+            print(f"  - File metadata kiểm tra: {metadata_csv_path}")
+            print("  - Các đường dẫn ảnh đã quét thử:")
+            for c in candidate_dirs[:6]:
+                print(f"      + {c}")
+            print("\n[*] CÁCH KHẮC PHỤC CỰC KỲ ĐƠN GIẢN:")
+            print("    Truyền trực tiếp đường dẫn thư mục ảnh trên Kaggle của bạn:")
+            print("    python train_metric_learning_pipeline.py --data-dir /kaggle/input/<tên-dataset>/S3")
+            print("=" * 76 + "\n")
+            sys.exit(1)
+
+        print(f"\n[*] Chưa có file CSV split sẵn -> TỰ ĐỘNG PHÁT HIỆN THƯ MỤC ẢNH TẠI: {found_data_root}")
+        print("[*] Đang tự động quét ảnh và áp dụng thuật toán phân chia (Specimen-Disjoint Split từ split_methods.py)...")
+
+        try:
+            from generate_benchmark_assets import scan_and_collect_images, assign_specimen_disjoint_splits
+            records = scan_and_collect_images(found_data_root)
+            split_records = assign_specimen_disjoint_splits(records, seed=seed)
+            df = pd.DataFrame(split_records)
+
+            # Tự động xuất file CSV lưu lại để lần sau chỉ mất 0.1s tải
+            save_csv_path = Path(split_csv_path) if split_csv_path else Path("paper_data_assets/splits/split_canonical.csv")
+            save_csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+            save_df = pd.DataFrame({
+                "image_path": df["file_path"].astype(str) if "file_path" in df.columns else df["path"].astype(str),
+                "class_name": df["label"] if "label" in df.columns else df["class_name"],
+                "specimen_id": df["specimen_id"],
+                "split": df["split"]
+            })
+            save_df.to_csv(save_csv_path, index=False, encoding="utf-8")
+            print(f"[+] Đã tự động tạo và lưu phân vùng chuẩn vào: {save_csv_path}")
+        except Exception as e:
+            print(f"[!] Gặp lỗi khi tự động chia split: {e}")
+            sys.exit(1)
+
+    # 3. Chuẩn hóa tên cột
+    if "image_path" not in df.columns:
+        if "file_path" in df.columns:
+            df["image_path"] = df["file_path"].astype(str)
+        elif "path" in df.columns:
+            df["image_path"] = df["path"].astype(str)
+
+    if "class_name" not in df.columns:
+        if "label" in df.columns:
+            df["class_name"] = df["label"].astype(str)
+
+    # 4. Loại bỏ duy nhất taxon cấp chi Pterocarpus sp. (576 ảnh)
+    df = df[~df["class_name"].str.contains("pterocarpus sp", case=False, na=False)].copy()
+
+    # 5. Kiểm tra cột split
+    if "split" not in df.columns:
+        print("[!] LỖI: Dữ liệu phân vùng không tìm thấy cột 'split'!")
+        sys.exit(1)
+
+    return df
+
+
 def main():
     parser = argparse.ArgumentParser(description="Huấn luyện Semi-Hard Triplet Loss cho IC4SDMacroWood")
     parser.add_argument("--split-csv", type=str, default="paper_data_assets/splits/split_canonical.csv",
                         help="Đường dẫn file phân vùng split_canonical.csv")
+    parser.add_argument("--metadata-csv", type=str, default="paper_data_assets/metadata/metadata.csv",
+                        help="Đường dẫn file metadata.csv")
+    parser.add_argument("--data-dir", type=str, default=None,
+                        help="Đường dẫn thư mục ảnh gốc (tự động chia split nếu chưa có file CSV)")
     parser.add_argument("--loss", type=str, default="semihard_triplet", choices=["semihard_triplet"],
                         help="Hàm mất mát Metric Learning (chỉ chuyên biệt duy nhất semihard_triplet loss)")
     parser.add_argument("--margin", type=float, default=0.5,
@@ -436,9 +547,13 @@ def main():
     fig_dir = Path(args.fig_dir)
     fig_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Nạp dữ liệu
-    df = pd.read_csv(args.split_csv)
-    df = df[~df["class_name"].str.contains("pterocarpus sp", case=False, na=False)].copy()
+    # 1. Nạp dữ liệu (Hỗ trợ Auto-Discovery & Auto-Split nếu chưa có CSV)
+    df = load_or_generate_dataset_split(
+        split_csv_path=args.split_csv,
+        metadata_csv_path=args.metadata_csv,
+        data_dir=args.data_dir,
+        seed=args.seed
+    )
 
     class_names = sorted(df["class_name"].unique())
     class_to_idx = {name: i for i, name in enumerate(class_names)}
