@@ -607,6 +607,32 @@ def main():
     split_df.to_csv(split_path, index=False, encoding="utf-8")
     print(f"[+] Đã xuất Split Canonical CSV: {split_path}")
 
+    # 7b. Tự động vẽ và xuất biểu đồ phân phối phân vùng (Figure 1 cho bài báo)
+    try:
+        from utils.common import eda_split_class_distribution
+        df_train = df[df["split"] == "train"].copy()
+        df_val = df[df["split"] == "val"].copy()
+        df_test = df[df["split"] == "test"].copy()
+        df_train["label"] = df_train["class_name"]
+        df_val["label"] = df_val["class_name"]
+        df_test["label"] = df_test["class_name"]
+
+        fig_dir = Path("paper_data/fig")
+        fig_dir.mkdir(parents=True, exist_ok=True)
+        eda_split_class_distribution(
+            df_train, df_val, df_test,
+            "IC4SDMacroWood - Partition Class Distribution",
+            fig_dir / "eda_split_end_version.png"
+        )
+        eda_split_class_distribution(
+            df_train, df_val, df_test,
+            "IC4SDMacroWood - Partition Class Distribution",
+            fig_dir / "eda_split_end_version.pdf"
+        )
+        print(f"[+] Đã tự động cập nhật Figure 1 (EDA Split): {fig_dir / 'eda_split_end_version.pdf'}")
+    except Exception as e:
+        print(f"[!] Ghi chú: Không thể tự động vẽ biểu đồ EDA: {e}")
+
     # 8. Thẩm định rò rỉ dữ liệu (Leakage Audit)
     audit = audit_leakage(df)
     audit_json_path = out_dir / "leakage_audit" / "audit_summary.json"
