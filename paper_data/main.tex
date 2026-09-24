@@ -198,7 +198,7 @@ Overcoming these anatomical complexities and methodological biases requires two 
 \label{sec:description}
 
 
-The IC4SDMacroWood image repository comprises \textbf{19 commercial tropical hardwood species} across \textbf{6 botanical genera} belonging to the legume family \textbf{Fabaceae} (Leguminosae), encompassing exactly \textbf{7,278 standardized macroscopic cross-sectional images} ($224 \times 224$ pixels at $50\times$ optical magnification and native $12\,\mu\text{m}$ spatial optical resolution). The provenance, taxonomic vetting, and curation of the benchmark adhere strictly to international wood anatomical standards:
+The IC4SDMacroWood image repository comprises \textbf{19 commercial tropical hardwood species} across \textbf{6 botanical genera} belonging to the legume family \textbf{Fabaceae} (Leguminosae), encompassing exactly \textbf{7,278 standardized macroscopic cross-sectional images} ($224 \times 224$ pixels at $50\times$ optical magnification). The provenance, taxonomic vetting, and curation of the benchmark adhere strictly to international wood anatomical standards:
 \begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
     \item \textbf{Institutional Provenance and Dataset Independence}: IC4SDMacroWood constitutes a dedicated Fabaceae subset curated from an extensive institutional archive of 260 timber species maintained at the Intelligent Computing for Sustainable Development Laboratory (IC4SD), Posts and Telecommunications Institute of Technology (PTIT), Hanoi, Vietnam. This collection is completely self-contained and rigorously vetted for forensic integrity.
     \item \textbf{Taxonomic Filtering and Elimination of Ambiguous Taxa}: The initial collection comprised 20 candidate taxa across 6 genera totaling 7,854 macroscopic captures at $50\times$ optical magnification. During rigorous taxonomic auditing against IAWA macroscopic anatomical criteria~\cite{iawa1989,wiedenhoeft2011}, entry \#10, designated only as \textit{Pterocarpus} sp. (\textvn{Hương Malaysia}, comprising 576 captures), was identified as being authenticated only to the generic rank (`sp.' level) rather than true species rank. To ensure 100\% unequivocal species-level ground truth and eliminate taxonomic noise, all 576 captures of \textit{Pterocarpus} sp. were completely excluded from the benchmark ($7,854 - 576 = 7,278$ images), establishing the unified canonical benchmark of exactly \textbf{7,278 standardized macroscopic cross-sectional images} ($224 \times 224$ pixels at $50\times$ optical magnification).
@@ -306,7 +306,6 @@ Every macroscopic image in the benchmark is indexed by an individual record in \
 10 & \texttt{split} & String & Canonical partition membership (\texttt{train}, \texttt{val}, or \texttt{test}). \\
 11 & \texttt{sha256} & String & 64-character SHA-256 cryptographic checksum for duplication auditing. \\
 12 & \texttt{laplacian\_var} & Float & Focus and optical sharpness metric calculated via Laplacian variance. \\
-13 & \texttt{resolution\_um} & Float & Calibrated spatial optical resolution ($12.0\,\mu\text{m}$ per pixel) \reviewnote{Kiểm tra giá trị resolution thực tế}. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -475,7 +474,7 @@ Table~\ref{tab:hyperparameters} outlines the complete hyperparameter configurati
 \textbf{Category} & \textbf{Parameter / Setting} & \textbf{Standard Value and Description} \\
 \midrule
 \multirow{4}{*}{\textbf{Input \& Data}} 
- & Image Input Resolution & $224 \times 224 \times 3$ RGB pixels ($12\,\mu\text{m}$ spatial optical resolution) \reviewnote{$12\,\mu\text{m}$} \\
+ & Image Input Resolution & $224 \times 224 \times 3$ RGB pixels ($50\times$ optical magnification) \\
  & Channel Normalization & Mean: $[0.485, 0.456, 0.406]$, Std: $[0.229, 0.224, 0.225]$ \\
  & Batch Size & $B = 32$ \reviewnote{Batch size 32 hay 128 như trong code train\_final.py} \\
  & Number of Classes & $C = 19$ tropical hardwood taxa \\
@@ -516,7 +515,7 @@ To facilitate rigorous mathematical readability, Table~\ref{tab:notations} forma
 \textbf{Symbol} & \textbf{Definition and Description} \\
 \midrule
 $\mathcal{D} = \{(\boldsymbol{x}_i, y_i, g_i)\}_{i=1}^N$ & IC4SDMacroWood benchmark dataset ($N = 7,278$ standardized macroscopic cross-sectional images) \\
-$\boldsymbol{x}_i \in \mathbb{R}^{224 \times 224 \times 3}$ & Standardized 3-channel RGB macroscopic image ($224 \times 224$ px) at $12\,\mu\text{m}$ native optical resolution \\
+$\boldsymbol{x}_i \in \mathbb{R}^{224 \times 224 \times 3}$ & Standardized 3-channel RGB macroscopic image ($224 \times 224$ px at $50\times$ optical magnification) \\
 $y_i \in \{1, \dots, 19\}$ & Fine-grained botanical species ground-truth label ($C = 19$ taxa) \\
 $g_i \in \{1, \dots, 6\}$ & Botanical genus index (\textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Peltogyne}, \textit{Pterocarpus}, \textit{Sindora}) \\
 $\mathcal{S}_k$ & Primary specimen cluster comprising all images from physical specimen $k$ \\

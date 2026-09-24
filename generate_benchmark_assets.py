@@ -508,7 +508,6 @@ def main():
     df["image_id"] = img_ids
     df["sha256"] = sha_list
     df["laplacian_var"] = lap_list
-    df["resolution_um"] = 12.0
 
     # 4. Xuất Bảng 4: Label Map JSON
     class_names = sorted(list(TAXONOMIC_INVENTORY.keys()))
@@ -539,7 +538,7 @@ def main():
     metadata_cols = [
         "image_id", "file_path", "genus", "species", "class_name",
         "class_index", "vietnamese_name", "cites_status", "specimen_id",
-        "split", "sha256", "laplacian_var", "resolution_um"
+        "split", "sha256", "laplacian_var"
     ]
     meta_df = df[metadata_cols].rename(columns={"file_path": "image_path"})
     metadata_csv_path = out_dir / "metadata" / "metadata.csv"
