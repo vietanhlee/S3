@@ -38,11 +38,11 @@
   },
   "species_split_config": {
     "Afzelia africana": {
-      "strategy_id": "Strategy 7",
-      "strategy_name": "Agglomerative Stratified Banding",
-      "original_pp": "PP9",
-      "swap_target": "test",
-      "feature_extractor": "tf_efficientnetv2_m_in21k"
+      "strategy_id": "Strategy 6",
+      "strategy_name": "Stratified Group Allocation",
+      "original_pp": "PP8",
+      "swap_target": "val",
+      "feature_extractor": "swin_large_patch4_window7_224"
     },
     "Afzelia bella": {
       "strategy_id": "Strategy 3",

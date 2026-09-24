@@ -50,7 +50,7 @@ from split_methods import SPLIT_METHODS, validate_split
 # Cấu hình tối ưu phân vùng dữ liệu cho từng loài (End Version Split / CEGS-Split)
 # -----------------------------------------------------------------------------
 SPLIT_CONFIG = {
-    "Afzelia africana": ("PP9_Agglom_Stratified", "test", "eff"),
+    "Afzelia africana": ("PP8_StratifiedGroupKFold", "val", "swin"),
     "Afzelia bella": ("PP4_Hierarchical_Clustering", "val", "swin"),
     "Afzelia pachyloba": ("PP4_Hierarchical_Clustering", "val", "eff"),
     "Afzelia quanzensis": ("PP9_Agglom_Stratified", "test", "eff"),
@@ -226,12 +226,14 @@ def scan_and_collect_images(data_root: Path) -> List[Dict[str, Any]]:
             continue
 
         tax_info = TAXONOMIC_INVENTORY[label_name]
-        files = [p for p in class_dir.rglob("*") if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS]
+        sub_dirs = [d.name for d in class_dir.iterdir() if d.is_dir()]
+        default_sub = sub_dirs[0] if sub_dirs else f"{label_name}_specimen_01"
+        files = [p for p in class_dir.rglob("*") if p.is_file() and p.suffix.lower() in [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"]]
 
         for file_path in files:
             # Xác định physical specimen id từ tên subfolder
             rel_parts = file_path.relative_to(class_dir).parts
-            specimen_id = rel_parts[0] if len(rel_parts) > 1 else f"{label_name}_specimen_01"
+            specimen_id = rel_parts[0] if len(rel_parts) > 1 else default_sub
 
             collected_records.append({
                 "file_path": file_path,
@@ -253,8 +255,8 @@ def scan_and_collect_images(data_root: Path) -> List[Dict[str, Any]]:
 
 def assign_specimen_disjoint_splits(
     records: List[Dict[str, Any]],
-    train_ratio: float = 0.68,
-    val_ratio: float = 0.17,
+    train_ratio: float = 0.60,
+    val_ratio: float = 0.20,
     seed: int = 42
 ) -> List[Dict[str, Any]]:
     """
@@ -321,6 +323,26 @@ def assign_specimen_disjoint_splits(
         tr_orig_idx = [path_to_orig_idx[p] for p in tr_df["path"]]
         val_orig_idx = [path_to_orig_idx[p] for p in val_df["path"]]
         te_orig_idx = [path_to_orig_idx[p] for p in te_df["path"]]
+
+        # Guardrail an toàn: kiểm tra tập test không được dưới 15 ảnh hoặc dưới 10% tổng số mẫu của loài
+        curr_test_len = len(val_orig_idx) if swap_mode == "val" else len(te_orig_idx)
+        min_expected_test = max(15, int(len(sub_df) * 0.10))
+        if curr_test_len < min_expected_test:
+            print(f"  [!] Cảnh báo bảo vệ: '{label}' có tập test chỉ có {curr_test_len} ảnh (< {min_expected_test}). Tự động tái cân bằng qua PP8_StratifiedGroupKFold...")
+            fallback_fn = SPLIT_METHODS["PP8_StratifiedGroupKFold"]
+            tr_df, val_df, te_df = fallback_fn(
+                sub_df, sub_emb,
+                train_ratio=train_ratio,
+                val_ratio=val_ratio,
+                seed=seed
+            )
+            tr_orig_idx = [path_to_orig_idx[p] for p in tr_df["path"]]
+            val_orig_idx = [path_to_orig_idx[p] for p in val_df["path"]]
+            te_orig_idx = [path_to_orig_idx[p] for p in te_df["path"]]
+            if swap_mode == "val" and len(val_orig_idx) < min_expected_test and len(te_orig_idx) >= min_expected_test:
+                swap_mode = "test"
+            elif swap_mode == "test" and len(te_orig_idx) < min_expected_test and len(val_orig_idx) >= min_expected_test:
+                swap_mode = "val"
 
         # Áp dụng quy tắc hoán đổi nếu cấu hình loài yêu cầu mode 'val'
         if swap_mode == "val":

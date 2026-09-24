@@ -498,15 +498,37 @@ def load_or_generate_dataset_split(
     Nạp dữ liệu phân vùng từ file CSV có sẵn hoặc tự động quét thư mục ảnh gốc và chia split.
     Đảm bảo 100% không bị dừng đột ngột khi chạy trên Kaggle/Colab/Local.
     """
+    need_regenerate = False
+    df = None
+
     # 1. Thử nạp từ split_canonical.csv nếu tồn tại
     if split_csv_path and Path(split_csv_path).exists():
         print(f"[+] Nạp phân vùng dữ liệu từ: {split_csv_path}")
         df = pd.read_csv(split_csv_path)
+
+        # Kiểm tra tính toàn vẹn của split đã lưu
+        cls_col = "class_name" if "class_name" in df.columns else ("label" if "label" in df.columns else None)
+        if cls_col and "split" in df.columns:
+            af_test = df[(df[cls_col] == "Afzelia africana") & (df["split"] == "test")]
+            test_total = len(df[df["split"] == "test"])
+            # Nếu Afzelia africana chỉ có < 15 ảnh test (do lỗi split cũ), hoặc tổng test < 1050
+            if len(af_test) < 15 or test_total < 1050:
+                print("\n" + "=" * 76)
+                print(f"[!] PHÁT HIỆN FILE PHÂN VÙNG CŨ BỊ LỖI CHIA DỮ LIỆU:")
+                print(f"    - 'Afzelia africana' trong tập test chỉ có {len(af_test)} ảnh (< 15 ảnh chuẩn).")
+                print(f"    - Tổng số mẫu tập test: {test_total} (< 1,065 chuẩn bài báo).")
+                print(f"[*] HỆ THỐNG ĐANG TỰ ĐỘNG TÁI SINH PHÂN VÙNG CHUẨN (PP8 của Val ~74 ảnh) TỪ DỮ LIỆU GỐC...")
+                print("=" * 76 + "\n")
+                need_regenerate = True
+                df = None
     elif metadata_csv_path and Path(metadata_csv_path).exists():
         print(f"[*] Sử dụng file metadata có sẵn: {metadata_csv_path}")
         df = pd.read_csv(metadata_csv_path)
     else:
-        # 2. Không tìm thấy file CSV -> Tự động dò tìm thư mục ảnh gốc
+        need_regenerate = True
+
+    if need_regenerate or df is None:
+        # 2. Không tìm thấy file CSV hoặc file CSV cũ bị lỗi -> Tự động dò tìm thư mục ảnh gốc
         candidate_dirs = []
         if data_dir:
             candidate_dirs.append(Path(data_dir))
@@ -533,7 +555,7 @@ def load_or_generate_dataset_split(
 
         if found_data_root is None:
             print("\n" + "=" * 76)
-            print("[!] LỖI: Không tìm thấy file split CSV và cũng không tự động tìm thấy thư mục ảnh!")
+            print("[!] LỖI: Cần tái sinh phân vùng nhưng không tự động tìm thấy thư mục ảnh!")
             print("=" * 76)
             print(f"  - File split kiểm tra   : {split_csv_path}")
             print(f"  - File metadata kiểm tra: {metadata_csv_path}")
@@ -546,13 +568,13 @@ def load_or_generate_dataset_split(
             print("=" * 76 + "\n")
             sys.exit(1)
 
-        print(f"\n[*] Chưa có file CSV split sẵn -> TỰ ĐỘNG PHÁT HIỆN THƯ MỤC ẢNH TẠI: {found_data_root}")
+        print(f"\n[*] TỰ ĐỘNG PHÁT HIỆN THƯ MỤC ẢNH TẠI: {found_data_root}")
         print("[*] Đang tự động quét ảnh và áp dụng thuật toán phân chia (Specimen-Disjoint Split từ split_methods.py)...")
 
         try:
             from generate_benchmark_assets import scan_and_collect_images, assign_specimen_disjoint_splits
             records = scan_and_collect_images(found_data_root)
-            split_records = assign_specimen_disjoint_splits(records, seed=seed)
+            split_records = assign_specimen_disjoint_splits(records, train_ratio=0.60, val_ratio=0.20, seed=seed)
             df = pd.DataFrame(split_records)
 
             # Tự động xuất file CSV lưu lại để lần sau chỉ mất 0.1s tải
@@ -566,7 +588,13 @@ def load_or_generate_dataset_split(
                 "split": df["split"]
             })
             save_df.to_csv(save_csv_path, index=False, encoding="utf-8")
+            
+            test_counts = save_df[save_df["split"] == "test"]["class_name"].value_counts()
+            af_test_count = test_counts.get("Afzelia africana", 0)
+            total_test_count = len(save_df[save_df["split"] == "test"])
             print(f"[+] Đã tự động tạo và lưu phân vùng chuẩn vào: {save_csv_path}")
+            print(f"    - Tổng số ảnh test: {total_test_count:,} ảnh (chuẩn 1,065 ảnh bài báo)")
+            print(f"    - Afzelia africana test: {af_test_count} ảnh")
         except Exception as e:
             print(f"[!] Gặp lỗi khi tự động chia split: {e}")
             sys.exit(1)
