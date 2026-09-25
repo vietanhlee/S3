@@ -98,20 +98,29 @@ def eda_split_class_distribution(
 	val_counts = df_val["label"].value_counts().reindex(labels, fill_value=0)
 	test_counts = df_test["label"].value_counts().reindex(labels, fill_value=0)
 
+	# Viết tắt chữ cái đầu của chi thực vật (ví dụ: Afzelia africana -> A. africana)
+	short_labels = []
+	for lbl in labels:
+		parts = str(lbl).strip().split()
+		if len(parts) >= 2:
+			short_labels.append(f"{parts[0][0]}. {' '.join(parts[1:])}")
+		else:
+			short_labels.append(lbl)
+
 	stacked = pd.DataFrame(
-		{"train": train_counts, "val": val_counts, "test": test_counts},
-		index=labels,
+		{"train": train_counts.values, "val": val_counts.values, "test": test_counts.values},
+		index=short_labels,
 	)
 
-	plt.figure(figsize=(12, 6))
+	fig, ax = plt.subplots(figsize=(10.5, 8.5), dpi=300)
 	stacked.plot(
 		kind="bar",
 		stacked=True,
-		ax=plt.gca(),
+		ax=ax,
+		width=0.54,
 		color=["#1f77b4", "#ff7f0e", "#2ca02c"],
 	)
-	ax = plt.gca()
-	for i, label in enumerate(labels):
+	for i, label in enumerate(short_labels):
 		values = stacked.loc[label]
 		total = values.sum()
 		if total == 0:
@@ -128,8 +137,9 @@ def eda_split_class_distribution(
 					f"{percent:.1f}%",
 					ha="center",
 					va="center",
-					fontsize=5,
+					fontsize=6.5,
 					color="white",
+					fontweight="semibold",
 				)
 			bottom += value
 
@@ -144,24 +154,31 @@ def eda_split_class_distribution(
 
 	overall_text = (
 		f"Overall split ratio:\n"
-		f"  Train: {total_train} ({p_train:.1f}%)\n"
-		f"  Val:   {total_val} ({p_val:.1f}%)\n"
-		f"  Test:  {total_test} ({p_test:.1f}%)"
+		f"  Train: {total_train:,} ({p_train:.1f}%)\n"
+		f"  Val:   {total_val:,} ({p_val:.1f}%)\n"
+		f"  Test:  {total_test:,} ({p_test:.1f}%)"
 	)
 
-	props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+	props = dict(boxstyle='round,pad=0.55', facecolor='#faedd0', edgecolor='#8c7b64', alpha=0.92, linewidth=1.1)
 	ax.text(
-		0.02, 0.95, overall_text, transform=ax.transAxes, fontsize=9,
-		verticalalignment='top', bbox=props
+		0.018, 0.965, overall_text, transform=ax.transAxes, fontsize=9.5,
+		verticalalignment='top', bbox=props, fontfamily="monospace"
 	)
 
-	plt.title(f"{title} (Total: {total_all})")
-	plt.xlabel("Class")
-	plt.ylabel("Image count")
-	plt.xticks(rotation=45, ha="right")
+	# Bỏ tiền tố IC4SDMacroWood nếu có
+	clean_title = title.replace("IC4SDMacroWood - ", "").replace("IC4SDMacroWood", "").strip()
+	if not clean_title:
+		clean_title = "Partition Class Distribution"
+	ax.set_title(f"{clean_title} (Total: {total_all:,})", fontsize=13.5, fontweight="bold", pad=15)
+	ax.set_xlabel("Class", fontsize=11.5, fontweight="bold", labelpad=10)
+	ax.set_ylabel("Image count", fontsize=11.5, fontweight="bold", labelpad=10)
+	ax.set_ylim(0, 520)
+	ax.set_xticklabels(short_labels, rotation=45, ha="right", fontsize=9.5, fontstyle="italic", fontweight="normal")
+	ax.grid(True, linestyle="--", alpha=0.25, axis="y")
+	ax.legend(loc="upper right", fontsize=10.5, frameon=True, edgecolor="#cccccc")
 	plt.tight_layout()
 	if save_path:
-		plt.savefig(save_path, dpi=200)
+		plt.savefig(save_path, bbox_inches="tight", dpi=300)
 	plt.close()
 
 

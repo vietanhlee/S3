@@ -69,11 +69,11 @@ def plot_eda_distribution():
     print(f"  - Val      : {total_val:,} ({p_val:.1f}%)")
     print(f"  - Test     : {total_test:,} ({p_test:.1f}%)")
 
-    # Khởi tạo figure với chiều cao dài ra (figsize=(12, 7.5))
-    fig, ax = plt.subplots(figsize=(12, 7.5), dpi=300)
+    # Khởi tạo figure với chiều cao dài ra nổi bật (figsize=(10.5, 8.5)), tỷ lệ thanh thoát chuẩn journal
+    fig, ax = plt.subplots(figsize=(10.5, 8.5), dpi=300)
 
     indices = np.arange(len(short_names))
-    width = 0.58
+    width = 0.54
 
     # Vẽ stacked bar chart
     p1 = ax.bar(indices, train_counts, width, label="train", color="#1f77b4")
@@ -91,41 +91,41 @@ def plot_eda_distribution():
         # Train label
         if t_val > 0:
             ax.text(i, t_val / 2.0, f"{t_val / c_total * 100:.1f}%",
-                    ha="center", va="center", fontsize=5.8, color="white", fontweight="medium")
+                    ha="center", va="center", fontsize=6.5, color="white", fontweight="semibold")
 
         # Val label
         if v_val > 0:
             ax.text(i, t_val + v_val / 2.0, f"{v_val / c_total * 100:.1f}%",
-                    ha="center", va="center", fontsize=5.8, color="white", fontweight="medium")
+                    ha="center", va="center", fontsize=6.5, color="white", fontweight="semibold")
 
         # Test label
         if te_val > 0:
             ax.text(i, t_val + v_val + te_val / 2.0, f"{te_val / c_total * 100:.1f}%",
-                    ha="center", va="center", fontsize=5.8, color="white", fontweight="medium")
+                    ha="center", va="center", fontsize=6.5, color="white", fontweight="semibold")
 
     # Hộp thông tin tỷ lệ tổng thể (Overall split ratio) ở góc trên bên trái
     overall_text = (
         f"Overall split ratio:\n"
-        f"  Train: {total_train} ({p_train:.1f}%)\n"
-        f"  Val:   {total_val} ({p_val:.1f}%)\n"
-        f"  Test:  {total_test} ({p_test:.1f}%)"
+        f"  Train: {total_train:,} ({p_train:.1f}%)\n"
+        f"  Val:   {total_val:,} ({p_val:.1f}%)\n"
+        f"  Test:  {total_test:,} ({p_test:.1f}%)"
     )
-    props = dict(boxstyle='round,pad=0.6', facecolor='#faedd0', edgecolor='#8c7b64', alpha=0.9, linewidth=1.2)
+    props = dict(boxstyle='round,pad=0.55', facecolor='#faedd0', edgecolor='#8c7b64', alpha=0.92, linewidth=1.1)
     ax.text(0.018, 0.965, overall_text, transform=ax.transAxes, fontsize=9.5,
             verticalalignment='top', bbox=props, fontfamily="monospace")
 
     # Tiêu đề: Đã bỏ chữ "IC4SDMacroWood"
-    ax.set_title(f"Partition Class Distribution (Total: {total_all:,})", fontsize=13, fontweight="bold", pad=15)
-    ax.set_xlabel("Class", fontsize=11, fontweight="bold", labelpad=10)
-    ax.set_ylabel("Image count", fontsize=11, fontweight="bold", labelpad=10)
+    ax.set_title(f"Partition Class Distribution (Total: {total_all:,})", fontsize=13.5, fontweight="bold", pad=15)
+    ax.set_xlabel("Class", fontsize=11.5, fontweight="bold", labelpad=10)
+    ax.set_ylabel("Image count", fontsize=11.5, fontweight="bold", labelpad=10)
 
-    # Đặt nhãn trục hoành là tên viết tắt của chi
+    # Đặt nhãn trục hoành là tên viết tắt của chi, in nghiêng chuẩn danh pháp sinh học
     ax.set_xticks(indices)
-    ax.set_xticklabels(short_names, rotation=45, ha="right", fontsize=9.5, fontweight="medium")
+    ax.set_xticklabels(short_names, rotation=45, ha="right", fontsize=9.5, fontstyle="italic", fontweight="normal")
     ax.set_ylim(0, 520)
 
     # Legend ở góc trên bên phải
-    ax.legend(loc="upper right", fontsize=10.5, frameon=True)
+    ax.legend(loc="upper right", fontsize=10.5, frameon=True, edgecolor="#cccccc")
     ax.grid(True, linestyle="--", alpha=0.25, axis="y")
 
     plt.tight_layout()

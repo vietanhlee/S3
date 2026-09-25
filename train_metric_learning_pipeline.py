@@ -137,7 +137,8 @@ class SemiHardTripletLoss(nn.Module):
                 # Trường hợp còn lại: tất cả negative đều đã tách xa ngoài margin -> loss = 0 (easy negative)
 
         if len(triplet_losses) == 0:
-            return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
+            # Giữ nguyên liên kết đồ thị tính toán với embeddings để parameters không bị grad is None
+            return (embeddings * 0.0).sum()
 
         return torch.stack(triplet_losses).mean()
 
@@ -659,14 +660,29 @@ def main():
                 embs = model(images)
                 loss = criterion(embs, targets)
 
+            # Nếu trong batch toàn bộ đều là easy triplets (loss == 0), bỏ qua cập nhật
+            if loss.item() == 0.0:
+                total_loss += 0.0
+                n_batches += 1
+                continue
+
             scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+
+            # Đảm bảo an toàn tuyệt đối chống lỗi PyTorch "No inf checks were recorded for this optimizer"
+            has_grads = any(p.grad is not None for p in model.parameters())
+            if has_grads:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
 
             total_loss += loss.item()
             n_batches += 1
 
-        del images, targets, embs, loss
+        images = targets = embs = loss = None
         if use_cuda:
             torch.cuda.empty_cache()
 

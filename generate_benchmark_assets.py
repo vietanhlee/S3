@@ -621,12 +621,12 @@ def main():
         fig_dir.mkdir(parents=True, exist_ok=True)
         eda_split_class_distribution(
             df_train, df_val, df_test,
-            "IC4SDMacroWood - Partition Class Distribution",
+            "Partition Class Distribution",
             fig_dir / "eda_split_end_version.png"
         )
         eda_split_class_distribution(
             df_train, df_val, df_test,
-            "IC4SDMacroWood - Partition Class Distribution",
+            "Partition Class Distribution",
             fig_dir / "eda_split_end_version.pdf"
         )
         print(f"[+] Đã tự động cập nhật Figure 1 (EDA Split): {fig_dir / 'eda_split_end_version.pdf'}")
