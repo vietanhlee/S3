@@ -70,6 +70,7 @@ def main():
                         help="Hàm mất mát phân loại: 'focal', 'cross_entropy', hoặc 'both' (chạy cả hai để so sánh)")
     parser.add_argument("--metric-epochs", type=int, default=40, help="Số epochs cho Semi-Hard Triplet Loss")
     parser.add_argument("--metric-margin", type=float, default=0.5, help="Margin d^2 cho Semi-Hard Triplet Loss")
+    parser.add_argument("--metric-k-samples", type=int, default=4, help="Số mẫu K của từng lớp trong batch (mặc định 4)")
     parser.add_argument("--extract-embeddings", action="store_true", help="Trích xuất convnext_tiny.npy khi tạo assets")
     args = parser.parse_args()
 
@@ -128,6 +129,7 @@ def main():
             "--loss", "semihard_triplet",
             "--margin", str(args.metric_margin),
             "--epochs", str(args.metric_epochs),
+            "--k-samples", str(args.metric_k_samples),
             "--output-dir", "metric_outputs",
             "--fig-dir", "paper_data/fig"
         ]

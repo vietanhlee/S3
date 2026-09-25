@@ -155,8 +155,8 @@ def plot_confusion_matrix(cm: np.ndarray, class_names: List[str], save_path: Pat
     # Chuẩn hóa theo dòng (Recall theo từng lớp)
     cm_norm = cm.astype('float') / np.maximum(cm.sum(axis=1)[:, np.newaxis], 1e-12)
 
-    plt.imshow(cm_norm, interpolation='nearest', cmap=plt.cm.Blues)
-    plt.title("ConvNeXt-Tiny Baseline — Confusion Matrix (Test Split, N=1,065)", fontsize=13, fontweight="bold", pad=15)
+    total_n = int(cm.sum())
+    plt.title(f"ConvNeXt-Tiny Baseline — Confusion Matrix (Test Split, N={total_n:,})", fontsize=13, fontweight="bold", pad=15)
     plt.colorbar(fraction=0.046, pad=0.04)
 
     tick_marks = np.arange(len(class_names))

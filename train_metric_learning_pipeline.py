@@ -30,6 +30,9 @@ Chức năng chính:
 """
 
 import os
+# Cấu hình chống phân mảnh bộ nhớ VRAM cho PyTorch CUDA trên Kaggle/Colab/GPU
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 import sys
 import json
 import argparse
@@ -88,6 +91,8 @@ class SemiHardTripletLoss(nn.Module):
         self.fallback_hardest = fallback_hardest
 
     def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        # Ép sang float32 để đảm bảo độ chính xác khoảng cách cao và an toàn tuyệt đối khi bật AMP
+        embeddings = embeddings.float()
         batch_size = embeddings.size(0)
 
         # Tính ma trận bình phương khoảng cách Euclidean d(i, j)^2 trên mặt cầu siêu đơn vị L2:
@@ -400,12 +405,16 @@ def extract_features(model: nn.Module, loader: DataLoader, device: torch.device)
     model.eval()
     all_embs = []
     all_labels = []
+    use_cuda = (device.type == "cuda")
     with torch.no_grad():
-        for images, labels in loader:
-            images = images.to(device, non_blocking=True)
-            embs = model(images)
-            all_embs.append(embs.cpu().numpy())
-            all_labels.extend(labels.numpy())
+        with torch.amp.autocast("cuda", enabled=use_cuda, dtype=torch.float16):
+            for images, labels in loader:
+                images = images.to(device, non_blocking=True)
+                embs = model(images)
+                all_embs.append(embs.cpu().numpy())
+                all_labels.extend(labels.numpy())
+    if use_cuda:
+        torch.cuda.empty_cache()
     return np.concatenate(all_embs, axis=0), np.array(all_labels)
 
 
@@ -619,11 +628,15 @@ def main():
     embs_before, labels_test = extract_features(model, test_loader, device)
     metrics_before = evaluate_embedding_geometry(embs_before, labels_test)
     recalls_before = compute_retrieval_recalls(embs_before, labels_test)
+    use_cuda = (device.type == "cuda")
+    if use_cuda:
+        torch.cuda.empty_cache()
 
     # 4. Thiết lập Semi-Hard Triplet Loss & Optimizer
     criterion = SemiHardTripletLoss(margin=args.margin, fallback_hardest=(not args.pure_semihard))
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-3)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
+    scaler = torch.amp.GradScaler("cuda", enabled=use_cuda)
 
     # 5. Vòng lặp Huấn Luyện Semi-Hard Triplet
     print("\n" + "=" * 68)
@@ -640,14 +653,22 @@ def main():
 
         for images, targets in tqdm(train_loader, desc=f"Epoch {epoch}/{args.epochs}", leave=False):
             images, targets = images.to(device, non_blocking=True), targets.to(device, non_blocking=True)
-            optimizer.zero_grad()
-            embs = model(images)
-            loss = criterion(embs, targets)
-            loss.backward()
-            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+
+            with torch.amp.autocast("cuda", enabled=use_cuda, dtype=torch.float16):
+                embs = model(images)
+                loss = criterion(embs, targets)
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             total_loss += loss.item()
             n_batches += 1
+
+        del images, targets, embs, loss
+        if use_cuda:
+            torch.cuda.empty_cache()
 
         scheduler.step()
         avg_loss = total_loss / max(1, n_batches)
@@ -661,6 +682,9 @@ def main():
                 best_dbi = val_dbi
                 torch.save(model.state_dict(), best_ckpt)
             print(f"Epoch [{epoch:02d}/{args.epochs:02d}] | Triplet Loss: {avg_loss:.4f} | Test DBI: {val_dbi:.4f} {'★ [BEST]' if is_best else ''}")
+            del embs_val
+            if use_cuda:
+                torch.cuda.empty_cache()
         else:
             print(f"Epoch [{epoch:02d}/{args.epochs:02d}] | Triplet Loss: {avg_loss:.4f}")
 
@@ -668,6 +692,8 @@ def main():
     print("\n[*] Đang tải checkpoint tốt nhất để đánh giá trên Test split...")
     if best_ckpt.exists():
         model.load_state_dict(torch.load(best_ckpt, map_location=device))
+    if use_cuda:
+        torch.cuda.empty_cache()
 
     embs_after, _ = extract_features(model, test_loader, device)
     metrics_after = evaluate_embedding_geometry(embs_after, labels_test)
