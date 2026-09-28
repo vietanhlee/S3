@@ -10,11 +10,25 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .backbones import build_backbone
-from .grl import GradientReversalLayer
-from .heads import SpeciesClassifier, ConditionalDiscriminator, UnconditionalDiscriminator
-from .club import CLUBDiscrete
-from ..config import ModelConfig
+try:
+    from models.backbones import build_backbone
+    from models.grl import GradientReversalLayer
+    from models.heads import SpeciesClassifier, ConditionalDiscriminator, UnconditionalDiscriminator
+    from models.club import CLUBDiscrete
+    from config import ModelConfig
+except (ImportError, ValueError):
+    try:
+        from .backbones import build_backbone
+        from .grl import GradientReversalLayer
+        from .heads import SpeciesClassifier, ConditionalDiscriminator, UnconditionalDiscriminator
+        from .club import CLUBDiscrete
+        from ..config import ModelConfig
+    except (ImportError, ValueError):
+        from backbones import build_backbone
+        from grl import GradientReversalLayer
+        from heads import SpeciesClassifier, ConditionalDiscriminator, UnconditionalDiscriminator
+        from club import CLUBDiscrete
+        from config import ModelConfig
 
 
 class SpecimenInvariantModel(nn.Module):

@@ -27,6 +27,10 @@ Usage:
 import argparse
 import os
 import sys
+
+# Suppress multiple OpenMP runtime initialization errors
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import time
 import subprocess
 from datetime import datetime
@@ -94,10 +98,14 @@ def worker_loop(
         start_dt = datetime.now().strftime("%H:%M:%S")
         safe_print(f"[{start_dt}] [{gpu_str}] >>> LAUNCHING: {method} ({backbone}) -> Log: {log_file.name}")
 
+        # Ensure execution points directly to train.py in framework directory
+        current_script_dir = Path(__file__).resolve().parent
+        train_script = current_script_dir / "train.py"
+
         # Build execution command
         cmd = [
             sys.executable,
-            "train.py",
+            str(train_script),
             "--method", method,
             "--backbone", backbone,
             "--fold", str(fold),
@@ -108,8 +116,10 @@ def worker_loop(
             "--image_root", script_args.image_root,
             "--output_base_dir", script_args.output_base_dir,
         ]
+        # When CUDA_VISIBLE_DEVICES isolates a process to 1 physical GPU,
+        # PyTorch always exposes it as cuda:0 inside that child environment.
         if gpu_id is not None:
-            cmd.extend(["--gpu", str(gpu_id)])
+            cmd.extend(["--gpu", "0"])
 
         # Set environment with pinned GPU
         env = os.environ.copy()
@@ -130,13 +140,24 @@ def worker_loop(
                     stdout=lf,
                     stderr=subprocess.STDOUT,
                     env=env,
+                    cwd=str(current_script_dir),
                     text=True,
                 )
                 process.wait()
 
                 if process.returncode != 0:
                     status = f"FAILED (code {process.returncode})"
-                    error_msg = f"Check log: {log_file}"
+                    tail_str = ""
+                    try:
+                        if log_file.exists():
+                            with open(log_file, "r", encoding="utf-8", errors="ignore") as rf:
+                                all_lines = [l.rstrip() for l in rf.readlines() if l.strip()]
+                                tail_lines = all_lines[-12:]
+                                if tail_lines:
+                                    tail_str = "\n" + "\n".join(f"         [Trace] {line}" for line in tail_lines)
+                    except Exception:
+                        pass
+                    error_msg = f"Check log: {log_file}{tail_str}"
 
         except Exception as e:
             status = "ERROR"

@@ -11,19 +11,112 @@ import argparse
 import json
 import os
 import random
+import sys
 from pathlib import Path
+
+# Suppress multiple OpenMP runtime initialization errors
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from config import DatasetConfig, ModelConfig, TrainingConfig
-from datasets.dataset import TimberDataset, build_taxonomy_mappings
-from datasets.samplers import SpecimenBalancedBatchSampler
-from datasets.augmentations import build_train_transform, build_val_transform
-from datasets.splits import generate_round_robin_loso_splits
-from models.full_model import SpecimenInvariantModel
-from trainers.trainer_adversarial import InvarianceTrainer
+# Ensure framework directory and root repository are always in sys.path
+CURRENT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = CURRENT_DIR.parent
+for p in [str(CURRENT_DIR), str(REPO_ROOT)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from config import DatasetConfig, ModelConfig, TrainingConfig
+    from datasets.dataset import TimberDataset, build_taxonomy_mappings
+    from datasets.samplers import SpecimenBalancedBatchSampler
+    from datasets.augmentations import build_train_transform, build_val_transform
+    from datasets.splits import generate_round_robin_loso_splits
+    from models.full_model import SpecimenInvariantModel
+    from trainers.trainer_adversarial import InvarianceTrainer
+except (ImportError, ValueError):
+    from specimen_invariance_framework.config import DatasetConfig, ModelConfig, TrainingConfig
+    from specimen_invariance_framework.datasets.dataset import TimberDataset, build_taxonomy_mappings
+    from specimen_invariance_framework.datasets.samplers import SpecimenBalancedBatchSampler
+    from specimen_invariance_framework.datasets.augmentations import build_train_transform, build_val_transform
+    from specimen_invariance_framework.datasets.splits import generate_round_robin_loso_splits
+    from specimen_invariance_framework.models.full_model import SpecimenInvariantModel
+    from specimen_invariance_framework.trainers.trainer_adversarial import InvarianceTrainer
+
+
+def resolve_metadata_path(given_path: str) -> Path:
+    p = Path(given_path)
+    if p.exists() and p.is_file():
+        return p.resolve()
+    
+    candidates = [
+        Path(given_path),
+        Path("..") / given_path,
+        Path("../out/metadata/metadata.csv"),
+        Path("out/metadata/metadata.csv"),
+        Path("metadata.csv"),
+        Path("../metadata.csv"),
+        Path("/kaggle/working/S3/out/metadata/metadata.csv"),
+        REPO_ROOT / "out" / "metadata" / "metadata.csv",
+    ]
+    # Check Kaggle input folders if available
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.exists():
+        for csv_cand in kaggle_input.glob("**/metadata.csv"):
+            candidates.append(csv_cand)
+            
+    for cand in candidates:
+        if cand.exists() and cand.is_file():
+            return cand.resolve()
+            
+    raise FileNotFoundError(
+        f"Could not locate metadata CSV. Looked at: {[str(c) for c in candidates]}"
+    )
+
+
+def resolve_image_root(given_root: str, sample_image_relpath: str) -> Path:
+    p = Path(given_root)
+    if (p / sample_image_relpath).exists():
+        return p.resolve()
+    if (p / "images" / sample_image_relpath).exists():
+        return (p / "images").resolve()
+        
+    candidates = [
+        Path(given_root),
+        Path("..") / given_root,
+        REPO_ROOT / given_root,
+        Path("../out"),
+        Path("../out/images"),
+        Path("out"),
+        Path("out/images"),
+        REPO_ROOT / "out",
+        REPO_ROOT / "out" / "images",
+        Path("/kaggle/working/S3/out"),
+        Path("/kaggle/working/S3/out/images"),
+    ]
+    
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.exists():
+        for root_cand in kaggle_input.glob("**"):
+            if root_cand.is_dir():
+                if (root_cand / sample_image_relpath).exists():
+                    return root_cand.resolve()
+                if (root_cand / "images" / sample_image_relpath).exists():
+                    return (root_cand / "images").resolve()
+                
+    for cand in candidates:
+        if (cand / sample_image_relpath).exists():
+            return cand.resolve()
+        if (cand / "images" / sample_image_relpath).exists():
+            return (cand / "images").resolve()
+            
+    # Fallback to local out directory
+    fallback = (REPO_ROOT / "out").resolve() if (REPO_ROOT / "out").exists() else p.resolve()
+    print(f"[*] Note: sample image '{sample_image_relpath}' not directly verified on disk. Defaulting image_root to: {fallback}")
+    return fallback
 
 
 def set_seed(seed: int):
@@ -65,24 +158,24 @@ def main():
     args = parse_args()
     set_seed(args.seed)
     
-    if args.gpu is not None and torch.cuda.is_available():
-        device = torch.device(f"cuda:{args.gpu}")
+    if torch.cuda.is_available():
+        device_count = torch.cuda.device_count()
+        gpu_idx = args.gpu if (args.gpu is not None and args.gpu < device_count) else 0
+        device = torch.device(f"cuda:{gpu_idx}")
         torch.cuda.set_device(device)
     else:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cpu")
     print(f"[*] Executing on device: {device} | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}")
     
     # 1. Load metadata
-    meta_path = Path(args.metadata_csv)
-    if not meta_path.exists():
-        # Fallback to local project search
-        candidates = [Path("../out/metadata/metadata.csv"), Path("metadata.csv")]
-        for c in candidates:
-            if c.exists():
-                meta_path = c
-                break
+    meta_path = resolve_metadata_path(args.metadata_csv)
     print(f"[+] Ingesting metadata from: {meta_path}")
     meta_df = pd.read_csv(meta_path)
+    
+    # Resolve valid image_root
+    sample_img_rel = meta_df["image_path"].iloc[0] if "image_path" in meta_df.columns else ""
+    image_root = resolve_image_root(args.image_root, sample_img_rel)
+    print(f"[+] Ingesting image directory from: {image_root}")
     
     # 2. Build taxonomy and specimen mappings
     mappings = build_taxonomy_mappings(meta_df)
@@ -101,9 +194,9 @@ def main():
     train_transform = build_train_transform(image_size=224)
     val_transform = build_val_transform(image_size=224)
     
-    train_dataset = TimberDataset(df_train, image_root=args.image_root, mappings=mappings, transform=train_transform)
-    val_dataset = TimberDataset(df_val, image_root=args.image_root, mappings=mappings, transform=val_transform)
-    test_dataset = TimberDataset(df_test, image_root=args.image_root, mappings=mappings, transform=val_transform)
+    train_dataset = TimberDataset(df_train, image_root=str(image_root), mappings=mappings, transform=train_transform)
+    val_dataset = TimberDataset(df_val, image_root=str(image_root), mappings=mappings, transform=val_transform)
+    test_dataset = TimberDataset(df_test, image_root=str(image_root), mappings=mappings, transform=val_transform)
     
     # 5. Specimen-balanced sampler for training
     train_sampler = SpecimenBalancedBatchSampler(
@@ -114,9 +207,10 @@ def main():
         seed=args.seed
     )
     
-    train_loader = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=2, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    num_workers = 2 if os.name != 'nt' else 0
+    train_loader = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
     
     # 6. Configurations
     model_cfg = ModelConfig(

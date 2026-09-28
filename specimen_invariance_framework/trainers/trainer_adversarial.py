@@ -17,10 +17,22 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .base_trainer import BaseTrainer
-from ..losses.species_losses import FocalLoss, LabelSmoothingCrossEntropy
-from ..losses.contrastive_losses import SupConLoss, SemiHardTripletLoss
-from ..losses.group_robust_losses import GroupDROLoss, IRMLoss
+try:
+    from trainers.base_trainer import BaseTrainer
+    from losses.species_losses import FocalLoss, LabelSmoothingCrossEntropy
+    from losses.contrastive_losses import SupConLoss, SemiHardTripletLoss
+    from losses.group_robust_losses import GroupDROLoss, IRMLoss
+except (ImportError, ValueError):
+    try:
+        from .base_trainer import BaseTrainer
+        from ..losses.species_losses import FocalLoss, LabelSmoothingCrossEntropy
+        from ..losses.contrastive_losses import SupConLoss, SemiHardTripletLoss
+        from ..losses.group_robust_losses import GroupDROLoss, IRMLoss
+    except (ImportError, ValueError):
+        from base_trainer import BaseTrainer
+        from species_losses import FocalLoss, LabelSmoothingCrossEntropy
+        from contrastive_losses import SupConLoss, SemiHardTripletLoss
+        from group_robust_losses import GroupDROLoss, IRMLoss
 
 
 class InvarianceTrainer(BaseTrainer):

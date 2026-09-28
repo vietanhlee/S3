@@ -97,10 +97,10 @@ def plot_pareto_curve(
     ax.plot([p[0] for p in sorted_pairs], [p[1] for p in sorted_pairs], "--", color="gray", alpha=0.7, zorder=2)
 
     cbar = plt.colorbar(scatter, ax=ax)
-    cbar.set_label("Adversarial Weight ($\lambda_{adv}$)", fontsize=11)
+    cbar.set_label(r"Adversarial Weight ($\lambda_{adv}$)", fontsize=11)
 
-    ax.set_xlabel("Specimen Recoverability Index (SRI) $\downarrow$", fontsize=11)
-    ax.set_ylabel("Strict Val Accuracy (%) $\uparrow$", fontsize=11)
+    ax.set_xlabel(r"Specimen Recoverability Index (SRI) $\downarrow$", fontsize=11)
+    ax.set_ylabel(r"Strict Val Accuracy (%) $\uparrow$", fontsize=11)
     ax.set_title("Pareto Trade-off: Accuracy vs. Specimen Invariance", fontsize=12, fontweight="bold")
     ax.grid(True, linestyle=":", alpha=0.6)
 
