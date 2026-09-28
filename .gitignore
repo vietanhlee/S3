@@ -6,3 +6,12 @@ todo.md
 .gemini
 outputs
 pytorch-grad-cam
+*.pth
+*.pt
+*.bin
+*.tar.gz
+*.zip
+specimen_invariance_outputs/
+outputs_final/
+outputs1/
+outputs2/

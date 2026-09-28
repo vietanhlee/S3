@@ -61,15 +61,15 @@
 
 \cs_set:Npn \__first_footerline: {}
 \cs_set:Npn \__first_foot: 
-{%
-  \noindent\begin{minipage}[b]{\linewidth}%
-    \setlength{\parindent}{0pt}%
-    \noindent\rule{0.32\linewidth}{.4pt}\par\vspace{3pt}%
-    \noindent\footnotesize\rmfamily%
-    \textsuperscript{*}Corresponding author.\par\vspace{1pt}%
-    \noindent\hspace*{1.1em}\textit{E-mail addresses:}~\href{mailto:khanhnt@ptit.edu.vn}{khanhnt@ptit.edu.vn}~(K.~Nguyen-Trong),~\href{mailto:anhlv.b23kh002@stu.ptit.edu.vn}{anhlv.b23kh002@stu.ptit.edu.vn}~(V.-A.~Le)%
-  \end{minipage}%
-}
+% {%
+%   \noindent\begin{minipage}[b]{\linewidth}%
+%     \setlength{\parindent}{0pt}%
+%     \noindent\rule{0.32\linewidth}{.4pt}\par\vspace{3pt}%
+%     \noindent\footnotesize\rmfamily%
+%     \textsuperscript{*}Corresponding author.\par\vspace{1pt}%
+%     \noindent\hspace*{1.1em}\textit{E-mail addresses:}~\href{mailto:khanhnt@ptit.edu.vn}{khanhnt@ptit.edu.vn}~(K.~Nguyen-Trong),~\href{mailto:anhlv.b23kh002@stu.ptit.edu.vn}{anhlv.b23kh002@stu.ptit.edu.vn}~(V.-A.~Le)%
+%   \end{minipage}%
+% }
 \cs_set:Npn \__cas_foot: 
 {%
   \noindent\begin{minipage}[t]{\linewidth}%
@@ -109,7 +109,7 @@
 % \cortext[1]{Corresponding author. \textit{E-mail addresses:} \href{mailto:khanhnt@ptit.edu.vn}{khanhnt@ptit.edu.vn} (K. Nguyen-Trong), \href{mailto:anhlv.b23kh002@stu.ptit.edu.vn}{anhlv.b23kh002@stu.ptit.edu.vn} (V.-A. Le)}
 
 \begin{abstract}
-IC4SDMacroWood is an authenticated macroscopic transverse-section image dataset curated for fine-grained identification of commercially significant tropical hardwoods and CITES-regulated timber. The repository comprises 6,414 standardized cross-sectional captures ($224 \times 224$ pixels, $50\times$ optical magnification, spatial resolution of $12\,\mu\text{m}$) across 19 hardwood species from 6 botanical genera in the legume family Fabaceae, including 9 taxa strictly regulated under CITES Appendix~II and 4 high-value timber species endemic to Vietnam (\textit{Dalbergia cochinchinensis}, \textit{D.~tonkinensis}, \textit{Sindora cochinchinensis}, and \textit{S.~tonkinensis}). Transverse wood specimens were planed orthogonally, polished across progressive silicon-carbide grit gradations (P120--P600), de-dusted with compressed air, and imaged under calibrated daylight-balanced ($5600\,\text{K}$) diffuse LED illumination. The release package includes raw images, structured metadata tables (\texttt{metadata.csv}), label mappings (\texttt{label\_map.json}), bitwise SHA-256 cryptographic checksums, Laplacian focus sharpness scores, pre-computed 768-dimensional deep feature embeddings, and a governed partition manifest ($N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$) preserving complete 100\% class coverage across all 19 taxa with controlled specimen boundaries ($\text{SLR} = 30.6\%$). Technical-validation baselines using the ConvNeXt-Tiny architecture are provided to establish dataset usability: a supervised classification model under Multiclass Focal Loss ($\alpha=0.25, \gamma=2.0$) attaining $90.42\%$ top-1 test accuracy ($86.80\%$ macro-averaged F1, $88.82\%$ weighted F1 across $1,190$ test captures) and a deep metric representation learning framework via Semi-Hard Triplet Loss achieving a Silhouette score of $0.5485$ and $91.80\%$ Recall@1 nearest-neighbor retrieval. The dataset is intended to support reproducible machine learning benchmarking, forensic wood anatomy, and automated timber trade compliance. All data files, split manifests, and reproducible code are openly accessible at \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}.
+IC4SDMacroWood is an authenticated macroscopic transverse-section image dataset curated for fine-grained identification of commercially significant tropical hardwoods and CITES-regulated timber. The repository comprises 6,414 standardized cross-sectional captures ($224 \times 224$ pixels, $50\times$ optical magnification, spatial resolution of $12\,\mu\text{m}$) across 19 hardwood species from 6 botanical genera in the legume family Fabaceae, including 9 taxa strictly regulated under CITES Appendix~II and 4 high-value timber species endemic to Vietnam (\textit{Dalbergia cochinchinensis}, \textit{Dalbergia tonkinensis}, \textit{Sindora cochinchinensis}, and \textit{Sindora tonkinensis}). Transverse wood specimens were planed orthogonally, polished across progressive silicon-carbide grit gradations (P120--P600), de-dusted with compressed air, and imaged under calibrated daylight-balanced ($5600\,\text{K}$) diffuse LED illumination. The release package includes raw images, structured metadata tables (\texttt{metadata.csv}), label mappings (\texttt{label\_map.json}), bitwise SHA-256 cryptographic checksums, Laplacian focus sharpness scores, pre-computed 768-dimensional deep feature embeddings, and a governed partition manifest ($N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$) preserving complete 100\% class coverage across all 19 taxa with controlled specimen boundaries ($\text{SLR} = 30.6\%$) alongside zero cross-split duplicate captures verified via cryptographic hashing ($\text{SHA-256 Overlap} = 0$). Technical-validation baselines using the ConvNeXt-Tiny architecture are provided to establish dataset usability: a supervised classification model under Multiclass Focal Loss ($\alpha=0.25, \gamma=2.0$) attaining $90.42\%$ top-1 test accuracy ($86.80\%$ macro-averaged F1, $88.82\%$ weighted F1 across $1,190$ test captures) and a deep metric representation learning framework via Semi-Hard Triplet Loss achieving a Silhouette score of $0.7538$, a Davies-Bouldin Index of $0.5671$, and $99.92\%$ Recall@1 nearest-neighbor retrieval. The dataset is intended to support reproducible machine learning benchmarking, forensic wood anatomy, and automated timber trade compliance. All data files, split manifests, and reproducible code are openly accessible at \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}.
 \end{abstract}
 
 \begin{keywords}
@@ -128,19 +128,19 @@ Fabaceae hardwoods \sep CITES Appendix~II trade compliance \sep Forest products 
 \toprule
 \textbf{Subject} & Computer Science; Forestry and Wood Science \\
 \midrule
-\textbf{Specific subject area} & Computer Vision, Forensic Wood Anatomy, CITES Trade Compliance, Deep Metric Learning \\
+\textbf{Specific subject area} & Computer Vision, Forensic Wood Anatomy, CITES Trade Compliance, Deep Metric Learning, Multimodal Vision-Language Learning \\
 \midrule
-\textbf{Type of data} & Image (raw $224 \times 224$ px RGB JPEG), Table (CSV metadata, split manifests), Mapping (JSON label map), Deep feature vectors (\texttt{.npy}) \\
+\textbf{Type of data} & Image (raw $224 \times 224$ px RGB JPEG in \texttt{images.zip}), Table (master CSV metadata, split manifests, structured anatomical descriptors in \texttt{metadata/anatomical\_features.csv}), Mapping (JSON label map), Deep feature vectors (pre-computed 768-dimensional \texttt{.npy}) \\
 \midrule
 \textbf{Data collection} & Transverse end-grain surfaces surfaced orthogonally on a sliding table saw, progressively polished across four grit gradations (P120--P600), cleaned with dry air jets ($6\,\text{bar}$), and captured at $50\times$ optical magnification ($12\,\mu\text{m}$ spatial resolution) under calibrated daylight-balanced ($5600\,\text{K}$) diffuse circular LED illumination \\
 \midrule
-\textbf{Data source location} & \textbf{Institution:} Research Institute of Forest Industry (RIFI), Vietnamese Academy of Forest Sciences (VAFS), and Posts and Telecommunications Institute of Technology (PTIT) \newline
+\textbf{Data source location} & \textbf{Institution:} Intelligent Computing for Sustainable Development Laboratory (IC4SD), Posts and Telecommunications Institute of Technology (PTIT) \newline
 \textbf{City/Country:} Hanoi, Vietnam \\
 \midrule
 \textbf{Data accessibility} & \textbf{Repository:} Zenodo Scientific Archive \newline
 \textbf{Data identification number:} \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180} \newline
 \textbf{Direct URL to data:} \url{https://doi.org/10.5281/zenodo.14892180} \newline
-\textbf{Instructions for accessing these data:} All files, split manifests, and pre-extracted deep embeddings are openly downloadable without restrictions under CC BY 4.0 license \\
+\textbf{Instructions for accessing these data:} All files, split manifests, pre-extracted deep embeddings, and the executable demonstration notebook (\texttt{code/quickstart\_demo.ipynb}) are openly downloadable without restrictions under CC BY 4.0 license \\
 \midrule
 \textbf{Related research article} & None \\
 \bottomrule
@@ -152,75 +152,108 @@ Fabaceae hardwoods \sep CITES Appendix~II trade compliance \sep Forest products 
 \label{sec:value}
 
 \begin{itemize}[leftmargin=*,itemsep=3pt,topsep=2pt]
-    \item \textbf{Authoritative Reference for CITES Regulation and Endemic Taxa}: IC4SDMacroWood delivers an open, authenticated repository of standardized macroscopic cross-sectional captures across 19 commercially significant tropical hardwood species in the family Fabaceae. Incorporating 9 taxa strictly regulated under CITES Appendix~II (notably within \textit{Afzelia} and \textit{Dalbergia}) and 4 high-value timber species endemic to Vietnam, the dataset serves as an authoritative forensic reference for border-control customs inspections and international wood trade surveillance.
-    \item \textbf{Dual Empirical Benchmarking Testbed}: Beyond passive image curation, this benchmark supplies reproducible, standardized baselines for both supervised fine-grained classification under natural class imbalance (ConvNeXt-Tiny with Focal Loss) and deep metric representation learning (Semi-Hard Triplet Loss), providing a multi-dimensional comparative framework across all 19 taxa for future algorithm development.
-    \item \textbf{Governed Partition Integrity and Complete Class Coverage}: All 6,414 images are partitioned into standardized subsets ($N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$) preserving a 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$, 19/19 taxa) across all partitions while maintaining governed specimen boundaries ($\text{SLR} = 30.6\%$) to avoid minority-class starvation.
-    \item \textbf{Forensic Metadata and Optical Quality Assurance}: Every capture is cataloged with granular provenance metadata, physical specimen group identifiers (\texttt{specimen\_id}), objective focus sharpness scores ($\sigma^2_{\text{Laplacian}}$), and bitwise SHA-256 cryptographic checksums, guaranteeing complete transparency, auditability, and data integrity.
-    \item \textbf{Pre-Extracted Deep Feature Representations}: The repository provides pre-computed, $L_2$-normalized 768-dimensional feature vectors extracted from ConvNeXt-Tiny, allowing researchers to explore clustering, metric learning, and nearest-neighbor retrieval without extensive computational or GPU infrastructure.
+    \item \textbf{Authoritative Forensic Reference for CITES-Regulated Hardwoods}: IC4SDMacroWood delivers an open, authenticated repository of standardized macroscopic cross-sectional captures across 19 commercially significant tropical hardwood species in the family Fabaceae. Incorporating 9 taxa strictly regulated under CITES Appendix~II~\cite{cites} (notably within the botanical genera \textit{Afzelia}, \textit{Dalbergia}, and \textit{Pterocarpus}) and 4 high-value timber species endemic to Vietnam (\textit{Dalbergia cochinchinensis}, \textit{Dalbergia tonkinensis}, \textit{Sindora cochinchinensis}, and \textit{Sindora tonkinensis}), the dataset serves as an authoritative forensic reference for customs inspections and timber trade compliance.
+    \item \textbf{Rapid Screening Alternative to Destructive Microtomy}: Traditional xylotomical identification requires specialized laboratory microtomy (chemical softening, micro-sectioning, and microscopic IAWA feature analysis taking 2--5 business days~\cite{dormontt2015,wiedenhoeft2011,iawa1989}). IC4SDMacroWood provides standardized macroscopic reference imagery on transverse end-grain surfaces (where surface preparation and optical imaging require only minutes), establishing an accessible, non-destructive screening testbed for customs checkpoints prior to formal laboratory confirmation.
+    \item \textbf{Governed Partition Integrity and Complete Class Coverage}: All 6,414 images are partitioned into standardized subsets ($N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$) preserving a 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$, 19/19 taxa) across all partitions while maintaining governed specimen boundaries ($\text{SLR} = 30.6\%$) to avoid minority-class starvation, alongside zero cross-split duplicate captures verified via cryptographic hashing ($\text{SHA-256 Overlap} = 0$).
+    \item \textbf{High-Fidelity Optical Standardization}: Transverse end-grain surfaces were polished across progressive grit gradations (P120--P600) and imaged under calibrated $50\times$ optical magnification ($12\,\mu\text{m/px}$) with daylight-balanced ($5600\,\text{K}$) diffuse circular LED lighting, resolving minute vessel-ray anatomical features that are obscured in low-magnification field captures.
+    \item \textbf{Pre-Extracted Deep Representations and Zero-Barrier Machine Learning Readiness}: The repository provides pre-computed, $L_2$-normalized 768-dimensional feature vectors extracted from ConvNeXt-Tiny, allowing researchers to benchmark clustering, metric learning, and retrieval pipelines without high-performance GPU infrastructure.
+    \item \textbf{Multimodal Vision-Language and Explainable Forensic AI Readiness}: Beyond standalone image classification, the repository provides an expert-curated table of structured macroscopic anatomical feature descriptors (\texttt{metadata/anatomical\_features.csv}) cataloging 14 diagnostic morphological axes (heartwood coloration, growth rings, pore porosity and grouping, vessel occlusion by tyloses and calcite/polyphenol deposits, aliform/confluent axial parenchyma configurations, storied rays, and physical density). This structured taxonomic ground truth enables emerging multimodal artificial intelligence paradigms, including Visual Question Answering (VQA) for timber anatomy (e.g., verifying diagnostic vessel-parenchyma combinations), semantic attribute-guided zero-shot species discrimination, cross-modal text-image retrieval, and explainable AI (XAI) validation ensuring deep neural saliency maps attend to legitimate anatomical structures rather than background artifacts.
+    \item \textbf{Dual Empirical Benchmarking Testbed}: Beyond image curation, the dataset includes reproducible baselines for both supervised fine-grained classification under natural class imbalance (ConvNeXt-Tiny with Focal Loss, top-1 accuracy $90.42\%$) and deep metric representation learning (Semi-Hard Triplet Loss, Recall@1 $99.92\%$).
+    \item \textbf{Unique Forensic Positioning Against Existing Public Collections}: Unlike prior macroscopic wood collections that exhibit low CITES coverage ($<15\%$), lower optical magnifications ($10\times$), or unmonitored random image splits with pervasive specimen leakage, IC4SDMacroWood uniquely bridges high optical resolution, forensic CITES concentration, governed split integrity, and open-access metadata auditability (Table~\ref{tab:dataset_comparison}).
 \end{itemize}
 
-\section{Background}
-\label{sec:background}
+\vspace{0.5em}
 
-Accurate identification of timber species is an essential regulatory and commercial requirement in global forest-product supply chains, particularly for high-value tropical hardwoods subject to international trade controls under CITES Appendix~II~\cite{dormontt2015,cites}. While conventional microtome sectioning and histological light microscopy remain traditional diagnostic standards, they require specialized histochemical laboratories, destructive sample preparation, and several days of expert diagnostic review~\cite{wiedenhoeft2011}. Consequently, automated macroscopic wood identification on transverse (end-grain) surfaces using optical macro-imaging and computer vision has emerged as a practical modality for rapid, non-destructive screening at border customs checkpoints and transit hubs~\cite{woodreview,ravindran2020,ravindran2022}.
-
-Deep learning approaches to timber authentication increasingly depend on public reference datasets; however, the practical validity and reproducibility of reported models rely critically on data curation quality, taxonomic verification, and partition governance. In macroscopic timber collections, fine-grained anatomical resemblances among congeneric sister taxa~\cite{liu2025,song2025} and natural class imbalances pose significant operational challenges. A critical operational reality in reference xylaria is the severe scarcity of physical wood blocks for rare and legally regulated timber species ($|\mathcal{G}_c| < 10$ physical specimens per taxon, and often fewer than four for CITES-listed wood). Under such small-sample regimes, enforcing dogmatic three-way whole-block isolation across training, validation, and test subsets mathematically deprives minority classes of evaluation captures, triggering severe class starvation ($\text{CCR} < 100\%$) and precluding empirical verification for the most critical forensic taxa. Conversely, unconstrained random image splitting causes pervasive, unmeasured specimen leakage that distorts held-out evaluations. To address this operational dilemma, IC4SDMacroWood introduces an authenticated macroscopic image dataset governed by a specimen-aware partition protocol: by formally modeling specimen allocation as an audited multi-objective trade-off, the release guarantees a 100\% Class Coverage Rate across all 19 taxa while strictly auditing and bounding specimen boundary sharing ($\text{SLR} = 30.6\%$) and guaranteeing absolute bitwise deduplication ($\text{SHA-256 Cross-Split Overlap} = 0$), accompanied by structured metadata, pre-computed deep feature representations, and technical-validation baselines for reproducible forensic wood identification.
-
-\section{Data Description}
-\label{sec:description}
-
-\subsection{Taxonomic Composition and Inventory}
-
-The IC4SDMacroWood repository encompasses \textbf{19 commercially significant tropical hardwood species} spanning \textbf{6 botanical genera} within the legume family \textbf{Fabaceae} (Leguminosae), aggregating exactly \textbf{6,414 standardized macroscopic cross-sectional captures}. Curated from institutional timber reference archives at the Intelligent Computing for Sustainable Development Laboratory (IC4SD), PTIT, Hanoi, Vietnam, in collaboration with accredited forestry taxonomists, all 6,414 images possess verified species-level ground truth anchored to traceable physical wood specimens.
+To contextualize the scientific novelty, forensic utility, and technical distinction of IC4SDMacroWood, Table~\ref{tab:dataset_comparison} systematically compares its core attributes against prominent publicly available macroscopic wood datasets and recent literature benchmarks~\cite{ravindran2020,ravindran2021,figueroamata2022,song2025,liu2025}. While foundational initiatives such as the XyloTron project~\cite{ravindran2020,ravindran2021} and regional surveys~\cite{figueroamata2022,song2025} have significantly advanced computer vision in wood science, existing public collections typically focus on broader regional taxa with minimal CITES coverage ($<15\%$), utilize lower optical magnifications ($10\times$ or non-standardized mobile lenses), and frequently partition images randomly without auditing specimen boundary leakage. Conversely, specialized studies targeting high-value taxa (such as congeneric \textit{Pterocarpus} discrimination~\cite{liu2025}) remain confined to private, unshared research archives. IC4SDMacroWood uniquely resolves these limitations by offering an open, high-magnification ($50\times$, $12\,\mu\text{m/px}$) benchmark with an unprecedented concentration of regulated Fabaceae hardwoods ($47.4\%$ CITES Appendix~II), accompanied by governed partition manifests, zero bitwise cross-split redundancy ($\text{SHA-256 Overlap} = 0$), and pre-extracted deep feature embeddings.
 
 \begin{table}[pos=htbp]
 \centering
 \small
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.18}
-\caption{Taxonomic inventory of the 19 tropical hardwood species in the IC4SDMacroWood benchmark, detailing genus, scientific binomial, native Vietnamese vernacular names, international trade names, CITES conservation status, and image counts.}
-\label{tab:taxonomic_inventory}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{rlllllc}
+\caption{Systematic comparison of IC4SDMacroWood against prominent public and literature macroscopic timber datasets, contrasting taxonomic focus, optical magnification, forensic regulation, partition governance, and machine learning accessibility.}
+\label{tab:dataset_comparison}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccccccc}
 \toprule
-\textbf{\#} & \textbf{Botanical Genus} & \textbf{Scientific Binomial} & \textbf{Vietnamese Vernacular} & \textbf{Trade / Common Name} & \textbf{CITES Status} & \textbf{Total Images} \\
+\textbf{Dataset / Study} & \textbf{Taxonomic Focus} & \makecell{\textbf{No.}\\\textbf{Spp.}} & \makecell{\textbf{Total}\\\textbf{Images}} & \makecell{\textbf{Optical Mag.}\\\textbf{/ Resolution}} & \makecell{\textbf{CITES App.~II}\\\textbf{Ratio (\%)}} & \makecell{\textbf{Partition}\\\textbf{Protocol}} & \makecell{\textbf{Bitwise De-dup}\\\textbf{(SHA-256)}} & \makecell{\textbf{Pre-computed}\\\textbf{Embeddings}} & \makecell{\textbf{Access}\\\textbf{Model}} \\
 \midrule
-1 & \textit{Afzelia} & \textit{A. africana} & \textvn{Gõ Douse (Gõ Doussié)} & African Doussié & CITES App.~II & 350 \\
-2 & \textit{Afzelia} & \textit{A. bella} & \textvn{Papao-Nua / Gỗ Gõ} & Bella Doussié & CITES App.~II & 360 \\
-3 & \textit{Afzelia} & \textit{A. pachyloba} & \textvn{Gõ Pachy} & White Doussié & CITES App.~II (Minority) & 219 \\
-4 & \textit{Afzelia} & \textit{A. quanzensis} & \textvn{Gõ Quanzensis} & Pod Mahogany & CITES App.~II & 350 \\
+XyloTron Datasets~\cite{ravindran2020,ravindran2021} & Neotropical/US hardwoods & 10--40 & 2,300--5,000 & $10\times$ ($24\,\mu\text{m/px}$) & Low ($<15\%$) & Specimen split (no SLR audit) & Unaudited & No & Open \\
+Costa Rican Timbers~\cite{figueroamata2022} & Native Costa Rican trees & 21 & 2,360 & Variable (phone macro) & Minimal ($<5\%$) & Random image split & Unaudited & No & Open \\
+Asian Commercial~\cite{song2025} & Vietnamese/Asian timber & 15 & $\sim$3,000 & $20\times$--$40\times$ USB & Moderate ($20\%$) & Random $k$-fold cross-val. & Unaudited & No & Restricted \\
+\textit{Pterocarpus} Discrimination~\cite{liu2025} & \textit{Pterocarpus} genus only & 6 & $\sim$1,800 & $20\times$--$30\times$ stereo & Subset ($50\%$, 3 spp.) & Random split & Unaudited & No & Private \\
 \midrule
-5 & \textit{Dalbergia} & \textit{D. cochinchinensis} & \textvn{Trắc (Rosewood)} & Siam Rosewood & CITES App.~II (Endemic VN) & 360 \\
-6 & \textit{Dalbergia} & \textit{D. melanoxylon} & \textvn{Trắc châu Phi} & African Blackwood & CITES App.~II & 291 \\
-7 & \textit{Dalbergia} & \textit{D. oliveri} & \textvn{Cẩm lai (Burmese Rosewood)} & Burmese Rosewood & CITES App.~II & 360 \\
-8 & \textit{Dalbergia} & \textit{D. rimosa} & \textvn{Trắc dây} & Rimose Rosewood & Non-CITES & 300 \\
-9 & \textit{Dalbergia} & \textit{D. tonkinensis} & \textvn{Sưa} & Vietnamese Rosewood & CITES App.~II (Endemic VN) & 360 \\
-\midrule
-10 & \textit{Guibourtia} & \textit{G. arnoldiana} & \textvn{Gỗ Muntenye} & Mutenye / Benge & Non-CITES & 323 \\
-11 & \textit{Guibourtia} & \textit{G. coleosperma} & \textvn{Mussivi / Hương đá} & Rhodesian Copalwood & Non-CITES & 355 \\
-12 & \textit{Guibourtia} & \textit{G. ehie} & \textvn{Hyedua} & Ovangkol / Shedua & Non-CITES & 355 \\
-\midrule
-13 & \textit{Peltogyne} & \textit{P. pubescens} & \textvn{Hương tím nam mỹ} & Purpleheart & Non-CITES & 371 \\
-\midrule
-14 & \textit{Pterocarpus} & \textit{P. erinaceus} & \textvn{Hương vân tây phi} & African Barwood / Kosso & CITES App.~II & 336 \\
-15 & \textit{Pterocarpus} & \textit{P. indicus} & \textvn{Hương mắt chim} & Narra / Amboyna & Non-CITES & 312 \\
-16 & \textit{Pterocarpus} & \textit{P. macrocarpus} & \textvn{Hương quả to} & Burma Padauk & Non-CITES & 360 \\
-17 & \textit{Pterocarpus} & \textit{P. soyauxii} & \textvn{Padouk / Hương padouk} & African Padauk & Non-CITES & 360 \\
-\midrule
-18 & \textit{Sindora} & \textit{S. cochinchinensis} & \textvn{Gụ} & Sindora / Sepetir & Non-CITES (Endemic VN) & 355 \\
-19 & \textit{Sindora} & \textit{S. tonkinensis} & \textvn{Gụ lau} & Tonkin Sepetir & Non-CITES (Endemic VN) & 328 \\
-\midrule
-\multicolumn{2}{l}{\textbf{Total Benchmark}} & \multicolumn{3}{l}{\textbf{19 Botanical Species (6 Genera, 9 CITES App.~II, 4 VN Endemics)}} & \textbf{Total Images} & \textbf{6,414} \\
+\textbf{IC4SDMacroWood (This Work)} & \textbf{Tropical Fabaceae (6 genera)} & \textbf{19} & \textbf{6,414} & \textbf{50}$\times$ \textbf{(12}\,$\mu$\textbf{m/px)} & \textbf{High (47.4\%, 9 spp.)} & \textbf{Governed (SLR=30.6\%)} & \textbf{Overlap = 0} & \textbf{Yes (768-d)} & \textbf{Open (CC BY 4.0)} \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-Table~\ref{tab:taxonomic_inventory} details the taxonomic breakdown of the 19 species, providing scientific nomenclature, native Vietnamese vernacular terms, international trade designations, CITES conservation listings, and total image volumes.
+\section{Background}
+\label{sec:background}
+
+Accurate identification of timber species is an essential regulatory and forensic requirement in global forest-product supply chains, particularly for high-value tropical hardwoods subject to international trade controls under CITES Appendix~II~\cite{dormontt2015,cites}. While conventional microtome sectioning and histological light microscopy remain definitive diagnostic standards, they require extensive laboratory processing: high-density tropical timbers (frequently exceeding $0.85\,\text{g/cm}^3$, such as \textit{Dalbergia} and \textit{Pterocarpus}) require prolonged thermal or chemical softening (often 12--24~hours), sliding microtome sectioning at $15\text{--}25\,\mu\text{m}$, histological staining, permanent slide mounting, and exhaustive cross-referencing against microscopic IAWA anatomical feature lists~\cite{iawa1989,wiedenhoeft2011}. In institutional forensic practice, this multi-step diagnostic workflow typically requires 2 to 5 business days per sample and depends on specialized xylarium facilities and highly trained wood anatomists~\cite{dormontt2015}.
+
+Consequently, automated macroscopic wood identification on transverse (end-grain) surfaces using optical macro-imaging and computer vision has emerged as an accessible, non-destructive screening modality~\cite{woodreview,ravindran2020,ravindran2022}. Under this macroscopic approach, mechanical surface surfacing and progressive grit polishing (P120--P600) require only a few minutes, followed by standardized optical capture ($50\times$, $12\,\mu\text{m/px}$) and automated deep learning inference. This provides front-line regulatory officers and wood anatomists with rapid, accessible decision support to triage suspicious timber consignments at transit hubs prior to commissioning exhaustive laboratory histology.
+
+Deep learning approaches to timber authentication increasingly depend on public reference datasets; however, the practical validity and reproducibility of reported models rely critically on data curation quality, taxonomic verification, and partition governance. In macroscopic timber collections, fine-grained anatomical resemblances among congeneric sister taxa~\cite{liu2025,song2025} and natural class imbalances pose significant operational challenges. A critical operational reality in reference xylaria is the severe scarcity of physical wood blocks for rare and legally regulated timber species ($|\mathcal{G}_c| \le 10$ physical specimens per taxon, with acute bottlenecks such as only 1 specimen for \textit{Dalbergia cochinchinensis}, 2 for \textit{Guibourtia coleosperma}, and 4 for \textit{Afzelia africana} and \textit{Sindora cochinchinensis}, as documented in Table~\ref{tab:taxonomic_inventory}). Under such small-sample regimes, enforcing dogmatic three-way whole-block isolation across training, validation, and test subsets mathematically deprives minority classes of evaluation captures, triggering severe class starvation ($\text{CCR} < 100\%$) and precluding empirical verification for the most critical forensic taxa. Conversely, unconstrained random image splitting causes pervasive, unmeasured specimen leakage that distorts held-out evaluations. To address this operational dilemma, IC4SDMacroWood introduces an authenticated macroscopic image dataset governed by a specimen-aware partition protocol: by formally modeling specimen allocation as an audited multi-objective trade-off, the release guarantees a 100\% Class Coverage Rate across all 19 taxa while strictly auditing and bounding specimen boundary sharing ($\text{SLR} = 30.6\%$) and guaranteeing absolute bitwise deduplication ($\text{SHA-256 Cross-Split Overlap} = 0$), accompanied by structured metadata, pre-computed deep feature representations, and technical-validation baselines for reproducible forensic wood identification.
+
+\section{Data Description}
+\label{sec:description}
+
+\subsection{Taxonomic Composition and Inventory}
+
+The IC4SDMacroWood repository encompasses \textbf{19 commercially significant tropical hardwood species} spanning \textbf{6 botanical genera} within the legume family \textbf{Fabaceae} (Leguminosae), aggregating exactly \textbf{6,414 standardized macroscopic cross-sectional captures}. Curated from institutional timber reference archives at the Intelligent Computing for Sustainable Development Laboratory (IC4SD), PTIT, Hanoi, Vietnam, all 6,414 images possess verified species-level ground truth anchored to traceable physical wood specimens ($|\mathcal{G}_c| = 148$ wood blocks) and validated through an independent dual-expert verification protocol ($\kappa = 0.985$).
+
+\begin{table}[pos=htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Taxonomic inventory and physical specimen sampling of the 19 tropical hardwood species in the IC4SDMacroWood benchmark, detailing botanical genus, scientific binomial nomenclature, native Vietnamese vernacular names, international trade names, CITES conservation status, verified physical specimen cohort sizes ($|\mathcal{G}_c|$, totaling 148 wood blocks), and standardized image counts.}
+\label{tab:taxonomic_inventory}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{rlllllcc}
+\toprule
+\textbf{\#} & \textbf{Botanical Genus} & \textbf{Scientific Binomial} & \textbf{Vietnamese Vernacular} & \textbf{Trade / Common Name} & \textbf{CITES Status} & \makecell{\textbf{Physical}\\\textbf{Specimens} ($|\mathcal{G}_c|$)} & \makecell{\textbf{Total}\\\textbf{Images}} \\
+\midrule
+1 & \textit{Afzelia} & \textit{Afzelia africana} & \textvn{Gõ Douse (Gõ Doussié)} & African Doussié & CITES App.~II & 4 & 241 \\
+2 & \textit{Afzelia} & \textit{Afzelia bella} & \textvn{Papao-Nua / Gỗ Gõ} & Bella Doussié & CITES App.~II & 10 & 400 \\
+3 & \textit{Afzelia} & \textit{Afzelia pachyloba} & \textvn{Gõ Pachy} & White Doussié & CITES App.~II\textsuperscript{a} & 5 & 116 \\
+4 & \textit{Afzelia} & \textit{Afzelia quanzensis} & \textvn{Gõ Quanzensis} & Pod Mahogany & CITES App.~II & 8 & 369 \\
+\midrule
+5 & \textit{Dalbergia} & \textit{Dalbergia cochinchinensis} & \textvn{Trắc (Rosewood)} & Siam Rosewood & CITES App.~II (Endemic VN) & 1 & 354 \\
+6 & \textit{Dalbergia} & \textit{Dalbergia melanoxylon} & \textvn{Trắc châu Phi} & African Blackwood & CITES App.~II & 10 & 291 \\
+7 & \textit{Dalbergia} & \textit{Dalbergia oliveri} & \textvn{Cẩm lai (Burmese Rosewood)} & Burmese Rosewood & CITES App.~II & 10 & 316 \\
+8 & \textit{Dalbergia} & \textit{Dalbergia rimosa} & \textvn{Trắc dây} & Rimose Rosewood & Non-CITES & 10 & 300 \\
+9 & \textit{Dalbergia} & \textit{Dalbergia tonkinensis} & \textvn{Sưa} & Vietnamese Rosewood & CITES App.~II (Endemic VN) & 10 & 325 \\
+\midrule
+10 & \textit{Guibourtia} & \textit{Guibourtia arnoldiana} & \textvn{Gỗ Muntenye} & Mutenye / Benge & Non-CITES & 10 & 323 \\
+11 & \textit{Guibourtia} & \textit{Guibourtia coleosperma} & \textvn{Mussivi / Hương đá} & Rhodesian Copalwood & Non-CITES & 2 & 360 \\
+12 & \textit{Guibourtia} & \textit{Guibourtia ehie} & \textvn{Hyedua} & Ovangkol / Shedua & Non-CITES & 10 & 400 \\
+\midrule
+13 & \textit{Peltogyne} & \textit{Peltogyne pubescens} & \textvn{Hương tím nam mỹ} & Purpleheart & Non-CITES & 10 & 371 \\
+\midrule
+14 & \textit{Pterocarpus} & \textit{Pterocarpus erinaceus} & \textvn{Hương vân tây phi} & African Barwood / Kosso & CITES App.~II & 10 & 336 \\
+15 & \textit{Pterocarpus} & \textit{Pterocarpus indicus} & \textvn{Hương mắt chim} & Narra / Amboyna & Non-CITES & 10 & 312 \\
+16 & \textit{Pterocarpus} & \textit{Pterocarpus macrocarpus} & \textvn{Hương quả to} & Burma Padauk & Non-CITES & 8 & 431 \\
+17 & \textit{Pterocarpus} & \textit{Pterocarpus soyauxii} & \textvn{Padouk / Hương padouk} & African Padauk & Non-CITES & 6 & 486 \\
+\midrule
+18 & \textit{Sindora} & \textit{Sindora cochinchinensis} & \textvn{Gụ} & Sindora / Sepetir & Non-CITES (Endemic VN) & 4 & 352 \\
+19 & \textit{Sindora} & \textit{Sindora tonkinensis} & \textvn{Gụ lau} & Tonkin Sepetir & Non-CITES (Endemic VN) & 10 & 331 \\
+\midrule
+\multicolumn{2}{l}{\textbf{Total Benchmark}} & \multicolumn{3}{l}{\textbf{19 Botanical Species (6 Genera, 9 CITES App.~II, 4 VN Endemics)}} & \textbf{Total} & \textbf{148} & \textbf{6,414} \\
+\bottomrule
+\multicolumn{8}{@{}p{\linewidth}@{}}{\vspace{3pt}\footnotesize \textsuperscript{a}\textit{Afzelia pachyloba} constitutes a statistical minority class ($N=116$ captures) due to acute reference specimen scarcity, while being legally regulated under CITES Appendix~II.}
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:taxonomic_inventory} details the taxonomic breakdown of the 19 species, providing scientific nomenclature, native Vietnamese vernacular terms, international trade designations, CITES conservation listings, physical specimen cohort sizes ($|\mathcal{G}_c|$, totaling 148 verified wood blocks), and total image volumes.
 
 \subsection{Repository Architecture and Metadata Schema}
 
-The dataset package is organized systematically to facilitate seamless integration into machine learning pipelines. Table~\ref{tab:repo_contents} outlines the functional directory architecture, and Table~\ref{tab:metadata_fields} defines the structured metadata attributes cataloged in \texttt{metadata.csv}.
+The dataset package is organized systematically to facilitate seamless integration into machine learning pipelines. Table~\ref{tab:repo_contents} outlines the functional directory architecture, and Table~\ref{tab:metadata_fields} defines the structured metadata attributes cataloged in \texttt{metadata.csv}. To ensure immediate reproducibility without high-end computational infrastructure, an executable walkthrough notebook (\texttt{code/quickstart\_demo.ipynb}) is provided in the repository, allowing users to verify metadata schemas, inspect image quality scores, load pre-computed 768-dimensional ConvNeXt-Tiny feature vectors, and execute instant classification and embedding-space geometry evaluations in seconds.
 
 \begin{table}[pos=htbp]
 \centering
@@ -233,14 +266,15 @@ The dataset package is organized systematically to facilitate seamless integrati
 \toprule
 \textbf{\#} & \textbf{File / Folder Path} & \textbf{Content Description and Functionality} \\
 \midrule
-1 & \texttt{images/} & 6,414 standardized $224 \times 224$ px macroscopic RGB images ($50\times$ magnification) organized by taxon. \\
-2 & \texttt{metadata/metadata.csv} & Comprehensive master metadata table with image paths, taxonomic labels, specimen IDs, and QC scores. \\
-3 & \texttt{metadata/label\_map.json} & Structured JSON mapping between integer class indices, scientific binomials, and vernacular names. \\
-4 & \texttt{metadata/release\_manifest.csv} & Release manifest containing SHA-256 cryptographic hashes and byte sizes for integrity auditing. \\
-5 & \texttt{splits/split\_canonical.csv} & Governed partition manifest ($N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$). \\
-6 & \texttt{embeddings/convnext\_tiny.npy} & Pre-computed, $L_2$-normalized 768-dimensional feature vectors extracted via ConvNeXt-Tiny. \\
-7 & \texttt{baseline\_outputs/} & Training logs, evaluation metrics, and figure artifacts for baseline reproducibility. \\
-8 & \texttt{README.md}, \texttt{LICENSE} & Comprehensive documentation and Creative Commons Attribution 4.0 International license. \\
+1 & \texttt{images.zip} & Compressed ZIP archive containing 6,414 standardized $224 \times 224$ px macroscopic RGB images ($50\times$ magnification) organized by taxon subfolders. \\
+2 & \texttt{metadata/} & Master metadata table (\texttt{metadata.csv}), structured anatomical descriptors (\texttt{anatomical\_features.csv}), label mappings (\texttt{label\_map.json}), and bitwise SHA-256 release manifest (\texttt{release\_manifest.csv}). \\
+3 & \texttt{splits/} & Governed canonical partition manifest (\texttt{split\_canonical.csv}; $N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$). \\
+4 & \texttt{embeddings/} & Pre-computed deep feature embeddings and metric representation model checkpoints. \\
+5 & \texttt{code/} & Standalone demonstration script (\texttt{quickstart\_demo.py}), interactive notebook (\texttt{quickstart\_demo.ipynb}), and dependencies (\texttt{requirements.txt}). \\
+6 & \texttt{classification\_ouput/} & ConvNeXt-Tiny supervised classification baseline checkpoints (\texttt{convnext\_tiny\_focal\_best.pth}), test predictions, and evaluation metrics under Focal Loss. \\
+7 & \texttt{metric\_learning\_output/} & Semi-Hard Triplet loss model checkpoint (\texttt{semihard\_triplet\_best.pth}) and quantitative embedding geometry evaluation logs. \\
+8 & \texttt{leakage\_audit/} & Specimen overlap audit records and cryptographic integrity summary (\texttt{audit\_summary.json}) verifying zero cross-split duplication. \\
+9 & \texttt{README.md}, \texttt{LICENSE} & Comprehensive dataset documentation, quickstart instructions, and Creative Commons Attribution 4.0 International license terms. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -262,7 +296,7 @@ The dataset package is organized systematically to facilitate seamless integrati
 4 & \texttt{species} & String & Botanical species-level specific epithet. \\
 5 & \texttt{class\_name} & String & Full binomial botanical nomenclature. \\
 6 & \texttt{class\_index} & Integer & Taxonomic integer index from 0 to 18 consistent with \texttt{label\_map.json}. \\
-7 & \texttt{vietnamese\_name} & String & Native Vietnamese vernacular name rendered via UTF-8/T5 font encoding. \\
+7 & \texttt{vietnamese\_name} & String & Native Vietnamese vernacular name stored in standard UTF-8 encoding. \\
 8 & \texttt{cites\_status} & String & Legal trade status under CITES (CITES Appendix~II or Non-CITES). \\
 9 & \texttt{specimen\_id} & String & Physical wood block identifier anchoring images to distinct physical specimens. \\
 10 & \texttt{split} & String & Partition membership (\texttt{train}, \texttt{val}, or \texttt{test}). \\
@@ -274,7 +308,9 @@ The dataset package is organized systematically to facilitate seamless integrati
 
 \subsection{Partition Allocations and Class Distributions}
 
-The 6,414 captures are partitioned following a governed specimen-aware allocation protocol across physical wood blocks (Training: 3,959 images, $61.72\%$; Validation: 1,265 images, $19.72\%$; Test: 1,190 images, $18.55\%$). Crucially, all 19 species achieve a 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$, 19/19 taxa) across all three partitions. In authentic timber reference archives characterized by small specimen cohorts ($|\mathcal{G}_c| < 10$), dogmatic three-way whole-block isolation inevitably deprives minority CITES taxa of evaluation captures. To avert minority-class starvation while maintaining rigorous evaluation standards, specimen-level allocation adopts an empirical Pareto trade-off that maintains controlled boundary sharing across partitions (Train--Val: 21 specimens; Train--Test: 12 specimens; Val--Test: 12 specimens; overall Specimen Leakage Rate $\text{SLR} = 30.6\%$). Crucially, to prevent data contamination, exact duplicate captures across split boundaries were systematically audited and eliminated: 256-bit SHA-256 cryptographic hashing verifies zero bitwise image duplication between partitions ($\text{SHA-256 Cross-Split Overlap} = 0$), ensuring that every evaluation capture represents an authentic, distinct optical field of view. Figure~\ref{fig:eda_split} illustrates per-species image volumes across partitions.
+The 6,414 captures are partitioned following a governed specimen-aware allocation protocol across physical wood blocks (Training: 3,959 images, $61.72\%$; Validation: 1,265 images, $19.72\%$; Test: 1,190 images, $18.55\%$). Crucially, all 19 species achieve a 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$, 19/19 taxa) across all three partitions.
+
+In authentic timber reference archives characterized by small specimen cohorts ($|\mathcal{G}_c| \le 10$ physical specimens across all 19 taxa, totaling 148 verified wood blocks, with acute bottlenecks such as only 1 physical specimen for \textit{Dalbergia cochinchinensis}, 2 for \textit{Guibourtia coleosperma}, and 4 for \textit{Afzelia africana} and \textit{Sindora cochinchinensis}), dogmatic three-way whole-block isolation inevitably deprives minority CITES taxa of evaluation captures. Under such small-cohort constraints, enforcing complete block isolation on a single-specimen class like \textit{Dalbergia cochinchinensis} mathematically renders validation or test coverage impossible ($\text{CCR} < 100\%$). To avert minority-class starvation while maintaining rigorous evaluation standards, specimen-level allocation adopts an empirical Pareto trade-off that maintains controlled boundary sharing across partitions (Train--Val: 21 specimens; Train--Test: 12 specimens; Val--Test: 12 specimens; overall Specimen Leakage Rate $\text{SLR} = 30.6\%$). Crucially, to prevent data contamination, exact duplicate captures across split boundaries were systematically audited and eliminated: 256-bit SHA-256 cryptographic hashing verifies zero bitwise image duplication between partitions ($\text{SHA-256 Cross-Split Overlap} = 0$), ensuring that every evaluation capture represents an authentic, distinct optical field of view. Figure~\ref{fig:eda_split} illustrates per-species image volumes across partitions, and Table~\ref{tab:split_allocation} provides the comprehensive specimen and image allocation manifest across all 19 taxa.
 
 \begin{figure}[pos=htbp]
 \centering
@@ -283,40 +319,114 @@ The 6,414 captures are partitioned following a governed specimen-aware allocatio
 \label{fig:eda_split}
 \end{figure}
 
-\subsection{Diagnostic Macroscopic Xylotomical Features}
+\begin{table}[pos=htbp]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Specimen and image split allocation across the 19 tropical hardwood species in the IC4SDMacroWood benchmark, demonstrating 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$) across all partitions alongside governed specimen boundary sharing.}
+\label{tab:split_allocation}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{rllcccccr}
+\toprule
+\textbf{\#} & \textbf{Botanical Species} & \textbf{Common / Trade Name} & \makecell{\textbf{Physical}\\\textbf{Specimens} ($|\mathcal{G}_c|$)} & \makecell{\textbf{Train}\\\textbf{Images}} & \makecell{\textbf{Val}\\\textbf{Images}} & \makecell{\textbf{Test}\\\textbf{Images}} & \makecell{\textbf{Total}\\\textbf{Images}} & \makecell{\textbf{Class Coverage}\\\textbf{Rate (CCR)}} \\
+\midrule
+1 & \textit{Afzelia africana} & African Doussié & 4 & 129 & 54 & 58 & 241 & 100\% (3/3) \\
+2 & \textit{Afzelia bella} & Bella Doussié & 10 & 240 & 80 & 80 & 400 & 100\% (3/3) \\
+3 & \textit{Afzelia pachyloba} & White Doussié & 5 & 43 & 33 & 40 & 116 & 100\% (3/3) \\
+4 & \textit{Afzelia quanzensis} & Pod Mahogany & 8 & 232 & 81 & 56 & 369 & 100\% (3/3) \\
+\midrule
+5 & \textit{Dalbergia cochinchinensis} & Siam Rosewood & 1 & 212 & 71 & 71 & 354 & 100\% (3/3) \\
+6 & \textit{Dalbergia melanoxylon} & African Blackwood & 10 & 171 & 60 & 60 & 291 & 100\% (3/3) \\
+7 & \textit{Dalbergia oliveri} & Burmese Rosewood & 10 & 190 & 63 & 63 & 316 & 100\% (3/3) \\
+8 & \textit{Dalbergia rimosa} & Rimose Rosewood & 10 & 180 & 60 & 60 & 300 & 100\% (3/3) \\
+9 & \textit{Dalbergia tonkinensis} & Vietnamese Rosewood & 10 & 195 & 63 & 67 & 325 & 100\% (3/3) \\
+\midrule
+10 & \textit{Guibourtia arnoldiana} & Mutenye / Benge & 10 & 188 & 64 & 71 & 323 & 100\% (3/3) \\
+11 & \textit{Guibourtia coleosperma} & Rhodesian Copalwood & 2 & 216 & 72 & 72 & 360 & 100\% (3/3) \\
+12 & \textit{Guibourtia ehie} & Ovangkol / Shedua & 10 & 320 & 40 & 40 & 400 & 100\% (3/3) \\
+\midrule
+13 & \textit{Peltogyne pubescens} & Purpleheart & 10 & 220 & 75 & 76 & 371 & 100\% (3/3) \\
+\midrule
+14 & \textit{Pterocarpus erinaceus} & African Barwood / Kosso & 10 & 203 & 64 & 69 & 336 & 100\% (3/3) \\
+15 & \textit{Pterocarpus indicus} & Narra / Amboyna & 10 & 163 & 92 & 57 & 312 & 100\% (3/3) \\
+16 & \textit{Pterocarpus macrocarpus} & Burma Padauk & 8 & 330 & 54 & 47 & 431 & 100\% (3/3) \\
+17 & \textit{Pterocarpus soyauxii} & African Padauk & 6 & 350 & 68 & 68 & 486 & 100\% (3/3) \\
+\midrule
+18 & \textit{Sindora cochinchinensis} & Sindora / Sepetir & 4 & 181 & 104 & 67 & 352 & 100\% (3/3) \\
+19 & \textit{Sindora tonkinensis} & Tonkin Sepetir & 10 & 196 & 67 & 68 & 331 & 100\% (3/3) \\
+\midrule
+\multicolumn{3}{l}{\textbf{Total Benchmark Cohort}} & \textbf{148} & \textbf{3,959} & \textbf{1,265} & \textbf{1,190} & \textbf{6,414} & \textbf{100.0\%} \\
+\multicolumn{3}{l}{\textbf{Partition Proportions (\%)}} & --- & \textbf{61.72\%} & \textbf{19.72\%} & \textbf{18.55\%} & \textbf{100.0\%} & --- \\
+\bottomrule
+\multicolumn{9}{@{}p{\linewidth}@{}}{\vspace{3pt}\footnotesize \textit{Note:} All 19 hardwood species achieve a 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$) across Train, Validation, and Test subsets. Controlled specimen boundary sharing across partitions (Train--Val: 21 blocks, Train--Test: 12 blocks, Val--Test: 12 blocks; overall $\text{SLR} = 30.6\%$) is mathematically required to ensure representation of scarce forensic taxa with limited physical reference blocks ($|\mathcal{G}_c| < 3$, such as single-specimen \textit{Dalbergia cochinchinensis} and dual-specimen \textit{Guibourtia coleosperma}), averting minority-class starvation. Exact bitwise image duplicates across partition boundaries were eliminated via cryptographic hashing ($\text{SHA-256 Cross-Split Overlap} = 0$).}
+\end{tabular}%
+}
+\end{table}
 
-Macroscopic timber identification on transverse end-grain surfaces provides an optimal diagnostic screening modality because it simultaneously reveals all four primary secondary xylem tissue systems: the axial vascular conducting system (vessel elements), the axial nutrient-storage parenchyma, the radial transport rays, and the supportive mechanical fiber matrix, alongside specialized secretory structures~\cite{wiedenhoeft2011}. Imaged at calibrated $50\times$ optical magnification ($12\,\mu\text{m}$ spatial resolution), the spatial topological organization and morphometric properties of these tissues form a definitive biological fingerprint for distinguishing both congeneric sister taxa and superficially similar cross-genus substitutes.
+\subsection{Diagnostic Macroscopic Anatomical Features and Multimodal Descriptors}
+\label{sec:anatomical_features}
 
-\subsubsection{Key Diagnostic Anatomical Axes in Fabaceae Hardwoods}
-
-Macroscopic differentiation across the 19 Fabaceae species in IC4SDMacroWood is governed by four primary morphological axes:
-\begin{enumerate}[leftmargin=*,itemsep=3pt,topsep=2pt]
-    \item \textbf{Vascular Porosity, Arrangement, and Inclusions}: All 19 taxa exhibit diffuse-porous wood, with vessel apertures evenly dispersed across growth rings, occasionally transitioning toward mild semi-ring porosity in earlywood zones of select \textit{Pterocarpus} species. Diagnostic features include vessel diameters (ranging from $90\,\mu\text{m}$ in fine-textured \textit{Guibourtia} to $>250\,\mu\text{m}$ in large-pored \textit{Afzelia}), the ratio of solitary pores to short radial multiples (pairs of 2--4), and the presence of amorphous organic lumen deposits. In particular, heartwood vessels in \textit{Dalbergia} species are heavily occluded by dense, dark reddish-brown to black polyphenolic extractives and gum residues, whereas vessels in \textit{Afzelia} and \textit{Sindora} remain predominantly open with lumina visibly vacant.
-    \item \textbf{Axial Parenchyma Topography and Geometry}: Axial parenchyma morphology serves as the most critical diagnostic marker for taxonomic discrimination within the Leguminosae family:
-    \begin{itemize}[leftmargin=*,itemsep=2pt,topsep=1pt]
-        \item \textit{Lozenge-Aliform to Confluent Sheaths}: Prominently manifested in \textit{Afzelia}, where parenchyma forms thick, diamond-shaped wings lateral to vessel apertures, often coalescing across adjacent pores to produce short, undulating confluent bands.
-        \item \textit{Concentric Tangential Bands}: Distinctive of \textit{Dalbergia} and \textit{Pterocarpus}, characterized by fine, wavy, continuous or anastomosing bands (1--3 cells wide) that alternate rhythmically with fiber zones across the transverse plane.
-        \item \textit{Continuous Marginal Bands}: Uniform, regular apotracheal parenchyma bands demarcating annual or seasonal growth increments, characteristic of \textit{Sindora} and \textit{Guibourtia}.
-    \end{itemize}
-    \item \textbf{Axial Intercellular Secretory Canals}: The absolute presence or absence of axial resin canals serves as an unmistakable qualitative discriminator. The genus \textit{Sindora} is characterized by continuous marginal parenchyma bands that enclose distinct, regularly spaced axial intercellular resin canals carrying viscous oleoresin. These canals appear under $50\times$ magnification as dark punctate orifices embedded along marginal lines. Conversely, axial resin canals are completely absent in all other examined genera (\textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Peltogyne}, and \textit{Pterocarpus}), precluding misidentification between \textit{Sindora} and other rosewood or padauk look-alikes.
-    \item \textbf{Ray Architecture and Heartwood Chemomorphology}: Transverse surfaces bared to high-resolution optical inspection display fine, densely crowded rays ($8$--$14\,\text{rays/mm}$). Secondary metabolic extractives deposited within heartwood cell walls generate intense, diagnostic optical contrast against lighter sapwood and pale parenchyma sheaths, including the distinct purple hues of oxidized peltogynoids, the deep black-veined striping of rosewoods, and the rich vermilion-red extractives of padauks.
+Macroscopic timber identification on transverse end-grain surfaces provides an effective diagnostic screening modality because it simultaneously reveals all primary secondary xylem tissue systems~\cite{wiedenhoeft2011}. Imaged at standardized $50\times$ optical magnification ($12\,\mu\text{m}$ spatial resolution), taxonomic differentiation across the 19 Fabaceae species is governed by four primary morphological axes:
+\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
+    \item \textbf{Vascular Porosity and Lumen Occlusion}: All 19 taxa exhibit diffuse-porous wood (with occasional semi-ring-porous tendencies in \textit{Dalbergia rimosa}), with vessel apertures predominantly solitary or in short radial multiples. Vessel tangential diameters range from fine pores ($90$--$160\,\mu\text{m}$ in \textit{Guibourtia} and \textit{Dalbergia melanoxylon}) to large pores ($180$--$260\,\mu\text{m}$ in \textit{Afzelia}). In heartwood, vessels in \textit{Dalbergia} and \textit{Pterocarpus} are frequently occluded by dark organic polyphenolic deposits, whereas lumina in \textit{Afzelia} and \textit{Sindora} contain conspicuous white crystalline deposits.
+    \item \textbf{Axial Parenchyma Topography}: Axial parenchyma configuration serves as the primary taxonomic discriminator within the Leguminosae family: (i) prominent winged lozenge-aliform to confluent paratracheal sheaths forming pale halos in \textit{Afzelia}; (ii) fine, wavy concentric tangential bands (1--3 cells wide) forming reticulate patterns in \textit{Dalbergia} and \textit{Pterocarpus}; and (iii) regular continuous marginal bands demarcating growth increments in \textit{Sindora} and \textit{Guibourtia}.
+    \item \textbf{Axial Intercellular Secretory Canals}: Regularly spaced axial resin canals embedded strictly within continuous marginal parenchyma bands uniquely isolate the genus \textit{Sindora} from all other examined taxa, precluding cross-genus misidentification with rosewoods or padauks.
+    \item \textbf{Heartwood Chemomorphology and Coloration}: Secondary extractive deposition yields diagnostic optical contrast, including the intense purple hues of photo-oxidized peltogynoids in \textit{Peltogyne}, dark vertical pigment striping in \textit{Dalbergia} and \textit{Guibourtia ehie}, and vibrant orange-red extractives in \textit{Pterocarpus}.
 \end{enumerate}
 
-\subsubsection{Taxonomic Profiles across the Six Botanical Genera}
+To enrich the benchmark beyond single-label classification and facilitate emerging multimodal artificial intelligence research, the dataset incorporates an expert-curated table of structured macroscopic anatomical descriptors (\texttt{metadata/anatomical\_features.csv}). Table~\ref{tab:anatomical_features} summarizes these diagnostic botanical traits across representative Fabaceae taxa following International Association of Wood Anatomists (IAWA) standards.
 
-Table~\ref{tab:taxonomic_inventory} encompasses 6 botanical genera exhibiting distinct macroscopic configurations:
-\begin{itemize}[leftmargin=*,itemsep=3pt,topsep=2pt]
-    \item \textbf{Genus \textit{Afzelia} (Doussié / \textvn{Gõ đỏ})}: Diffuse-porous wood with large, widely spaced vessel pores (tangential diameter $180$--$260\,\mu\text{m}$, vessel density $2$--$5\,\text{pores/mm}^2$), predominantly solitary with short radial pairs of 2--3. The defining xylotomical hallmark is exceptionally abundant, winged lozenge-aliform paratracheal parenchyma. These sheaths encircle the vessel lumina to form conspicuous, high-contrast, pale-yellowish halos that stand out sharply against the darker reddish-brown fibrous ground tissue. In outer growth increments, lateral parenchyma wings frequently fuse to form short confluent bridges. Fine, continuous marginal parenchyma bands distinctly demarcate seasonal growth boundaries. Heartwood coloration ranges from warm golden yellow to pale orange-brown, gradually deepening to lustrous reddish-brown upon photo-oxidation.
-    \item \textbf{Genus \textit{Dalbergia} (Rosewoods / \textvn{Trắc \& Cẩm lai})}: Diffuse-porous wood with medium to large vessel pores ($120$--$220\,\mu\text{m}$) dispersed in low density. A key diagnostic characteristic is the heavy occlusion of heartwood vessel lumina by dark reddish-brown, violet-brown, or jet-black organic gum deposits. Axial parenchyma occurs predominantly as delicate, undulating, concentric tangential bands (1--3 cells wide) that run parallel along the tangential contour, creating a finely banded ladder-like reticulum with densely spaced, fine rays. Vasicentric sheaths are thin and inconspicuous. Axial resin canals are strictly absent. Heartwood exhibits variegated hues from deep crimson-brown to purplish-black with prominent dark vertical pigment streaks, emitting a faint, sweet neoflavonoid scent.
-    \item \textbf{Genus \textit{Guibourtia} (Copalwood / Mutenye \& Ovangkol)}: Diffuse-porous wood with moderately small to medium vessels ($90$--$160\,\mu\text{m}$) evenly distributed across the transverse section. Axial parenchyma comprises both narrow vasicentric rings encircling pores and prominent, continuous marginal parenchyma bands that span uninterrupted across broad tangential widths. Diffuse-in-aggregates parenchyma appears as subtle, pale micro-specks dispersed throughout the fibrous ground tissue. Heartwood displays distinctive yellowish-brown to olive-brown tones accented by conspicuous, narrow, dark brown or black vertical striping, yielding high textural variance across captures.
-    \item \textbf{Genus \textit{Peltogyne} (Purpleheart / \textvn{Hương tím nam mỹ})}: Diffuse-porous wood with medium solitary vessels and occasional short radial pairs ($110$--$180\,\mu\text{m}$). Axial parenchyma is aliform with short, stout lateral wings, occasionally confluent across adjacent vessels, terminated by distinct marginal parenchyma bands. The unmistakable diagnostic hallmark of \textit{Peltogyne} is its dramatic heartwood chemomorphology: while fresh cuts initially display dull grayish-brown tones, exposure to ambient air and optical radiation triggers rapid photo-oxidation of specialized peltogynoid flavonoids, converting the transverse surface into a rich, vivid deep purple or violet-magenta hue that contrasts dramatically against whitish-tan sapwood.
-    \item \textbf{Genus \textit{Pterocarpus} (Padauks / \textvn{Giáng hương})}: Diffuse-porous to mildly semi-ring-porous wood. Vessels in earlywood are moderately sparse and large ($180$--$240\,\mu\text{m}$), transitioning gradually into smaller pores across growth zones. The dominant diagnostic feature is abundant, wavy, concentric tangential axial parenchyma bands that alternate rhythmically with dense fiber bands in storied arrangements. These undulating bands form an intricate network across transverse surfaces, closely mirroring \textit{Dalbergia} textures but differing in vessel deposit density and heartwood extractives. Heartwood displays intense orange-red, brick-red, or deep blood-red tones, containing water- and alcohol-soluble dye pigments that impart a vibrant coloration to the polished cross-section.
-    \item \textbf{Genus \textit{Sindora} (Sepetir / \textvn{Gụ, Gõ mật})}: Diffuse-porous wood with medium solitary pores ($100$--$170\,\mu\text{m}$) dispersed in moderate frequency. The defining botanical criterion that uniquely isolates \textit{Sindora} from all other examined taxa is the continuous presence of axial intercellular resin canals embedded strictly within regular marginal parenchyma bands. Under $50\times$ macro-magnification, these resin ducts appear as fine, evenly spaced dark oily puncta aligned along pale concentric lines, carrying aromatic oleoresins. Paratracheal parenchyma is limited to thin vasicentric sheaths. Heartwood displays a warm golden-brown to red-brown hue, often with darker decorative pigment zones.
+\begin{table}[pos=htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Expert-curated macroscopic anatomical feature descriptors across representative Fabaceae timber taxa in IC4SDMacroWood (standardized per IAWA xylotomical criteria; complete 19-taxon matrix released in \texttt{metadata/anatomical\_features.csv}).}
+\label{tab:anatomical_features}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{3.8cm}cc}
+\toprule
+\textbf{Botanical Species} & \textbf{Heartwood \& General Appearance} & \textbf{Vascular Architecture \& Inclusions} & \textbf{Axial Parenchyma \& Ray Patterns} & \makecell{\textbf{Storied}\\\textbf{Rays}} & \textbf{Physical Density} \\
+\midrule
+\textit{Pterocarpus indicus} & Pinkish-brown to reddish-brown; distinct growth rings; stripe figure; aromatic scent & Diffuse-porous; solitary \& radial multiples; two distinct pore sizes; white \& dark deposits & Vasicentric to continuous tangential bands (wider than rays and pores); reticulate network & Present & Hard and heavy \\
+\midrule
+\textit{Afzelia bella} & Pinkish-brown to reddish-brown; distinct growth rings; non-distinct scent & Diffuse-porous; solitary \& short radial multiples; medium-to-large pores; white deposits & Prominent long-winged lozenge-aliform to confluent sheaths; aliform halos & Present & Hard, moderately heavy \\
+\midrule
+\textit{Sindora tonkinensis} & Pinkish-brown to reddish-brown; distinct growth rings; stripe figure; resinous aroma & Diffuse-porous; solitary \& radial multiples; medium-to-large pores; tyloses; white deposits & Long-winged aliform; continuous marginal bands containing axial resin canals; scalariform & Present & Hard and heavy \\
+\midrule
+\textit{Guibourtia ehie} & Light yellowish-brown with dark brown zebra stripes; distinct growth rings & Diffuse-porous; solitary \& short radial multiples; medium pores; tyloses; white deposits & Long-winged aliform to confluent; scalariform and trapezoidal reticulation with rays & Present & Hard and heavy \\
+\midrule
+\textit{Dalbergia rimosa} & Pinkish-brown to reddish-brown; distinct growth rings; stripe figure; sweet aroma & Semi-ring-porous; solitary \& radial multiples; small-to-medium pores; tyloses; white deposits & Long-winged aliform; discontinuous tangential bands; marginal bands at growth boundaries & Present & Hard and heavy \\
+\midrule
+\textit{Dalbergia melanoxylon} & Dark purplish-grey to ebony-black; distinct rings; fine stripes; characteristic scent & Diffuse-porous; small pores; solitary \& radial multiples; tyloses; dark polyphenolic deposits & Irregular paratracheal; discontinuous wavy tangential bands; marginal bands & Present & Extremely hard and heavy \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\noindent
+\textbf{Opportunities for Multimodal Vision-Language and Explainable AI}:
+The provision of structured macroscopic anatomical descriptors unlocks several advanced research paradigms:
+\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
+    \item \textbf{Visual Question Answering (VQA) in Timber Forensics}: Benchmarking vision-language models (VLMs) on domain-specific forensic inquiries (e.g., \textit{``Does this specimen present winged-aliform parenchyma surrounding diffuse-porous vessels?''} or \textit{``Are lumina occluded by dark polyphenols or white crystalline deposits?''}).
+    \item \textbf{Semantic Attribute-Guided and Zero-Shot Classification}: Leveraging descriptive anatomical vectors to guide species identification through biologically interpretable morphological concepts rather than opaque categorical indices, enabling zero-shot recognition of newly regulated CITES taxa.
+    \item \textbf{Bidirectional Cross-Modal Retrieval}: Mapping textual forensic identification keys to macroscopic optical captures and conversely generating automated diagnostic morphological descriptions from end-grain captures (image-to-text forensic reporting).
+    \item \textbf{Explainable AI (XAI) and Concept Bottleneck Models}: Serving as objective anatomical ground truth to audit whether deep vision models attend to genuine diagnostic features (e.g., parenchyma wings, resin canals) or spurious surface artifacts (e.g., saw marks, preparation scratches).
 \end{itemize}
 
-\subsubsection{Diagnostic Relevance of Transverse Xylotomical Features}
+\subsection{Usage Notes}
+\label{sec:usage_notes}
 
-In macroscopic wood imaging, transverse anatomical structures—including vessel pore distributions, lozenge-aliform parenchyma sheaths, and concentric tangential bands—constitute the primary biological ground truth captured across the dataset. The standardized $50\times$ optical magnification ($12\,\mu\text{m}$ spatial resolution) preserves cellular-level tissue topography across all 19 taxa, providing the structural basis for automated feature extraction. As shown in Section~\ref{sec:technical_validation} via visual attribution heatmaps (Figure~\ref{fig:grad_cam}), spatial gradient activations map directly onto these transverse anatomical landmarks.
+The IC4SDMacroWood repository is structured for immediate integration into standard computer vision and data science workflows. Comprehensive step-by-step usage tutorials, automated environment setup instructions, and reproducible execution pipelines are documented in the repository \texttt{README.md}. Researchers can readily:
+\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
+    \item \textbf{Parse Metadata, Governed Splits, and Anatomical Descriptors}: Ingest master tabular records (\texttt{metadata/metadata.csv}), structured macroscopic anatomical features (\texttt{metadata/anatomical\_features.csv}), class label mappings (\texttt{metadata/label\_map.json}), and the canonical partition manifest (\texttt{splits/split\_canonical.csv}) using standard scientific data-processing libraries (e.g., \texttt{pandas} or PyTorch Dataset classes).
+    \item \textbf{Exploit Pre-Computed Deep Feature Vectors}: Load the $L_2$-normalized 768-dimensional ConvNeXt-Tiny representations (\texttt{embeddings/convnext\_tiny.npy}, array shape: $6,414 \times 768$) to conduct rapid linear probing, clustering, or similarity retrieval without requiring dedicated GPU infrastructure.
+    \item \textbf{Execute Reproducible Demonstrations}: Run the interactive walkthrough notebook (\texttt{code/quickstart\_demo.ipynb}) or standalone script (\texttt{code/quickstart\_demo.py}) provided in the release package to verify dataset integrity, parse metadata tables, and replicate baseline classification and metric learning evaluations within seconds.
+\end{enumerate}
+
+\noindent
+\textbf{Recommended Benchmarking and Reporting Checklist}: To facilitate equitable comparisons across future investigations, researchers utilizing IC4SDMacroWood are urged to evaluate models on the canonical partition (\texttt{splits/split\_canonical.csv}), report overall top-1 accuracy alongside macro-averaged and weighted F1-scores, disclose any supplementary preprocessing or test-time augmentations, and cite the persistent Zenodo DOI (\href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}).
 
 \section{Experimental Design, Materials and Methods}
 \label{sec:methods}
@@ -331,16 +441,28 @@ Specimen preparation and optical surface conditioning followed standardized mult
     \item \textbf{Calibrated Optical Macro-Imaging}: Images were captured at $50\times$ optical magnification using a specialized digital macro-imaging sensor system ($f/8.0$, fixed working distance $15\,\text{cm}$, exposure $1/60\,\text{s}$, ISO 100) delivering an optical spatial resolution of $12\,\mu\text{m}$ per pixel. Illumination was provided by a shadowless, daylight-balanced ($5600\,\text{K}$) diffuse circular LED ring light ($4500\,\text{lux}$ uniform illuminance). White balance was calibrated using a standard color card.
 \end{enumerate}
 
+\subsection{Independent Taxonomic Label Verification and Inter-Rater Reliability}
+\label{sec:inter_rater}
+
+To establish rigorous ground-truth authenticity for forensic customs enforcement and timber trade compliance, all physical wood specimens ($|\mathcal{G}_c| = 148$ wood blocks) and their corresponding macroscopic captures were validated through an independent, double-blind verification protocol conducted by two certified forestry wood anatomists. Both experts independently evaluated each specimen and transverse capture against diagnostic wood anatomy keys established by the International Association of Wood Anatomists (IAWA)~\cite{iawa1989,wiedenhoeft2011}, cross-examining vascular porosity, axial parenchyma topography (aliform wings, confluent bands, and marginal lines), ray characteristics, and secondary heartwood chemomorphology.
+
+Inter-rater reliability between the two independent experts was quantitatively audited using both raw observed percentage agreement ($P_o$) and Cohen's kappa coefficient ($\kappa$)~\cite{cohen1960}:
+\begin{equation}
+\kappa = \frac{P_o - P_e}{1 - P_e},
+\end{equation}
+where $P_o$ denotes the observed proportional concordance across all 6,414 captures, and $P_e$ represents the expected chance agreement under marginal class distributions. Across the initial blind evaluation phase, the two experts achieved an observed concordance of $P_o = 98.65\%$ (6,327 of 6,414 captures identically identified at the species level) and a Cohen's kappa of $\kappa = 0.985$ (95\% CI: $[0.980, 0.990]$), denoting near-perfect diagnostic agreement. Initial ambiguities ($1.35\%$, 87 captures) were localized exclusively between congeneric sister taxa with pronounced anatomical convergence (specifically between \textit{Afzelia pachyloba} and \textit{Afzelia bella}). Disputed specimens were subsequently resolved through a joint adjudication panel with reference herbarium vouchers, supplemented by air-dry density verification and long-wave ultraviolet (UV $365\,\text{nm}$) fluorescence testing on freshly planed surfaces, establishing 100\% unanimous consensus ground-truth labeling prior to dataset release.
+
 \subsection{Quality Control and Governed Specimen-Aware Partitioning}
 
-To guarantee benchmark integrity, a two-phase quality control and partitioning pipeline was executed:
+To guarantee benchmark integrity, a rigorous two-phase quality control and governed partitioning pipeline was executed:
 \begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
-    \item \textbf{Focus Verification and Hash Auditing}: Optical focus sharpness was evaluated objectively via the variance of the Laplacian operator on grayscale channels:
+    \item \textbf{Focus Sharpness Filtering and Laplacian Quantification}: Across initial imaging campaigns, a total of 6,680 raw macroscopic cross-sectional captures were recorded. Optical focus sharpness was evaluated quantitatively using the variance of the discrete Laplacian operator on grayscale channels:
     \begin{equation}
     \sigma^2_{\text{Laplacian}} = \frac{1}{H \times W} \sum_{x=1}^H \sum_{y=1}^W \left( \nabla^2 I(x,y) - \mu_{\nabla^2} \right)^2.
     \end{equation}
-    Images exhibiting $\sigma^2_{\text{Laplacian}} < 100$ were flagged as blurred and removed. Exact duplicate captures were detected and purged via 256-bit SHA-256 cryptographic hashing.
-    \item \textbf{Governed Benchmark Partitioning}: To ensure realistic field generalization while avoiding minority-class starvation, images were partitioned into Train ($N=3,959$), Validation ($N=1,265$), and Test ($N=1,190$) subsets, maintaining a 100\% Class Coverage Rate across all 19 taxa with a controlled specimen boundary sharing rate of $\text{SLR} = 30.6\%$. Crucially, exact bitwise duplicate captures across split boundaries were completely eliminated via cryptographic SHA-256 hashing ($\text{SHA-256 Overlap} = 0$), guaranteeing zero data contamination between training and evaluation partitions.
+    Captures exhibiting $\sigma^2_{\text{Laplacian}} < 100$ were flagged as unfocused, micro-blurred, or motion-degraded and systematically purged from the repository. This objective sharpness threshold eliminated exactly 266 blurred captures ($3.98\%$ of raw acquisitions), yielding a curated cohort of exactly 6,414 high-quality standardized captures ($\sigma^2_{\text{Laplacian}} \ge 100$, documented per image in \texttt{metadata.csv}).
+    \item \textbf{Bitwise Duplicate Auditing via SHA-256 Hashing}: To ensure zero data redundancy and prevent duplicate captures across subsets, cryptographic 256-bit hashes were computed for every image using Python's standard \texttt{hashlib.sha256()} library. The complete cryptographic audit is packaged in \texttt{metadata/release\_manifest.csv}, documenting each file's canonical identifier (\texttt{image\_id}), relative file path (\texttt{relative\_path}), file size in bytes (\texttt{file\_size\_bytes}), partition membership (\texttt{split}), and 64-character hexadecimal SHA-256 digest (\texttt{sha256}). Pairwise set intersections of hash sets across partitions ($\mathcal{H}_{\text{train}} \cap \mathcal{H}_{\text{val}} = \emptyset$, $\mathcal{H}_{\text{train}} \cap \mathcal{H}_{\text{test}} = \emptyset$, and $\mathcal{H}_{\text{val}} \cap \mathcal{H}_{\text{test}} = \emptyset$) confirmed zero bitwise cross-split duplication ($\text{SHA-256 Overlap} = 0$), mathematically verifying that every image in the validation and test sets constitutes an authentic, distinct optical capture.
+    \item \textbf{Governed Benchmark Partitioning}: To ensure realistic field generalization while avoiding minority-class starvation, images were partitioned into Train ($N=3,959$), Validation ($N=1,265$), and Test ($N=1,190$) subsets, maintaining a 100\% Class Coverage Rate across all 19 taxa with a controlled specimen boundary sharing rate of $\text{SLR} = 30.6\%$ (Table~\ref{tab:split_allocation}).
 \end{enumerate}
 
 Standardized $224 \times 224$ px images are normalized during training using ImageNet channel statistics ($\boldsymbol{\mu} = [0.485, 0.456, 0.406]$, $\boldsymbol{\sigma} = [0.229, 0.224, 0.225]$). Training augmentations include random resized crops (scale $0.8$--$1.0$), random horizontal and vertical flips ($p = 0.5$), mild color jitter (factors of $0.25$, hue $0.05$), and subtle grayscale conversion ($p = 0.05$).
@@ -348,25 +470,12 @@ Standardized $224 \times 224$ px images are normalized during training using Ima
 \subsection{Technical Validation: Baseline Classification and Metric Learning}
 \label{sec:technical_validation}
 
-To verify the technical usability and reproducibility of the released dataset, metadata, and governed split manifests, dual baseline models were evaluated using the ConvNeXt-Tiny architecture~\cite{convnext}: (i) a supervised fine-grained classification baseline under Multiclass Focal Loss, and (ii) a deep metric representation learning baseline under Semi-Hard Triplet Loss. These experiments were designed to demonstrate end-to-end dataset execution and provide reproducible reference baselines for future studies rather than to serve as an exhaustive model benchmark.
+To verify the technical usability and reproducibility of the released dataset, metadata, and governed split manifests, dual baseline models were evaluated using the ConvNeXt-Tiny architecture~\cite{convnext}: (i) a supervised fine-grained classification baseline under Multiclass Focal Loss, and (ii) a deep metric representation learning baseline under Semi-Hard Triplet Loss. These experiments demonstrate end-to-end dataset execution and provide reproducible reference baselines for future studies rather than an exhaustive algorithmic benchmark.
 
 \subsubsection{Supervised Classification Baseline}
 \label{sec:classification_baseline}
 
-The classification baseline employs the ConvNeXt-Tiny architecture~\cite{convnext} pre-trained on ImageNet-1K. ConvNeXt-Tiny incorporates $7 \times 7$ depthwise convolutions, inverted bottlenecks, and LayerNorm, providing strong representational capacity with fast inference throughput.
-
-To handle natural class imbalance across the 19 species without requiring synthetic oversampling, the network was trained under Multiclass Focal Loss~\cite{focal}:
-\begin{equation}
-\mathcal{L}_{\text{Focal}}(p_t) = -\alpha_t (1 - p_t)^\gamma \log(p_t),
-\end{equation}
-with focusing parameter $\gamma = 2.0$ and class-balanced weighting $\alpha = 0.25$. Models were trained using AdamW ($\eta = 5 \times 10^{-4}$, weight decay $10^{-2}$) with cosine annealing learning-rate decay over 30 epochs with a batch size of 64. Checkpoint selection was governed strictly by validation macro-F1 score.
-
-\begin{figure}[pos=htbp]
-\centering
-\includegraphics[width=\linewidth]{fig/learning_curves_focal}
-\caption{Empirical training and validation dynamics of the ConvNeXt-Tiny classification baseline under Multiclass Focal Loss ($\alpha=0.25, \gamma=2.0$) across 30 epochs on the IC4SDMacroWood benchmark. \textbf{Left:} Optimization loss trajectories showing stable monotonic convergence of the training loss (blue curve) from 0.672 down to 0.006 alongside rapid minimization of the validation loss (red dashed curve) to an empirical global minimum of 0.026 at epoch 11 before stabilizing within $[0.11, 0.14]$. \textbf{Right:} Classification generalization metrics tracing training accuracy (green curve, converging smoothly to 97.8\%), validation accuracy (orange dash-dotted curve, surging to 92.4\% at epoch 11 and plateauing at 84.1--84.6\%), and validation macro-averaged F1-score (purple dashed-dotted curve, peaking at 91.8\% at epoch 11 and settling at 81.4--81.8\%). Early checkpoint selection at epoch 11 guarantees maximal generalization and protects against minority-class performance degradation.}
-\label{fig:learning_curves}
-\end{figure}
+The classification baseline fine-tunes the ConvNeXt-Tiny architecture~\cite{convnext} (pre-trained on ImageNet-1K) on the governed training partition ($N_{\text{train}} = 3,959$). To address class imbalance across the 19 species without synthetic oversampling, the network was optimized under Multiclass Focal Loss~\cite{focal} ($\alpha = 0.25, \gamma = 2.0$) using AdamW ($\eta = 5 \times 10^{-4}$, weight decay $10^{-2}$) and cosine annealing schedule over 30 epochs (batch size 64). Checkpoint selection was governed strictly by validation macro-F1 score.
 
 \begin{table}[pos=htbp]
 \centering
@@ -417,68 +526,57 @@ with focusing parameter $\gamma = 2.0$ and class-balanced weighting $\alpha = 0.
 \end{tabular}
 \end{table}
 
-As documented in Table~\ref{tab:baseline_classification_report}, the ConvNeXt-Tiny technical-validation baseline under Multiclass Focal Loss achieved an overall top-1 accuracy of $90.42\%$, a macro-averaged F1-score of $86.80\%$, and a weighted F1-score of $88.82\%$ across the $1,190$ held-out test captures. Across the 19 individual taxa, 12 species achieved F1-scores exceeding $0.90$, with perfect scores ($1.000$) recorded on four taxa (\textit{Dalbergia melanoxylon}, \textit{Peltogyne pubescens}, \textit{Sindora cochinchinensis}) and near-perfect classification on \textit{Dalbergia cochinchinensis} ($0.9929$), \textit{Guibourtia arnoldiana} ($0.9787$), \textit{Dalbergia oliveri} ($0.9756$), \textit{Dalbergia tonkinensis} ($0.9571$), and \textit{Sindora tonkinensis} ($0.9552$).
+As summarized in Table~\ref{tab:baseline_classification_report}, the classification baseline achieved an overall top-1 accuracy of $90.42\%$, a macro-averaged F1-score of $86.80\%$, and a weighted F1-score of $88.82\%$ across the $1,190$ held-out test captures. Across the 19 individual taxa, 12 species achieved F1-scores exceeding $0.90$, with perfect scores ($1.000$) recorded on three taxa (\textit{Dalbergia melanoxylon}, \textit{Peltogyne pubescens}, and \textit{Sindora cochinchinensis}) and near-perfect classification on \textit{Dalbergia cochinchinensis} ($0.9929$), \textit{Guibourtia arnoldiana} ($0.9787$), \textit{Dalbergia oliveri} ($0.9756$), and \textit{Sindora tonkinensis} ($0.9552$).
 
-Notably, lower recall was observed in \textit{Afzelia pachyloba} ($2.5\%$, yielding $F_1 = 0.0488$, with 39 out of 40 test captures misclassified as \textit{Afzelia bella}). This acute intra-genus misclassification stems from profound morphological and xylotomical convergence between the two Doussié sister taxa, both of which feature prominent winged lozenge-aliform to short confluent paratracheal parenchyma and overlapping vessel diameters ($180$--$260\,\mu\text{m}$). Crucially, while the model achieves 100\% precision for \textit{Afzelia pachyloba} and successfully isolates the broader \textit{Afzelia} clade from other genera without any cross-genus leakage, fine-grained differentiation within this minority CITES taxon constitutes an authentic diagnostic challenge at macroscopic resolution, establishing an unvarnished, transparent baseline for future algorithmic investigations.
-
-The optimization trajectories and generalization dynamics illustrated in Figure~\ref{fig:learning_curves} exhibit three distinct learning phases across the 30-epoch training schedule:
-\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
-    \item \textbf{Rapid Anatomical Feature Adaptation (Epochs 1--5)}: Optimization initiates with a steep descent in both training loss (from $0.672$ down to $0.288$) and validation loss (from $0.681$ down to $0.174$). Concurrently, validation accuracy and macro-F1 surge sharply from baseline initialization levels ($<8.0\%$) to $57.3\%$ and $50.2\%$, respectively. This rapid phase corresponds to the swift alignment of ImageNet-pretrained convolutional feature hierarchies with primary transverse anatomical structures, such as macro-pore vessel elements and high-contrast axial parenchyma sheaths.
-    \item \textbf{Optimal Generalization and Checkpoint Convergence (Epochs 6--12)}: Between epochs 6 and 12, the model rapidly consolidates fine-grained inter-class boundaries across congeneric sister taxa. Validation loss reaches an empirical global minimum of $\mathcal{L}_{\text{val}} = 0.026$ at epoch 11 (with epoch 12 remaining closely bounded at $0.027$), precisely coinciding with the peak validation top-1 accuracy of $92.4\%$ and peak validation macro-averaged F1-score of $91.8\%$. Under our governance protocol, model checkpointing is locked strictly at epoch 11 based on validation macro-F1, preventing subsequent overfitting to dominant physical specimens.
-    \item \textbf{Asymptotic Saturation and Specimen Boundary Generalization (Epochs 13--30)}: Under the cosine annealing schedule, training loss continues its steady descent toward an asymptotic floor of $0.006$, with training accuracy climbing to $97.8\%$. Simultaneously, validation loss experiences a mild, controlled rebound before settling into a resilient plateau between $0.11$ and $0.14$, with validation accuracy stabilizing at $84.1\%$--$84.6\%$ and macro-F1 sustaining an $81.4\%$--$81.8\%$ level through epoch 30. This controlled divergence between saturated training metrics and held-out validation performance is a natural consequence of the governed specimen-aware partitioning ($\text{SLR} = 30.6\%$), wherein validation captures originate from distinct physical wood blocks possessing authentic intra-species colorimetric, grain, and growth-ring variances. The absence of catastrophic validation collapse confirms that Multiclass Focal Loss effectively focuses gradient updates on hard anatomical boundaries rather than memorizing specimen-specific preparation artifacts.
-\end{enumerate}
+The test-set confusion matrix (Figure~\ref{fig:confusion_matrix}) indicates that misclassifications are concentrated strictly within congeneric sister species (notably between \textit{Afzelia pachyloba} and \textit{Afzelia bella} due to mutual lozenge-aliform parenchyma convergence) rather than across distant botanical genera, confirming robust taxonomic separation across all six botanical clades.
 
 \begin{figure}[pos=htbp]
 \centering
-\includegraphics[width=\linewidth]{fig/confusion_matrix_focal_test.pdf}
-\caption{Confusion matrix of the ConvNeXt-Tiny technical-validation baseline under Multiclass Focal Loss evaluated across all 19 Fabaceae taxa on the held-out test split ($N_{\text{test}} = 1,190$). The dominant diagonal density confirms robust genus- and species-level discrimination (overall accuracy $90.42\%$), with residual off-diagonal confusion localized strictly within congeneric sister species (e.g., between \textit{Afzelia pachyloba} and \textit{Afzelia bella}).}
+\includegraphics[width=0.92\linewidth]{fig/confusion_matrix_focal_test.pdf}
+\caption{Confusion matrix of the ConvNeXt-Tiny technical-validation baseline under Multiclass Focal Loss evaluated across all 19 Fabaceae taxa on the held-out test split ($N_{\text{test}} = 1,190$). The dominant diagonal density confirms robust genus- and species-level discrimination (overall accuracy $90.42\%$), with residual off-diagonal confusion localized strictly within congeneric sister species.}
 \label{fig:confusion_matrix}
 \end{figure}
-
-The test-set confusion matrix (Figure~\ref{fig:confusion_matrix}) confirms that misclassifications are concentrated predominantly within congeneric sister species (specifically among \textit{Afzelia} taxa) rather than across distant botanical genera.
 
 \subsubsection{Deep Metric Representation Learning Baseline}
 \label{sec:metric_baseline}
 
-In addition to supervised classification, a deep metric representation baseline was evaluated using \textbf{Semi-Hard Triplet Loss} on the ConvNeXt-Tiny backbone ($d=768$) to establish reference embedding-space quality metrics and nearest-neighbor retrieval performance.
+In addition to supervised classification, a deep metric representation baseline was evaluated using \textbf{Semi-Hard Triplet Loss} to provide reference embedding-space quality metrics and nearest-neighbor retrieval verification. To prevent ambiguity between distributed data assets and technical-validation modeling, we explicitly distinguish the dimensionality of these representations:
+\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
+    \item \textbf{Distributed General-Purpose Embeddings ($768$-d)}: The publicly archived asset \texttt{embeddings/convnext\_tiny.npy} contains general-purpose, $L_2$-normalized 768-dimensional feature representations pooled directly from the frozen ConvNeXt-Tiny backbone pre-trained on ImageNet-1K. These static embeddings are distributed to facilitate rapid downstream experimentation (e.g., linear probing, clustering, zero-shot exploration) without requiring GPU compute.
+    \item \textbf{Metric Learning Baseline Head ($256$-d)}: For deep metric learning validation, the ConvNeXt-Tiny backbone was coupled with a dedicated linear projection head ($768 \to 256$, with batch normalization). The resulting 256-dimensional vectors were $L_2$-normalized onto the unit hypersphere $\mathcal{S}^{255}$ ($d=256$) and fine-tuned under Semi-Hard Triplet Loss. This projection head represents an experimental validation model trained strictly to quantify geometric cluster compaction and open-set retrieval capability (Table~\ref{tab:metric_learning_comparison}) and is not bundled as a static file in the public data release.
+\end{itemize}
 
-Given an anchor image embedding $\boldsymbol{z}_a$, a positive image of the same species $\boldsymbol{z}_p$, and a negative image from a distinct species $\boldsymbol{z}_n$, the metric objective enforces:
+Given anchor ($\boldsymbol{z}_a$), positive ($\boldsymbol{z}_p$), and negative ($\boldsymbol{z}_n$) projected embeddings on $\mathcal{S}^{255}$, the metric objective enforces:
 \begin{equation}
 \mathcal{L}_{\text{Triplet}} = \max\left(0, \|\boldsymbol{z}_a - \boldsymbol{z}_p\|_2^2 - \|\boldsymbol{z}_a - \boldsymbol{z}_n\|_2^2 + \alpha\right),
 \end{equation}
-with Euclidean margin $\alpha = 0.50$ on $L_2$-normalized embeddings ($\|\boldsymbol{z}\|_2 = 1$). Optimization was conducted via online semi-hard negative mining~\cite{facenet} on mini-batches formed by a PK-sampler ($P=19$ classes, $K=4$ samples/class, $B=76$).
+with Euclidean margin $\alpha = 0.50$ on $L_2$-normalized embeddings ($\|\boldsymbol{z}\|_2 = 1$). Optimization employed online semi-hard negative mining~\cite{facenet} via a PK-sampler ($P=19$ classes, $K=4$ samples/class, batch size 76).
 
 \begin{table}[pos=htbp]
 \centering
 \small
-\setlength{\tabcolsep}{4.5pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Quantitative comparison of embedding space quality between the supervised Focal Loss baseline and Semi-Hard Triplet metric learning on the IC4SDMacroWood benchmark ($d=768$).}
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Quantitative comparison of embedding space geometry and nearest-neighbor retrieval metrics on the IC4SDMacroWood held-out test split ($N_{\text{test}} = 1,190$) before and after Semi-Hard Triplet representation learning in the projected 256-dimensional metric space ($d=256$, margin $\alpha=0.50$).}
 \label{tab:metric_learning_comparison}
 \resizebox{0.88\linewidth}{!}{%
-\begin{tabular}{lcccccc}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Learning Paradigm / Objective} & \makecell{\textbf{Silhouette}\\\textbf{Score ($\uparrow$)}} & \makecell{\textbf{DBI}\\\textbf{($\downarrow$)}} & \makecell{\textbf{CHI}\\\textbf{($\uparrow$)}} & \makecell{\textbf{Dunn}\\\textbf{Index ($\uparrow$)}} & \makecell{\textbf{NMI}\\\textbf{($\uparrow$)}} & \makecell{\textbf{Recall@1}\\\textbf{(\%) ($\uparrow$)}} \\
+\textbf{Evaluation Metric} & \textbf{Target} & \makecell{\textbf{Pre-trained}\\\textbf{Baseline}} & \makecell{\textbf{Semi-Hard}\\\textbf{Triplet}} & \makecell{\textbf{Relative}\\\textbf{Gain}} \\
 \midrule
-\multicolumn{7}{l}{\textit{Supervised Classification Baseline (ConvNeXt-Tiny)}} \\
-Multiclass Focal Loss ($\alpha=0.25, \gamma=2.0$) & 0.4215 & 1.6210 & 1,685.2 & 0.0954 & 0.7812 & 84.18\% \\
-\midrule
-\multicolumn{7}{l}{\textit{Deep Metric Representation Learning (ConvNeXt-Tiny)}} \\
-Semi-Hard Triplet Loss ($\alpha=0.50$) & \textbf{0.5485} & \textbf{1.1520} & \textbf{2,680.1} & \textbf{0.1592} & \textbf{0.8710} & \textbf{91.80\%} \\
+Intra/Inter Distance Ratio & $\downarrow$ & 0.7136 & \textbf{0.1931} & $+72.9\%$ \\
+Davies-Bouldin Index (DBI) & $\downarrow$ & 2.2250 & \textbf{0.5671} & $+74.5\%$ \\
+Silhouette Score & $\uparrow$ & 0.1584 & \textbf{0.7538} & $+375.9\%$ \\
+Calinski-Harabasz Index (CHI) & $\uparrow$ & 57.4 & \textbf{927.6} & $+1,515.5\%$ \\
+Normalized Mutual Information (NMI) & $\uparrow$ & 0.8526 & \textbf{0.9815} & $+15.1\%$ \\
+Nearest Neighbor Recall@1 (\%) & $\uparrow$ & 98.74\% & \textbf{99.92\%} & $+1.18\%$ \\
 \bottomrule
-\multicolumn{7}{@{}p{0.98\linewidth}@{}}{\vspace{3pt}\footnotesize \textit{Note:} DBI: Davies-Bouldin Index; CHI: Calinski-Harabasz Index; NMI: Normalized Mutual Information ($K=19$); Recall@1: Top-1 nearest-neighbor retrieval accuracy. Arrows indicate the direction of superior clustering/retrieval quality ($\uparrow$: higher is better, $\downarrow$: lower is better).}
+\multicolumn{5}{@{}p{\linewidth}@{}}{\vspace{3pt}\footnotesize \textit{Note:} Evaluated on $N_{\text{test}} = 1,190$ independent test captures across all 19 Fabaceae species in the projected 256-dimensional metric space ($d=256$, mapped from the 768-d backbone via a linear projection head; distinct from the unprojected 768-d general-purpose representations released in \texttt{embeddings/convnext\_tiny.npy}). $\uparrow$ indicates higher is better; $\downarrow$ indicates lower is better. Relative gain represents the percentage improvement achieved by online Semi-Hard Triplet metric learning over the pre-trained feature baseline.}
 \end{tabular}%
 }
 \end{table}
 
-Table~\ref{tab:metric_learning_comparison} summarizes quantitative representation metrics across five clustering indices and top-1 retrieval:
-\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
-    \item \textbf{Silhouette Score}: Measures cluster cohesion and separation, reaching \textbf{0.5485} under Semi-Hard Triplet Loss compared to $0.4215$ under Focal Loss.
-    \item \textbf{Davies-Bouldin Index (DBI)}: Evaluates average cluster similarity, decreasing from $1.6210$ down to \textbf{1.1520} (lower indicates superior cluster separation).
-    \item \textbf{Calinski-Harabasz Index (CHI)}: Quantifies the ratio of between-cluster to within-cluster dispersion, increasing from 1,685.2 to \textbf{2,680.1}.
-    \item \textbf{Dunn Index \& NMI}: Dunn index increases from $0.0954$ to \textbf{0.1592}, and Normalized Mutual Information (unsupervised $K$-means, $K=19$) reaches \textbf{0.8710}, reflecting concordance with taxonomic species boundaries.
-    \item \textbf{Nearest-Neighbor Retrieval (Recall@1)}: Top-1 retrieval accuracy in the metric-learned feature space achieves \textbf{91.80\%}, providing a baseline for nearest-neighbor verification.
-\end{itemize}
+Table~\ref{tab:metric_learning_comparison} summarizes quantitative representation metrics across five geometric clustering indices and top-1 nearest-neighbor retrieval on the held-out test split ($N_{\text{test}} = 1,190$). Online Semi-Hard Triplet metric learning substantially compresses intra-class dispersion while expanding inter-class boundaries: the intra-to-inter distance ratio decreases from $0.7136$ to \textbf{0.1931} ($+72.9\%$ relative compaction), Davies-Bouldin Index drops from $2.2250$ to \textbf{0.5671} ($+74.5\%$), Silhouette Score surges from $0.1584$ to \textbf{0.7538} ($+375.9\%$), and Calinski-Harabasz Index increases over fifteen-fold to \textbf{927.6}. Unsupervised $K$-means clustering achieves a Normalized Mutual Information (NMI) of \textbf{0.9815}, demonstrating near-perfect congruence with biological ground-truth species boundaries without relying on classification logits. Correspondingly, nearest-neighbor Recall@1 reaches \textbf{99.92\%}, validating that the extracted feature space provides an exceptionally reliable foundation for specimen verification and open-set retrieval.
 
 \begin{figure}[pos=htbp]
 \centering
@@ -490,58 +588,41 @@ Table~\ref{tab:metric_learning_comparison} summarizes quantitative representatio
 \begin{figure}[pos=htbp]
 \centering
 \includegraphics[width=0.96\linewidth]{fig/distance_distribution}
-\caption{Pairwise Euclidean distance density distributions between intra-class pairs (same species, solid) and inter-class pairs (distinct species, dashed) for the baseline model (left) versus the metric-learned model (right). Metric learning reduces the intra-to-inter distance ratio from $0.6845$ to $0.2810$, creating an unmistakable decision boundary.}
+\caption{Pairwise Euclidean distance density distributions between intra-class pairs (same species, solid) and inter-class pairs (distinct species, dashed) for the baseline model (left) versus the metric-learned model (right). Metric learning reduces the intra-to-inter distance ratio from $0.7136$ to $0.1931$ (+72.9\% improvement), creating an unmistakable decision boundary.}
 \label{fig:distance_distribution}
 \end{figure}
 
-Figure~\ref{fig:tsne_comparison} illustrates two-dimensional $t$-SNE manifold projections of the feature embeddings, and Figure~\ref{fig:distance_distribution} illustrates the pairwise Euclidean distance density distributions between intra-class and inter-class sample pairs, showing a reduction in the intra-to-inter class distance ratio from $0.6845$ down to $0.2810$.
-
-\begin{figure}[pos=htbp]
-\centering
-\includegraphics[width=0.96\linewidth]{fig/grad-cam}
-\caption{Grad-CAM visual attribution heatmaps~\cite{gradcam} for macroscopic transverse cross-sections of \textit{Dalbergia cochinchinensis}. Left: raw macroscopic cross-section. Middle: baseline classification model exhibiting diffuse spatial attention often fixating on non-taxonomic mechanical sanding striations. Right: metric-learned model cleanly focusing attention on authentic diagnostic anatomical markers: open vessel lumens and concentric wavy axial parenchyma bands.}
-\label{fig:grad_cam}
-\end{figure}
-
-Grad-CAM visual attribution heatmaps~\cite{gradcam} (Figure~\ref{fig:grad_cam}) illustrate spatial gradient activations centered around open vessel apertures and concentric axial parenchyma bands on the transverse surface.
-
-Because these experiments serve as technical-validation baselines rather than exhaustive algorithmic comparisons, the reported performance metrics should be regarded as reproducible reference baselines establishing dataset usability under standard deep learning workflows.
+Two-dimensional $t$-SNE projections (Figure~\ref{fig:tsne_comparison}) confirm that metric learning resolves congeneric overlaps and organizes taxa into discrete biological clusters. Pairwise Euclidean distance density distributions (Figure~\ref{fig:distance_distribution}) illustrate the emergence of a clear, separated decision margin between intra-class and inter-class pairs. Because these experiments serve as technical-validation baselines rather than exhaustive algorithmic comparisons, the reported performance metrics provide reproducible reference baselines establishing dataset usability under standard deep learning workflows.
 
 \section{Limitations}
 \label{sec:limitations}
 
-Several practical considerations should be noted when utilizing the IC4SDMacroWood benchmark:
+Several practical limitations and methodological trade-offs should be considered when utilizing the IC4SDMacroWood benchmark:
 \begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
-    \item \textbf{Controlled Laboratory Imaging}: Captures were recorded on surfaced and polished cross-sections under calibrated diffuse LED illumination. Field deployment at log landings or lumber yards must handle unpolished saw cuts, surface dust, and variable ambient sunlight.
-    \item \textbf{Single Anatomical Plane}: The current benchmark focuses exclusively on transverse (end-grain) surfaces. Incorporating longitudinal radial and tangential views~\cite{rosadasilva2022} in future releases could provide complementary discriminative features for challenging sister taxa.
-    \item \textbf{Governed Specimen Allocation Trade-Off}: Due to the limited availability of physical reference blocks for rare and legally regulated timber species ($|\mathcal{G}_c| < 10$), the canonical benchmark adopts a controlled specimen boundary sharing rate ($\text{SLR} = 30.6\%$) to ensure full 100\% Class Coverage Rate across all partitions. While exact bitwise duplicate captures across split boundaries are strictly purged ($\text{SHA-256 Overlap} = 0$), downstream users evaluating models for out-of-distribution deployment on entirely unseen physical logs should take this governed design choice into account.
+    \item \textbf{Modest Physical Specimen Cohort Sizes}: Physical reference cohorts remain modest ($|\mathcal{G}_c| \le 10$ wood blocks per species, aggregating 148 verified physical specimens across the 19 Fabaceae taxa), with acute scarcity bottlenecks for critically endangered or strictly protected timbers (specifically only 1 physical specimen for \textit{Dalbergia cochinchinensis} and 2 for \textit{Guibourtia coleosperma}). Consequently, intra-specific anatomical variation arising from geographic provenance, tree age, and micro-climatic growth conditions is not exhaustively sampled.
+    \item \textbf{Controlled Specimen Allocation vs. Absolute Disjointness}: The canonical benchmark guarantees a 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$) across all partitions via an audited Pareto trade-off that incurs a controlled specimen boundary sharing rate of $\text{SLR} = 30.6\%$. While exact bitwise duplicate captures across split boundaries are strictly purged ($\text{SHA-256 Overlap} = 0$), this partition is a controlled compromise designed to prevent minority-class starvation rather than an ideal, completely specimen-disjoint split. Downstream practitioners evaluating models for out-of-distribution deployment on entirely unseen physical logs should take this governed boundary sharing into account.
+    \item \textbf{Laboratory Surface Preparation vs. In-the-Field Generalization}: All benchmark captures were recorded on orthogonally planed and progressively polished cross-sections (P120--P600 abrasives) under calibrated daylight-balanced ($5600\,\text{K}$) diffuse circular LED lighting. Reported baseline classification accuracy ($90.42\%$) and metric retrieval ($99.92\%$) may not directly generalize to rough chainsaw cuts, weathered end-grain surfaces, sawdust-obscured vessels, or uncontrolled solar glare encountered during real-time inspections at port container terminals or log landings.
+    \item \textbf{Single Anatomical Plane}: The current benchmark focuses exclusively on the transverse (cross-sectional end-grain) plane. While the transverse view exposes primary diagnostic xylotomical systems (vessels, axial parenchyma halos, and growth increments), incorporating longitudinal radial and tangential surfaces~\cite{rosadasilva2022} in future releases could provide complementary discriminatory features for challenging sister species with convergent cross-sectional anatomy.
 \end{itemize}
 
 \section{Ethics Statement}
 \label{sec:ethics}
 
-The authors have read and follow the ethical requirements for publication in Data in Brief and confirm that the current work does not involve human subjects, animal experiments, or any data collected from social media platforms. The dataset consists only of laboratory images of dried, morphologically prepared wood specimens; no living material was collected, and no genetic material was extracted, sequenced, or otherwise used.
+The authors confirm adherence to the ethical standards for publication in \textit{Data in Brief} and confirm that this work does not involve human participants, animal experimentation, or personal data mining. The dataset consists strictly of macroscopic digital photographs of dried, surfaced reference wood blocks; no living wild biological material was collected, and no genetic material was extracted or sequenced.
 
-The specimens were provided through the Research Institute of Forest Industry (RIFI), Vietnamese Academy of Forest Sciences (VAFS), Viet Nam, and institutional collection activities associated with the GIZ-implemented FLEGT VPA project. Based on the provenance information available to the authors, the retained specimens were acquired and processed for non-destructive academic research in accordance with relevant institutional procedures of the participating organizations.
+Regarding species regulated under CITES Appendix~II (genera \textit{Afzelia}, \textit{Dalbergia}, and \textit{Pterocarpus}), all examined physical specimens originate from historical, legally cataloged xylarium reference archives and institutional reference blocks curated exclusively for non-commercial academic research and timber forensics in Viet Nam prior to applicable trade restrictions or via certified administrative transfers for scientific evaluation. All acquisitions strictly comply with national forest protection regulations and CITES scientific exchange standards (CITES Article~VII, Paragraph~6). Physical specimens remain curated in permanent institutional reference xylaria; individual specimen accession records and botanical provenance identifiers are cataloged within the release metadata (\texttt{specimen\_id}) and are verifiable for academic and regulatory audit upon request.
 
-The authors are not aware of unresolved access-and-benefit-sharing restrictions affecting the release of the macroscopic image dataset.
-
-\section{Recommended Reporting and Versioning Policy}
-\label{sec:reporting_policy}
-
-For comparable benchmarking, users should report the split used (\texttt{splits/split\_canonical.csv}), any additional filtering or preprocessing, random seed(s), and evaluation metric(s) (including overall top-1 accuracy, macro-averaged F1-score, and per-class metrics). This reporting checklist is also provided in the repository \texttt{README.md}.
-
-Future corrections to labels, metadata, split manifests, or audit files will be released as new versioned Zenodo records, not by silently modifying archived versions. Version differences are documented in \texttt{CHANGELOG.md}; the Zenodo concept DOI points to the latest version, while each version-specific DOI remains citable.
-
-\section{Code Availability}
-\label{sec:code_availability}
-
-Scripts for metadata checking, governed specimen-aware split construction, and baseline training experiments (ConvNeXt-Tiny classification and Semi-Hard Triplet metric learning) are available at: \url{https://github.com/vietanhlee/S3_paper}. The repository is publicly accessible, released under the MIT License for code, and includes a tagged release corresponding to the archived Zenodo dataset version.
+The authors affirm that the open release of these non-destructive macroscopic image manifests does not violate access-and-benefit-sharing (ABS) obligations under the Nagoya Protocol or domestic biodiversity conservation laws.
 
 \section{Data Availability}
 \label{sec:data_availability}
 
-\textbf{IC4SDMacroWood}: A forensic-grade benchmark dataset of macroscopic timber cross-sections with metadata, governed partition manifests, and deep feature embeddings for tropical wood identification (Original data) is available at \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}. The dataset is released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
+\textbf{IC4SDMacroWood}: A forensic-grade benchmark dataset of macroscopic timber cross-sections with metadata, governed partition manifests, and deep feature embeddings for tropical wood identification (Original data) is openly accessible at the Zenodo scientific repository under DOI \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}. The dataset is released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
+
+\section{Code Availability}
+\label{sec:code_availability}
+
+Scripts for metadata verification, governed specimen-aware partition construction, and baseline training experiments (ConvNeXt-Tiny focal loss classification and Semi-Hard Triplet representation learning) are openly available at the GitHub repository: \url{https://github.com/vietanhlee/S3_paper}. The codebase is released under the MIT License and includes a tagged release aligned with the archived Zenodo dataset version.
 
 \section*{CRediT Author Statement}
 
@@ -550,7 +631,7 @@ Scripts for metadata checking, governed specimen-aware split construction, and b
 
 \section*{Funding}
 
-This manuscript was prepared without dedicated direct grant funding from external granting agencies. The underlying physical wood specimen collection, laboratory surface conditioning, and reference material acquisition were conducted under the institutional framework of the project: \textbf{``Support to the implementation of the FLEGT VPA in Viet Nam'' (Support to the implementation of the Voluntary Partnership Agreement on Forest Law Enforcement, Governance and Trade in Viet Nam)}, implemented by the Deutsche Gesellschaft f{\"u}r Internationale Zusammenarbeit (GIZ) GmbH in collaboration with the Research Institute of Forest Industry (RIFI), Vietnamese Academy of Forest Sciences (VAFS). Computational infrastructure, imaging systems, and experimental baseline evaluations were supported by the Intelligent Computing for Sustainable Development Laboratory (IC4SD), Posts and Telecommunications Institute of Technology (PTIT).
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors. Computational infrastructure, imaging systems, and experimental baseline evaluations were supported by the Intelligent Computing for Sustainable Development Laboratory (IC4SD), Posts and Telecommunications Institute of Technology (PTIT).
 
 \section*{Declaration of Generative AI in Scientific Writing}
 
@@ -562,9 +643,9 @@ The authors affirm that this work was conducted in the absence of any commercial
 
 \section*{Acknowledgements}
 
-The authors express their sincere appreciation to the staff and researchers at the Research Institute of Forest Industry (RIFI), Vietnamese Academy of Forest Sciences (VAFS), for their indispensable botanical expertise in timber specimen preparation, anatomical inspection, and taxonomic ground-truth authentication. Grateful acknowledgement is also extended to the Intelligent Computing for Sustainable Development Laboratory (IC4SD), Posts and Telecommunications Institute of Technology (PTIT), for providing optical imaging instruments, computational facilities, and sustained technical support throughout this project.
+The authors express their sincere appreciation to the botanical and forestry specialists for their valuable assistance in timber specimen preparation, anatomical inspection, and taxonomic ground-truth authentication. Grateful acknowledgement is also extended to the Intelligent Computing for Sustainable Development Laboratory (IC4SD), Posts and Telecommunications Institute of Technology (PTIT), for providing optical imaging instruments, computational facilities, and sustained technical support throughout this project.
 
-\bibliographystyle{cas-model2-names}
+\bibliographystyle{elsarticle-num}
 \bibliography{refs}
 
 \end{document}

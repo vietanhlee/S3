@@ -1,0 +1,173 @@
+{
+  "0": {
+    "class_index": 0,
+    "scientific_name": "Afzelia africana",
+    "genus": "Afzelia",
+    "species": "africana",
+    "vietnamese_name": "Gõ Douse (Gõ Doussié)",
+    "trade_name": "African Doussié",
+    "cites_status": "CITES Appendix II"
+  },
+  "1": {
+    "class_index": 1,
+    "scientific_name": "Afzelia bella",
+    "genus": "Afzelia",
+    "species": "bella",
+    "vietnamese_name": "Papao-Nua / Gỗ Gõ",
+    "trade_name": "Bella Doussié",
+    "cites_status": "CITES Appendix II"
+  },
+  "2": {
+    "class_index": 2,
+    "scientific_name": "Afzelia pachyloba",
+    "genus": "Afzelia",
+    "species": "pachyloba",
+    "vietnamese_name": "Gõ Pachy",
+    "trade_name": "White Doussié",
+    "cites_status": "CITES Appendix II"
+  },
+  "3": {
+    "class_index": 3,
+    "scientific_name": "Afzelia quanzensis",
+    "genus": "Afzelia",
+    "species": "quanzensis",
+    "vietnamese_name": "Gõ Quanzensis",
+    "trade_name": "Pod Mahogany",
+    "cites_status": "CITES Appendix II"
+  },
+  "4": {
+    "class_index": 4,
+    "scientific_name": "Dalbergia cochinchinensis",
+    "genus": "Dalbergia",
+    "species": "cochinchinensis",
+    "vietnamese_name": "Trắc (Rosewood)",
+    "trade_name": "Siam Rosewood",
+    "cites_status": "CITES Appendix II"
+  },
+  "5": {
+    "class_index": 5,
+    "scientific_name": "Dalbergia melanoxylon",
+    "genus": "Dalbergia",
+    "species": "melanoxylon",
+    "vietnamese_name": "Trắc châu Phi",
+    "trade_name": "African Blackwood",
+    "cites_status": "CITES Appendix II"
+  },
+  "6": {
+    "class_index": 6,
+    "scientific_name": "Dalbergia oliveri",
+    "genus": "Dalbergia",
+    "species": "oliveri",
+    "vietnamese_name": "Cẩm lai (Burmese Rosewood)",
+    "trade_name": "Burmese Rosewood",
+    "cites_status": "CITES Appendix II"
+  },
+  "7": {
+    "class_index": 7,
+    "scientific_name": "Dalbergia rimosa",
+    "genus": "Dalbergia",
+    "species": "rimosa",
+    "vietnamese_name": "Trắc dây",
+    "trade_name": "Rimose Rosewood",
+    "cites_status": "Non-CITES"
+  },
+  "8": {
+    "class_index": 8,
+    "scientific_name": "Dalbergia tonkinensis",
+    "genus": "Dalbergia",
+    "species": "tonkinensis",
+    "vietnamese_name": "Sưa",
+    "trade_name": "Vietnamese Rosewood",
+    "cites_status": "CITES Appendix II"
+  },
+  "9": {
+    "class_index": 9,
+    "scientific_name": "Guibourtia arnoldiana",
+    "genus": "Guibourtia",
+    "species": "arnoldiana",
+    "vietnamese_name": "Gỗ Muntenye",
+    "trade_name": "Mutenye / Benge",
+    "cites_status": "Non-CITES"
+  },
+  "10": {
+    "class_index": 10,
+    "scientific_name": "Guibourtia coleosperma",
+    "genus": "Guibourtia",
+    "species": "coleosperma",
+    "vietnamese_name": "Mussivi / Hương đá",
+    "trade_name": "Rhodesian Copalwood",
+    "cites_status": "Non-CITES"
+  },
+  "11": {
+    "class_index": 11,
+    "scientific_name": "Guibourtia ehie",
+    "genus": "Guibourtia",
+    "species": "ehie",
+    "vietnamese_name": "Hyedua",
+    "trade_name": "Ovangkol / Shedua",
+    "cites_status": "Non-CITES"
+  },
+  "12": {
+    "class_index": 12,
+    "scientific_name": "Peltogyne pubescens",
+    "genus": "Peltogyne",
+    "species": "pubescens",
+    "vietnamese_name": "Hương tím nam mỹ",
+    "trade_name": "Purpleheart",
+    "cites_status": "Non-CITES"
+  },
+  "13": {
+    "class_index": 13,
+    "scientific_name": "Pterocarpus erinaceus",
+    "genus": "Pterocarpus",
+    "species": "erinaceus",
+    "vietnamese_name": "Hương vân tây phi",
+    "trade_name": "African Barwood / Kosso",
+    "cites_status": "CITES Appendix II"
+  },
+  "14": {
+    "class_index": 14,
+    "scientific_name": "Pterocarpus indicus",
+    "genus": "Pterocarpus",
+    "species": "indicus",
+    "vietnamese_name": "Hương mắt chim",
+    "trade_name": "Narra / Amboyna",
+    "cites_status": "Non-CITES"
+  },
+  "15": {
+    "class_index": 15,
+    "scientific_name": "Pterocarpus macrocarpus",
+    "genus": "Pterocarpus",
+    "species": "macrocarpus",
+    "vietnamese_name": "Hương quả to (Burma padauk)",
+    "trade_name": "Burma Padauk",
+    "cites_status": "Non-CITES"
+  },
+  "16": {
+    "class_index": 16,
+    "scientific_name": "Pterocarpus soyauxii",
+    "genus": "Pterocarpus",
+    "species": "soyauxii",
+    "vietnamese_name": "Padouk / Hương padouk",
+    "trade_name": "African Padauk",
+    "cites_status": "Non-CITES"
+  },
+  "17": {
+    "class_index": 17,
+    "scientific_name": "Sindora cochinchinensis",
+    "genus": "Sindora",
+    "species": "cochinchinensis",
+    "vietnamese_name": "Gụ",
+    "trade_name": "Sindora / Sepetir",
+    "cites_status": "Non-CITES"
+  },
+  "18": {
+    "class_index": 18,
+    "scientific_name": "Sindora tonkinensis",
+    "genus": "Sindora",
+    "species": "tonkinensis",
+    "vietnamese_name": "Gụ lau",
+    "trade_name": "Tonkin Sepetir",
+    "cites_status": "Non-CITES"
+  }
+}

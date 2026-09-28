@@ -1,0 +1,26 @@
+{
+  "total_images": 6414,
+  "split_counts": {
+    "train": 3959,
+    "val": 1265,
+    "test": 1190
+  },
+  "species_count": 19,
+  "specimen_overlap": {
+    "train_vs_val": 21,
+    "train_vs_test": 12,
+    "val_vs_test": 12
+  },
+  "sha256_overlap": {
+    "train_vs_val": 33,
+    "train_vs_test": 47,
+    "val_vs_test": 10
+  },
+  "class_coverage": {
+    "train": "19/19",
+    "val": "19/19",
+    "test": "19/19"
+  },
+  "specimen_leakage_rate": 30.612244897959183,
+  "is_safe": false
+}

@@ -742,11 +742,7 @@ def main():
     b_n, a_n = metrics_before["nmi"], metrics_after["nmi"]
     print(f"{'Normalized Mutual Info (NMI, cao hơn tốt)':<40} | {b_n:<16.4f} | {a_n:<16.4f} | {((a_n-b_n)/b_n)*100:+.1f}%")
 
-    # 6. Dunn Index
-    b_d, a_d = metrics_before["dunn_index"], metrics_after["dunn_index"]
-    print(f"{'Dunn Index (cao hơn tốt)':<40} | {b_d:<16.4f} | {a_d:<16.4f} | {((a_d-b_d)/max(1e-6, b_d))*100:+.1f}%")
-
-    # 7. Recall@1
+    # 6. Recall@1
     b_r1, a_r1 = recalls_before["Recall@1"], recalls_after["Recall@1"]
     print(f"{'Nearest Neighbor Recall@1 (%)':<40} | {b_r1:<16.2f} | {a_r1:<16.2f} | {a_r1 - b_r1:+.2f}%")
     print("=" * 80)
