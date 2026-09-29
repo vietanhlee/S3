@@ -392,12 +392,12 @@ def main():
                         help="Thư mục chứa các tệp metadata, splits và leakage audit")
     parser.add_argument("--batch-size", type=int, default=64,
                         help="Kích thước batch size cho huấn luyện phân loại (mặc định 64)")
-    parser.add_argument("--classify-epochs", type=int, default=22,
+    parser.add_argument("--classify-epochs", "--epochs", type=int, default=22, dest="classify_epochs",
                         help="Số epochs cho mô hình phân loại ConvNeXt-Tiny (mặc định 22)")
-    parser.add_argument("--classify-loss", type=str, default="focal",
+    parser.add_argument("--classify-loss", "--loss", type=str, default="focal", dest="classify_loss",
                         choices=["focal", "cross_entropy", "both"],
                         help="Hàm mất mát phân loại: 'focal', 'cross_entropy', hoặc 'both'")
-    parser.add_argument("--classify-lr", type=float, default=5e-4,
+    parser.add_argument("--classify-lr", "--lr", type=float, default=5e-4, dest="classify_lr",
                         help="Tốc độ học cho phân loại (mặc định 5e-4)")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456, 789, 2024],
                         help="Danh sách các random seeds để chạy kiểm định thống kê (mặc định 5 seeds)")
