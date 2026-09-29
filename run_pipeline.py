@@ -139,12 +139,13 @@ def run_classify_multi_seed(
     seeds: List[int],
     data_dir: Optional[str] = None,
     batch_size: Optional[int] = None,
-    lr: Optional[float] = None
+    lr: Optional[float] = None,
+    model_name: str = "convnext_tiny"
 ) -> None:
-    """Bước 2: Huấn luyện Baseline Phân loại ConvNeXt-Tiny qua nhiều random seeds và kiểm định thống kê."""
+    """Bước 2: Huấn luyện Baseline Phân loại qua nhiều random seeds và kiểm định thống kê."""
     print("\n" + "=" * 82)
-    print(f" [BƯỚC 2/2] HUẤN LUYỆN BASELINE CONVNEXT-TINY QUA {len(seeds)} RANDOM SEEDS & KIỂM ĐỊNH THỐNG KÊ ")
-    print(f" Seeds: {seeds} | Loss: {loss_mode.upper()} | Epochs: {epochs}")
+    print(f" [BƯỚC 2/2] HUẤN LUYỆN BASELINE [{model_name.upper()}] QUA {len(seeds)} RANDOM SEEDS & KIỂM ĐỊNH THỐNG KÊ ")
+    print(f" Model: {model_name} | Seeds: {seeds} | Loss: {loss_mode.upper()} | Epochs: {epochs}")
     print("=" * 82)
     output_dir.mkdir(parents=True, exist_ok=True)
     fig_dir.mkdir(parents=True, exist_ok=True)
@@ -163,6 +164,7 @@ def run_classify_multi_seed(
             python_bin, "train_classification_pipeline.py",
             "--split-csv", str(split_csv),
             "--metadata-csv", str(metadata_csv),
+            "--model-name", str(model_name),
             "--epochs", str(epochs),
             "--output-dir", str(seed_out_dir),
             "--fig-dir", str(seed_fig_dir),
@@ -390,10 +392,12 @@ def main():
                         help="Đường dẫn đến thư mục chứa 19 lớp ảnh macroscopic wood")
     parser.add_argument("--assets-dir", type=str, default="paper_data_assets",
                         help="Thư mục chứa các tệp metadata, splits và leakage audit")
+    parser.add_argument("--model-name", type=str, default="convnext_tiny",
+                        help="Tên kiến trúc backbone từ timm (mặc định 'convnext_tiny', hỗ trợ 'resnet50', 'swin_tiny_patch4_window7_224', v.v.)")
     parser.add_argument("--batch-size", type=int, default=64,
                         help="Kích thước batch size cho huấn luyện phân loại (mặc định 64)")
     parser.add_argument("--classify-epochs", "--epochs", type=int, default=22, dest="classify_epochs",
-                        help="Số epochs cho mô hình phân loại ConvNeXt-Tiny (mặc định 22)")
+                        help="Số epochs cho mô hình phân loại (mặc định 22)")
     parser.add_argument("--classify-loss", "--loss", type=str, default="focal", dest="classify_loss",
                         choices=["focal", "cross_entropy", "both"],
                         help="Hàm mất mát phân loại: 'focal', 'cross_entropy', hoặc 'both'")
@@ -429,7 +433,7 @@ def main():
     if args.step in ["audit"]:
         run_audit_step(python_bin, assets_dir)
 
-    # BƯỚC 2: HUẤN LUYỆN CLASSIFICATION BASELINE (CONVNEXT-TINY)
+    # BƯỚC 2: HUẤN LUYỆN CLASSIFICATION BASELINE (CONVNEXT-TINY / RESNET50)
     if args.step in ["all", "classify"]:
         metadata_csv = assets_dir / "metadata" / "metadata.csv"
         ensure_disjoint_split_exists(assets_dir)
@@ -454,7 +458,8 @@ def main():
                 seeds=active_seeds,
                 data_dir=args.data_dir,
                 batch_size=args.batch_size,
-                lr=args.classify_lr
+                lr=args.classify_lr,
+                model_name=args.model_name
             )
 
             # 2. Chạy trên Specimen-Disjoint Split (chạy đầy đủ các seeds như Canonical)
@@ -474,7 +479,8 @@ def main():
                 seeds=dis_seeds,
                 data_dir=args.data_dir,
                 batch_size=args.batch_size,
-                lr=args.classify_lr
+                lr=args.classify_lr,
+                model_name=args.model_name
             )
 
             # 3. Tổng hợp bảng so sánh đối chiếu
@@ -486,7 +492,7 @@ def main():
             out_p = Path("baseline_outputs") / args.split_type
             fig_p = Path("paper_data/fig") / args.split_type
 
-            print(f"\n[*] Đang thực thi phân loại trên split [{args.split_type}] với {len(active_seeds)} seeds -> {out_p}...")
+            print(f"\n[*] Đang thực thi phân loại [{args.model_name}] trên split [{args.split_type}] với {len(active_seeds)} seeds -> {out_p}...")
             run_classify_multi_seed(
                 python_bin=python_bin,
                 split_csv=split_csv,
@@ -498,7 +504,8 @@ def main():
                 seeds=active_seeds,
                 data_dir=args.data_dir,
                 batch_size=args.batch_size,
-                lr=args.classify_lr
+                lr=args.classify_lr,
+                model_name=args.model_name
             )
 
     print("\n" + "=" * 78)

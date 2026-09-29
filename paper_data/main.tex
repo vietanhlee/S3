@@ -60,16 +60,7 @@
 \tl_set:Nn \l_fig_align_tl { \centering }
 
 \cs_set:Npn \__first_footerline: {}
-\cs_set:Npn \__first_foot: 
-% {%
-%   \noindent\begin{minipage}[b]{\linewidth}%
-%     \setlength{\parindent}{0pt}%
-%     \noindent\rule{0.32\linewidth}{.4pt}\par\vspace{3pt}%
-%     \noindent\footnotesize\rmfamily%
-%     \textsuperscript{*}Corresponding author.\par\vspace{1pt}%
-%     \noindent\hspace*{1.1em}\textit{E-mail addresses:}~\href{mailto:khanhnt@ptit.edu.vn}{khanhnt@ptit.edu.vn}~(K.~Nguyen-Trong),~\href{mailto:anhlv.b23kh002@stu.ptit.edu.vn}{anhlv.b23kh002@stu.ptit.edu.vn}~(V.-A.~Le)%
-%   \end{minipage}%
-% }
+\cs_set:Npn \__first_foot: {}
 \cs_set:Npn \__cas_foot: 
 {%
   \noindent\begin{minipage}[t]{\linewidth}%
@@ -200,50 +191,50 @@ The ForensicMacroWood-CITES repository encompasses \textbf{19 commercially signi
 14 & \textit{Pterocarpus} & \textit{Pterocarpus erinaceus} & \textvn{Hương vân tây phi} & African Barwood / Kosso & CITES App.~II & 10 & 336 \\
 15 & \textit{Pterocarpus} & \textit{Pterocarpus indicus} & \textvn{Hương mắt chim} & Narra / Amboyna & Non-CITES & 10 & 312 \\
 16 & \textit{Pterocarpus} & \textit{Pterocarpus macrocarpus} & \textvn{Hương quả to} & Burma Padauk & Non-CITES & 8 & 431 \\
-203: 17 & \textit{Pterocarpus} & \textit{Pterocarpus soyauxii} & \textvn{Padouk / Hương padouk} & African Padauk & CITES App.~II\textsuperscript{c} & 6 & 486 \\
-204: \midrule
-205: 18 & \textit{Sindora} & \textit{Sindora cochinchinensis} & \textvn{Gụ} & Sindora / Sepetir & Non-CITES (Native / High-value VN) & 4 & 352 \\
-206: 19 & \textit{Sindora} & \textit{Sindora tonkinensis} & \textvn{Gụ lau} & Tonkin Sepetir & Non-CITES (Native / High-value VN) & 10 & 331 \\
-207: \midrule
-208: \multicolumn{2}{l}{\textbf{Total Benchmark}} & \multicolumn{3}{l}{\textbf{19 Botanical Species (6 Genera, 11 CITES App.~II, 4 High-Value VN)}} & \textbf{Total} & \textbf{148} & \textbf{6,414} \\
-209: \bottomrule
-210: \multicolumn{8}{@{}p{\linewidth}@{}}{\vspace{3pt}\footnotesize \textsuperscript{a}\textit{Afzelia pachyloba} constitutes a statistical minority class ($N=116$ captures) due to acute reference specimen scarcity, while being legally regulated under CITES Appendix~II. \textsuperscript{b}All species of the genus \textit{Dalbergia} (with the exception of \textit{D. nigra} in Appendix~I) are regulated under CITES Appendix~II with annotation \#15 since CoP17 (2017). \textsuperscript{c}\textit{Pterocarpus soyauxii} (African Padauk) is regulated under CITES Appendix~II with annotation \#17 (logs, sawn wood, veneer sheets, plywood and transformed wood) adopted at CoP19 (Panama City, 2022) with entry into force on 23 February 2023.}
-211: \end{tabular}%
-212: }
-213: \end{table}
-214: 
-215: Table~\ref{tab:taxonomic_inventory} details the taxonomic breakdown of the 19 species, providing scientific nomenclature, native Vietnamese vernacular terms, international trade designations, CITES conservation listings, physical specimen cohort sizes ($|\mathcal{G}_c|$, totaling 148 verified wood blocks), and total image volumes.
-216: 
-217: \subsection{Comparative Dataset Positioning}
-218: \label{sec:comparative_positioning}
-219: 
-220: To contextualize the forensic utility and technical characteristics of ForensicMacroWood-CITES, Table~\ref{tab:dataset_comparison} systematically compares its core attributes against prominent publicly available macroscopic wood datasets and recent literature benchmarks~\cite{ravindran2020,ravindran2021,figueroamata2022,song2025,liu2025,nguyentrong2026eucalyptus}. While foundational initiatives such as the XyloTron project~\cite{ravindran2020,ravindran2021} and regional surveys~\cite{figueroamata2022,song2025} have advanced computer vision in forestry, existing public collections typically focus on non-regulated commercial forestry timbers with minimal or zero CITES coverage ($<15\%$) or utilize lower optical magnifications ($10\times$ or non-standardized mobile lenses). In particular, prior institutional work on plantation hardwoods (such as the IC4SD-Wood-Eucalyptus benchmark~\cite{nguyentrong2026eucalyptus}) established rigorous transverse image curation and leakage auditing for the genus \textit{Eucalyptus} (10 species, 2,910 images, $0\%$ CITES), primarily serving pulpwood and timber plantation management. Conversely, specialized studies targeting high-value CITES taxa (such as congeneric \textit{Pterocarpus} discrimination~\cite{liu2025}) remain restricted to private, unshared archives.
-221: 
-222: ForensicMacroWood-CITES introduces a fundamentally distinct, high-impact forensic contribution: (i) it targets \textbf{19 commercially significant tropical hardwoods across 6 genera in the legume family Fabaceae}, featuring a critical concentration of international trade-restricted timbers (\textbf{57.9\% CITES Appendix~II}, 11 regulated species) alongside 4 high-value timber species native to Vietnam (\textit{Dalbergia cochinchinensis}, \textit{Dalbergia tonkinensis}, \textit{Sindora cochinchinensis}, and \textit{Sindora tonkinensis}); (ii) it provides an expert-curated matrix of \textbf{14 diagnostic macroscopic anatomical descriptors} (\texttt{metadata/anatomical\_features.csv}) structured under IAWA xylotomical standards, enabling emerging Multimodal Vision-Language (VLM), Visual Question Answering (VQA), and Explainable AI (XAI) paradigms that were absent in prior single-modality collections; and (iii) it delivers high optical calibration ($12.0\,\mu\text{m/pixel}$, $2.69 \times 2.69\,\text{mm}$ tile FOV, $50\times$ nominal display magnification), verified physical block traceability ($|\mathcal{G}_c| = 148$ wood blocks), governed split manifests with zero bitwise redundancy ($\text{SHA-256 Overlap} = 0$), and audited perceptual boundaries.
-223: 
-224: \begin{table}[pos=htbp]
-225: \centering
-226: \small
-227: \setlength{\tabcolsep}{4.5pt}
-228: \renewcommand{\arraystretch}{1.18}
-229: \caption{Systematic comparison of ForensicMacroWood-CITES against prominent public and literature macroscopic timber datasets, contrasting taxonomic focus, optical magnification, forensic regulation, partition governance, multimodal descriptors, and machine learning accessibility.}
-230: \label{tab:dataset_comparison}
-231: \resizebox{\linewidth}{!}{%
-232: \begin{tabular}{lccccccccc}
-233: \toprule
-234: \textbf{Dataset / Study} & \textbf{Taxonomic Focus} & \makecell{\textbf{No.}\\\textbf{Spp.}} & \makecell{\textbf{Total}\\\textbf{Images}} & \makecell{\textbf{Optical Mag.}\\\textbf{/ Resolution}} & \makecell{\textbf{CITES App.~II}\\\textbf{Ratio (\%)}} & \makecell{\textbf{Partition}\\\textbf{Protocol}} & \makecell{\textbf{Contamination Audit}\\\textbf{(SHA / pHash)}} & \makecell{\textbf{IAWA Multimodal}\\\textbf{Descriptors}} & \makecell{\textbf{Access}\\\textbf{Model}} \\
-235: \midrule
-236: XyloTron Datasets~\cite{ravindran2020,ravindran2021} & Neotropical/US hardwoods & 10--40 & 2,300--5,000 & $10\times$ ($24\,\mu\text{m/px}$) & Low ($<15\%$) & Specimen-level (SLR not reported) & Not reported & No & Open \\
-237: Costa Rican Timbers~\cite{figueroamata2022} & Native Costa Rican trees & 21 & 2,360 & Variable (phone macro) & Minimal ($<5\%$) & Random image split & Not reported & No & Open \\
-238: Asian Commercial~\cite{song2025} & Vietnamese/Asian timber & 15 & $\sim$3,000 & $20\times$--$40\times$ USB & Moderate ($20\%$) & Random $k$-fold (SLR not reported) & Not reported & No & Restricted \\
-239: \textit{Pterocarpus} Discrimination~\cite{liu2025} & \textit{Pterocarpus} genus only & 6 & $\sim$1,800 & $20\times$--$30\times$ stereo & Subset ($50\%$, 3 spp.) & Random split (SLR not reported) & Not reported & No & Private \\
-240: IC4SD-Wood-Eucalyptus~\cite{nguyentrong2026eucalyptus} & Plantation genus \textit{Eucalyptus} & 10 & 2,910 & $12.0\,\mu\text{m/px}$ ($50\times$) & None ($0.0\%$, 0 spp.) & Specimen-aware (audited) & SHA-256 audited & No & Open (CC BY 4.0) \\
-241: \midrule
-242: \textbf{ForensicMacroWood-CITES (This Work)} & \textbf{Tropical Fabaceae (6 genera)} & \textbf{19} & \textbf{6,414} & \textbf{12.0}\,$\mu$\textbf{m/px (50}$\times$ \textbf{nominal)} & \textbf{High (57.9\%, 11 spp.)} & \textbf{Governed Pareto (100\% CCR)} & \textbf{Bitwise \& Perceptual} & \textbf{Yes (14-axis CSV)} & \textbf{Open (CC BY 4.0)} \\
-243: \bottomrule
-244: \end{tabular}%
-245: }
-246: \end{table}
+17 & \textit{Pterocarpus} & \textit{Pterocarpus soyauxii} & \textvn{Padouk / Hương padouk} & African Padauk & CITES App.~II\textsuperscript{c} & 6 & 486 \\
+\midrule
+18 & \textit{Sindora} & \textit{Sindora cochinchinensis} & \textvn{Gụ} & Sindora / Sepetir & Non-CITES (Native / High-value VN) & 4 & 352 \\
+19 & \textit{Sindora} & \textit{Sindora tonkinensis} & \textvn{Gụ lau} & Tonkin Sepetir & Non-CITES (Native / High-value VN) & 10 & 331 \\
+\midrule
+\multicolumn{2}{l}{\textbf{Total Benchmark}} & \multicolumn{3}{l}{\textbf{19 Botanical Species (6 Genera, 11 CITES App.~II, 4 High-Value VN)}} & \textbf{Total} & \textbf{148} & \textbf{6,414} \\
+\bottomrule
+\multicolumn{8}{@{}p{\linewidth}@{}}{\vspace{3pt}\footnotesize \textsuperscript{a}\textit{Afzelia pachyloba} constitutes a statistical minority class ($N=116$ captures) due to acute reference specimen scarcity, while being legally regulated under CITES Appendix~II. \textsuperscript{b}All species of the genus \textit{Dalbergia} (with the exception of \textit{D. nigra} in Appendix~I) are regulated under CITES Appendix~II with annotation \#15 since CoP17 (2017). \textsuperscript{c}\textit{Pterocarpus soyauxii} (African Padauk) is regulated under CITES Appendix~II with annotation \#17 (logs, sawn wood, veneer sheets, plywood and transformed wood) adopted at CoP19 (Panama City, 2022) with entry into force on 23 February 2023.}
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:taxonomic_inventory} details the taxonomic breakdown of the 19 species, providing scientific nomenclature, native Vietnamese vernacular terms, international trade designations, CITES conservation listings, physical specimen cohort sizes ($|\mathcal{G}_c|$, totaling 148 verified wood blocks), and total image volumes.
+
+\subsection{Comparative Dataset Positioning}
+\label{sec:comparative_positioning}
+
+To contextualize the forensic utility and technical characteristics of ForensicMacroWood-CITES, Table~\ref{tab:dataset_comparison} systematically compares its core attributes against prominent publicly available macroscopic wood datasets and recent literature benchmarks~\cite{ravindran2020,ravindran2021,figueroamata2022,song2025,liu2025,nguyentrong2026eucalyptus}. While foundational initiatives such as the XyloTron project~\cite{ravindran2020,ravindran2021} and regional surveys~\cite{figueroamata2022,song2025} have advanced computer vision in forestry, existing public collections typically focus on non-regulated commercial forestry timbers with minimal or zero CITES coverage ($<15\%$) or utilize lower optical magnifications ($10\times$ or non-standardized mobile lenses). In particular, prior institutional work on plantation hardwoods (such as the IC4SD-Wood-Eucalyptus benchmark~\cite{nguyentrong2026eucalyptus}) established rigorous transverse image curation and leakage auditing for the genus \textit{Eucalyptus} (10 species, 2,910 images, $0\%$ CITES), primarily serving pulpwood and timber plantation management. Conversely, specialized studies targeting high-value CITES taxa (such as congeneric \textit{Pterocarpus} discrimination~\cite{liu2025}) remain restricted to private, unshared archives.
+
+ForensicMacroWood-CITES introduces a fundamentally distinct, high-impact forensic contribution: (i) it targets \textbf{19 commercially significant tropical hardwoods across 6 genera in the legume family Fabaceae}, featuring a critical concentration of international trade-restricted timbers (\textbf{57.9\% CITES Appendix~II}, 11 regulated species) alongside 4 high-value timber species native to Vietnam (\textit{Dalbergia cochinchinensis}, \textit{Dalbergia tonkinensis}, \textit{Sindora cochinchinensis}, and \textit{Sindora tonkinensis}); (ii) it provides an expert-curated matrix of \textbf{14 diagnostic macroscopic anatomical descriptors} (\texttt{metadata/anatomical\_features.csv}) structured under IAWA xylotomical standards, enabling emerging Multimodal Vision-Language (VLM), Visual Question Answering (VQA), and Explainable AI (XAI) paradigms that were absent in prior single-modality collections; and (iii) it delivers high optical calibration ($12.0\,\mu\text{m/pixel}$, $2.69 \times 2.69\,\text{mm}$ tile FOV, $50\times$ nominal display magnification), verified physical block traceability ($|\mathcal{G}_c| = 148$ wood blocks), governed split manifests with zero bitwise redundancy ($\text{SHA-256 Overlap} = 0$), and audited perceptual boundaries.
+
+\begin{table}[pos=htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Systematic comparison of ForensicMacroWood-CITES against prominent public and literature macroscopic timber datasets, contrasting taxonomic focus, optical magnification, forensic regulation, partition governance, multimodal descriptors, and machine learning accessibility.}
+\label{tab:dataset_comparison}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccccccc}
+\toprule
+\textbf{Dataset / Study} & \textbf{Taxonomic Focus} & \makecell{\textbf{No.}\\\textbf{Spp.}} & \makecell{\textbf{Total}\\\textbf{Images}} & \makecell{\textbf{Optical Mag.}\\\textbf{/ Resolution}} & \makecell{\textbf{CITES App.~II}\\\textbf{Ratio (\%)}} & \makecell{\textbf{Partition}\\\textbf{Protocol}} & \makecell{\textbf{Contamination Audit}\\\textbf{(SHA / pHash)}} & \makecell{\textbf{IAWA Multimodal}\\\textbf{Descriptors}} & \makecell{\textbf{Access}\\\textbf{Model}} \\
+\midrule
+XyloTron Datasets~\cite{ravindran2020,ravindran2021} & Neotropical/US hardwoods & 10--40 & 2,300--5,000 & $10\times$ ($24\,\mu\text{m/px}$) & Low ($<15\%$) & Specimen-level (SLR not reported) & Not reported & No & Open \\
+Costa Rican Timbers~\cite{figueroamata2022} & Native Costa Rican trees & 21 & 2,360 & Variable (phone macro) & Minimal ($<5\%$) & Random image split & Not reported & No & Open \\
+Asian Commercial~\cite{song2025} & Vietnamese/Asian timber & 15 & $\sim$3,000 & $20\times$--$40\times$ USB & Moderate ($20\%$) & Random $k$-fold (SLR not reported) & Not reported & No & Restricted \\
+\textit{Pterocarpus} Discrimination~\cite{liu2025} & \textit{Pterocarpus} genus only & 6 & $\sim$1,800 & $20\times$--$30\times$ stereo & Subset ($50\%$, 3 spp.) & Random split (SLR not reported) & Not reported & No & Private \\
+IC4SD-Wood-Eucalyptus~\cite{nguyentrong2026eucalyptus} & Plantation genus \textit{Eucalyptus} & 10 & 2,910 & $12.0\,\mu\text{m/px}$ ($50\times$) & None ($0.0\%$, 0 spp.) & Specimen-aware (audited) & SHA-256 audited & No & Open (CC BY 4.0) \\
+\midrule
+\textbf{ForensicMacroWood-CITES (This Work)} & \textbf{Tropical Fabaceae (6 genera)} & \textbf{19} & \textbf{6,414} & \textbf{12.0}\,$\mu$\textbf{m/px (50}$\times$ \textbf{nominal)} & \textbf{High (57.9\%, 11 spp.)} & \textbf{Governed Pareto (100\% CCR)} & \textbf{Bitwise \& Perceptual} & \textbf{Yes (14-axis CSV)} & \textbf{Open (CC BY 4.0)} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
 
 \subsection{Repository Architecture and Metadata Schema}
 
@@ -489,6 +480,8 @@ Authors should report top-1 accuracy alongside macro-averaged and weighted F1-sc
 \section{Experimental Design, Materials and Methods}
 \label{sec:methods}
 
+Accurate discrimination of timber species is an essential regulatory and forensic requirement in global forest-product supply chains, particularly for high-value tropical hardwoods subject to international trade controls under CITES Appendix~II~\cite{dormontt2015,cites}. While conventional histological microtome sectioning and light microscopy remain authoritative diagnostic standards, high-density tropical timbers (frequently exceeding $0.85\,\text{g/cm}^3$, such as \textit{Dalbergia} and \textit{Pterocarpus}) require prolonged chemical or thermal softening (often 12--24~hours), sectioning at $15\text{--}25\,\mu\text{m}$, staining, and manual IAWA feature cross-referencing, requiring 2 to 5 business days per sample and specialized xylarium infrastructure~\cite{dormontt2015,iawa1989,wiedenhoeft2011}. To overcome these logistical bottlenecks, macroscopic end-grain imaging under calibrated optical magnification coupled with computer vision has emerged as a rapid, accessible screening modality~\cite{woodreview,ravindran2020,ravindran2022}. The experimental workflow established herein was engineered to guarantee optical fidelity, taxonomic authenticity, and partition rigor under authentic reference xylarium constraints.
+
 \subsection{Specimen Preparation and Optical Macro-Imaging}
 
 Specimen preparation and optical surface conditioning followed standardized multi-stage laboratory procedures:
@@ -530,12 +523,12 @@ To guarantee benchmark integrity and operational validity under authentic xylari
 
 Standardized $224 \times 224$ px images are normalized during training using ImageNet channel statistics ($\boldsymbol{\mu} = [0.485, 0.456, 0.406]$, $\boldsymbol{\sigma} = [0.229, 0.224, 0.225]$). Training augmentations include random resized crops (scale $0.8$--$1.0$), random horizontal and vertical flips ($p = 0.5$), mild color jitter (factors of $0.25$, hue $0.05$), and subtle grayscale conversion ($p = 0.05$).
 
-\section{Technical Validation}
+\subsection{Technical Validation}
 \label{sec:technical_validation}
 
 To verify the technical usability, integrity, and reproducibility of the released dataset, metadata tables, and governed partition manifests, a supervised technical-validation baseline experiment was conducted using the modern ConvNeXt-Tiny architecture~\cite{convnext} under Multiclass Focal Loss. In accordance with the publication mandate of \textit{Data in Brief}, this baseline experiment serves strictly to confirm dataset functionality, establish a standard reference benchmark, and demonstrate turnkey execution for timber forensics, rather than presenting exhaustive algorithmic comparisons or exploring complex invariance formulations, which are reserved for dedicated machine learning research publications.
 
-\subsection{Supervised Classification Baseline}
+\subsubsection{Supervised Classification Baseline}
 \label{sec:classification_baseline}
 
 The classification baseline fine-tunes the ConvNeXt-Tiny architecture~\cite{convnext} (pre-trained on ImageNet-1K) on the governed training partition ($N_{\text{train}} = 3,959$). To address natural class imbalance across the 19 Fabaceae species without synthetic oversampling, the network was optimized under Multiclass Focal Loss~\cite{focal} ($\alpha = 0.25, \gamma = 2.0$) using AdamW ($\eta = 5 \times 10^{-4}$, weight decay $10^{-2}$) and a cosine annealing schedule over 30 epochs (batch size 64). Checkpoint selection was governed strictly by validation macro-F1 score.
@@ -608,7 +601,34 @@ Inspection of the multi-seed averaged test-set confusion matrix (Figure~\ref{fig
 \label{fig:confusion_matrix}
 \end{figure}
 
-\subsection{Comparative Technical Validation: Operational Canonical vs. Strict Specimen-Disjoint Benchmarks}
+\noindent
+\textbf{Ablation of Loss Objectives and Backbone Architectures}:
+To quantify the individual contribution of the training objective under authentic class imbalance and examine the effect of convolutional receptive fields on macroscopic wood anatomy, Table~\ref{tab:ablation_loss_and_model} reports an empirical ablation comparing the default Multiclass Focal Loss ($\alpha=0.25, \gamma=2.0$) against the standard Cross-Entropy objective, alongside a comparative reference evaluation utilizing the classical ResNet-50 architecture~\cite{resnet}, each evaluated across five independent random initializations ($N=5$ seeds, reporting sample mean, sample standard deviation, and Student's $t$ 95\% CI).
+
+\begin{table}[pos=htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Empirical comparison of objective loss functions (Multiclass Focal Loss vs. Standard Cross-Entropy) and backbone architectures (ConvNeXt-Tiny vs. ResNet-50) evaluated on the held-out canonical test partition ($N_{\text{test}} = 1,190$), aggregated across five independent random seeds ($N=5$, reported as $\text{Mean} \pm \text{Std}$ with two-tailed Student's $t$ 95\% CI).}
+\label{tab:ablation_loss_and_model}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model Architecture \& Loss Objective} & \makecell{\textbf{Top-1 Accuracy}\\\textbf{(\%)}} & \makecell{\textbf{Macro Precision}\\\textbf{(\%)}} & \makecell{\textbf{Macro Recall}\\\textbf{(\%)}} & \makecell{\textbf{Macro F1-Score}\\\textbf{(\%)}} & \makecell{\textbf{Weighted F1-Score}\\\textbf{(\%)}} \\
+\midrule
+ConvNeXt-Tiny + Standard Cross-Entropy & $88.65 \pm 0.42$ \footnotesize{([88.13, 89.17])} & $88.90 \pm 0.48$ & $81.52 \pm 0.65$ & $83.15 \pm 0.58$ \footnotesize{([82.43, 83.87])} & $87.20 \pm 0.45$ \footnotesize{([86.64, 87.76])} \\
+ResNet-50 + Multiclass Focal Loss & $87.92 \pm 0.46$ \footnotesize{([87.35, 88.49])} & $88.45 \pm 0.51$ & $82.10 \pm 0.62$ & $83.45 \pm 0.54$ \footnotesize{([82.78, 84.12])} & $86.58 \pm 0.48$ \footnotesize{([85.98, 87.18])} \\
+\midrule
+\textbf{ConvNeXt-Tiny + Multiclass Focal Loss (Proposed)} & $\mathbf{90.42 \pm 0.38}$ \footnotesize{([89.95, 90.89])} & $\mathbf{91.67 \pm 0.42}$ & $\mathbf{88.18 \pm 0.51}$ & $\mathbf{86.80 \pm 0.45}$ \footnotesize{([86.24, 87.36])} & $\mathbf{88.82 \pm 0.41}$ \footnotesize{([88.31, 89.33])} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+As documented in Table~\ref{tab:ablation_loss_and_model}, ConvNeXt-Tiny under Multiclass Focal Loss achieves the highest balanced discrimination across all metrics, yielding a $+3.65\%$ gain in Macro F1 over standard Cross-Entropy by down-weighting well-classified majority tiles and prioritizing gradients on scarce forensic taxa (e.g., \textit{Afzelia pachyloba}). The modern $7 \times 7$ depthwise convolutions of ConvNeXt-Tiny further outperform standard $3 \times 3$ ResNet-50 convolutions by $+3.35\%$ Macro F1, reflecting superior modeling of wide-field parenchyma halos and pore spatial distributions.
+
+\subsubsection{Comparative Technical Validation: Operational Canonical vs. Strict Specimen-Disjoint Benchmarks}
 \label{sec:comparative_validation}
 
 To empirically substantiate the dual-benchmark architecture and provide concrete reference figures for both partition protocols introduced in Section~\ref{sec:description}, Table~\ref{tab:split_comparison_baseline} directly contrasts the ConvNeXt-Tiny classification baseline across the Operational Canonical Split and the Strict Specimen-Disjoint Split, both evaluated across five independent random initializations ($N=5$ seeds, reporting $\text{Mean} \pm \text{Std}$ alongside two-tailed Student's $t$ 95\% CI).
@@ -645,7 +665,7 @@ As documented in Table~\ref{tab:split_comparison_baseline}, across five independ
 
 From an authentic wood anatomy perspective, this performance gap provides critical biological and methodological confirmation rather than reflecting algorithmic failure. In the canonical split, controlled block sharing across partitions permits deep convolutional backbones to exploit subtle, localized intra-specimen idiosyncratic micro-features (such as local growth-ring compression, specific surface oxidation shades, or micro-vessel grouping peculiarities unique to an individual physical block). Conversely, under the strict specimen-disjoint split, the model is compelled to generalize across genuine inter-individual biological variance---including substantial differences in vessel lumen diameter, axial parenchyma band spacing, and heartwood extractive pigmentation driven by tree ontogeny, cambial age, micro-climate, and geographic provenance. The observed $8.07\%$ accuracy gap quantitatively demonstrates that naive random splitting or uncontrolled specimen sharing in prior timber benchmarks artificially inflates classification metrics, and confirms that ForensicMacroWood-CITES provides the research community with both: (i) an operational, full-taxa forensic screening benchmark ($\text{CCR} = 100\%$, Table~\ref{tab:split_allocation}) designed for immediate customs screening, and (ii) an authentic, out-of-distribution generalization benchmark ($\text{SLR} = 0.0\%$, Table~\ref{tab:split_disjoint_allocation}) that directly exposes the scientific challenge of biological specimen invariance. In accordance with the mandate of \textit{Data in Brief}, further algorithmic explorations---such as specimen-invariant metric learning, domain generalization across physical growth provenances, and causal feature disentanglement---are reserved for dedicated machine learning research publications.
 
-\section{Limitations}
+\subsection{Limitations and Practical Considerations}
 \label{sec:limitations}
 
 Several practical limitations and methodological trade-offs should be considered when utilizing the ForensicMacroWood-CITES benchmark:
