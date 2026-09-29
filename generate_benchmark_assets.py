@@ -3,17 +3,17 @@
 generate_benchmark_assets.py
 ============================
 Bộ công cụ tự động hóa toàn diện cho việc tạo lập và chuẩn hóa tài nguyên
-dataset IC4SDMacroWood phục vụ công bố trên Elsevier Data in Brief.
+dataset ForensicMacroWood-CITES phục vụ công bố trên Elsevier Data in Brief.
 
 Chức năng:
   1. Quét kho dữ liệu ảnh, tự động lọc bỏ các taxon chưa định danh (Pterocarpus sp.).
-  2. Xác thực 19 loài thuộc 6 chi họ Fabaceae (chuẩn 7,278 ảnh macro 50x).
+  2. Xác thực 19 loài thuộc 6 chi họ Fabaceae (chuẩn 6,414 ảnh macro 50x đã lọc nét).
   3. Tính toán chỉ số độ nét quang học Laplacian Variance (sigma^2_Laplacian) chống ảnh out nét.
   4. Tính toán mã băm mật mã 256-bit SHA-256 cho từng file để chống trùng lặp bitwise.
-  5. Phân bổ dữ liệu theo giao thức Canonical Split (Train: 4,960 / Val: 1,253 / Test: 1,065).
+  5. Phân bổ dữ liệu theo giao thức Canonical Split (Train: 3,959 / Val: 1,265 / Test: 1,190).
   6. Thực thi kiểm định rò rỉ mẫu vật (Specimen-Level Leakage Audit): đảm bảo SLR = 0.0%, CCR = 100.0%.
   7. Xuất bản cấu trúc tài nguyên chuẩn:
-     - metadata/metadata.csv (13 trường thuộc tính chuẩn mực)
+     - metadata/metadata.csv (14 trường thuộc tính chuẩn mực)
      - metadata/label_map.json (ánh xạ nhãn máy đọc)
      - metadata/release_manifest.csv (bản kê băm SHA-256 & kích thước file)
      - splits/split_canonical.csv (danh sách phân chia Train/Val/Test)
@@ -798,8 +798,8 @@ def main():
             except Exception:
                 pass
 
-    # 8. Thẩm định rò rỉ dữ liệu (Leakage Audit) cho cả hai Split (3 Cấp độ)
-    audit_canonical = audit_leakage(df, protocol_name="Canonical (Legacy)", embeddings=existing_embs)
+    # 8. Thẩm định rò rỉ dữ liệu (Leakage Audit) cho cả hai Split (2 Cấp độ: SHA-256 & Perceptual Hash)
+    audit_canonical = audit_leakage(df, protocol_name="Canonical (Legacy)", embeddings=None)
     audit_json_canonical = out_dir / "leakage_audit" / "audit_summary_canonical.json"
     with open(audit_json_canonical, "w", encoding="utf-8") as f:
         json.dump(audit_canonical, f, indent=2)
@@ -807,13 +807,13 @@ def main():
     with open(out_dir / "leakage_audit" / "audit_summary.json", "w", encoding="utf-8") as f:
         json.dump(audit_canonical, f, indent=2)
 
-    audit_disjoint = audit_leakage(df_disjoint, protocol_name="Strict Specimen-Disjoint", embeddings=existing_embs)
+    audit_disjoint = audit_leakage(df_disjoint, protocol_name="Strict Specimen-Disjoint", embeddings=None)
     audit_json_disjoint = out_dir / "leakage_audit" / "audit_summary_specimen_disjoint.json"
     with open(audit_json_disjoint, "w", encoding="utf-8") as f:
         json.dump(audit_disjoint, f, indent=2)
 
     print("\n" + "=" * 94)
-    print("      BẢNG ĐỐI CHIẾU THẨM ĐỊNH RÒ RỈ MẪU VẬT & TRÙNG LẶP TRI GIÁC (THREE-TIER AUDIT)      ")
+    print("      BẢNG ĐỐI CHIẾU THẨM ĐỊNH RÒ RỈ MẪU VẬT & TRÙNG LẶP TRI GIÁC (TWO-TIER AUDIT)       ")
     print("=" * 94)
     print(f"{'Tiêu chí kiểm định':<40} | {'Canonical (Legacy)':<22} | {'Specimen-Disjoint':<22}")
     print("-" * 94)
@@ -834,17 +834,6 @@ def main():
     d4_c = audit_canonical.get("perceptual_audit", {}).get("dhash_test_vs_train", {}).get("near_duplicate_count_dist_le_4", 0)
     d4_d = audit_disjoint.get("perceptual_audit", {}).get("dhash_test_vs_train", {}).get("near_duplicate_count_dist_le_4", 0)
     print(f"{'3. Ảnh gần giống / chồng lấn (dHash <= 4)':<40} | {d4_c:<22} | {d4_d:<22}")
-
-    if existing_embs is not None:
-        e_c = audit_canonical.get("embedding_similarity_audit", {})
-        e_d = audit_disjoint.get("embedding_similarity_audit", {})
-        max_c = e_c.get("max_cosine_similarity", 0.0)
-        max_d = e_d.get("max_cosine_similarity", 0.0)
-        c95_c = e_c.get("count_similarity_ge_0_95", 0)
-        c95_d = e_d.get("count_similarity_ge_0_95", 0)
-        print(f"{'4. Tương đồng Cosine cực đại (Max Sim)':<40} | {max_c:<22.4f} | {max_d:<22.4f}")
-        print(f"{'5. Trùng lặp biểu diễn sâu (Cos Sim >= 0.95)':<40} | {c95_c:<22} | {c95_d:<22}")
-
     print("=" * 94)
 
     # 9. Trích xuất Embeddings nếu được yêu cầu
