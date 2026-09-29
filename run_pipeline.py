@@ -289,16 +289,17 @@ def run_split_comparison_summary(
             try:
                 with open(multi_p, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    agg = data.get("aggregate_metrics", {})
+                    agg = data.get("overall_statistics") or data.get("aggregate_metrics") or {}
+                    acc_obj = agg.get("overall_accuracy") or agg.get("accuracy") or {}
                     return {
-                        "accuracy": agg.get("accuracy", {}).get("mean", 0.0),
+                        "accuracy": acc_obj.get("mean", 0.0),
                         "macro_precision": agg.get("macro_precision", {}).get("mean", 0.0),
                         "macro_recall": agg.get("macro_recall", {}).get("mean", 0.0),
                         "macro_f1": agg.get("macro_f1", {}).get("mean", 0.0),
                         "weighted_f1": agg.get("weighted_f1", {}).get("mean", 0.0),
                     }
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[!] Warning: Lỗi khi đọc multi_seed summary từ {multi_p}: {e}")
 
         single_p = d / f"classification_results_{loss_tag}.json"
         if not single_p.exists():
@@ -312,15 +313,16 @@ def run_split_comparison_summary(
             try:
                 with open(single_p, "r", encoding="utf-8") as f:
                     data = json.load(f)
+                    sm = data.get("summary_metrics") or data
                     return {
-                        "accuracy": data.get("accuracy", 0.0),
-                        "macro_precision": data.get("macro_precision", 0.0),
-                        "macro_recall": data.get("macro_recall", 0.0),
-                        "macro_f1": data.get("macro_f1", 0.0),
-                        "weighted_f1": data.get("weighted_f1", 0.0),
+                        "accuracy": sm.get("overall_accuracy", sm.get("accuracy", 0.0)),
+                        "macro_precision": sm.get("macro_precision", 0.0),
+                        "macro_recall": sm.get("macro_recall", 0.0),
+                        "macro_f1": sm.get("macro_f1", 0.0),
+                        "weighted_f1": sm.get("weighted_f1", 0.0),
                     }
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[!] Warning: Lỗi khi đọc single_p {single_p}: {e}")
         return {"accuracy": 0.0, "macro_precision": 0.0, "macro_recall": 0.0, "macro_f1": 0.0, "weighted_f1": 0.0}
 
     m_can = load_metrics(canonical_dir)

@@ -601,33 +601,6 @@ Inspection of the multi-seed averaged test-set confusion matrix (Figure~\ref{fig
 \label{fig:confusion_matrix}
 \end{figure}
 
-\noindent
-\textbf{Ablation of Loss Objectives and Backbone Architectures}:
-To quantify the individual contribution of the training objective under authentic class imbalance and examine the effect of convolutional receptive fields on macroscopic wood anatomy, Table~\ref{tab:ablation_loss_and_model} reports an empirical ablation comparing the default Multiclass Focal Loss ($\alpha=0.25, \gamma=2.0$) against the standard Cross-Entropy objective, alongside a comparative reference evaluation utilizing the classical ResNet-50 architecture~\cite{resnet}, each evaluated across five independent random initializations ($N=5$ seeds, reporting sample mean, sample standard deviation, and Student's $t$ 95\% CI).
-
-\begin{table}[pos=htbp]
-\centering
-\small
-\setlength{\tabcolsep}{4.5pt}
-\renewcommand{\arraystretch}{1.18}
-\caption{Empirical comparison of objective loss functions (Multiclass Focal Loss vs. Standard Cross-Entropy) and backbone architectures (ConvNeXt-Tiny vs. ResNet-50) evaluated on the held-out canonical test partition ($N_{\text{test}} = 1,190$), aggregated across five independent random seeds ($N=5$, reported as $\text{Mean} \pm \text{Std}$ with two-tailed Student's $t$ 95\% CI).}
-\label{tab:ablation_loss_and_model}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccc}
-\toprule
-\textbf{Model Architecture \& Loss Objective} & \makecell{\textbf{Top-1 Accuracy}\\\textbf{(\%)}} & \makecell{\textbf{Macro Precision}\\\textbf{(\%)}} & \makecell{\textbf{Macro Recall}\\\textbf{(\%)}} & \makecell{\textbf{Macro F1-Score}\\\textbf{(\%)}} & \makecell{\textbf{Weighted F1-Score}\\\textbf{(\%)}} \\
-\midrule
-ConvNeXt-Tiny + Standard Cross-Entropy & $88.65 \pm 0.42$ \footnotesize{([88.13, 89.17])} & $88.90 \pm 0.48$ & $81.52 \pm 0.65$ & $83.15 \pm 0.58$ \footnotesize{([82.43, 83.87])} & $87.20 \pm 0.45$ \footnotesize{([86.64, 87.76])} \\
-ResNet-50 + Multiclass Focal Loss & $87.92 \pm 0.46$ \footnotesize{([87.35, 88.49])} & $88.45 \pm 0.51$ & $82.10 \pm 0.62$ & $83.45 \pm 0.54$ \footnotesize{([82.78, 84.12])} & $86.58 \pm 0.48$ \footnotesize{([85.98, 87.18])} \\
-\midrule
-\textbf{ConvNeXt-Tiny + Multiclass Focal Loss (Proposed)} & $\mathbf{90.42 \pm 0.38}$ \footnotesize{([89.95, 90.89])} & $\mathbf{91.67 \pm 0.42}$ & $\mathbf{88.18 \pm 0.51}$ & $\mathbf{86.80 \pm 0.45}$ \footnotesize{([86.24, 87.36])} & $\mathbf{88.82 \pm 0.41}$ \footnotesize{([88.31, 89.33])} \\
-\bottomrule
-\end{tabular}%
-}
-\end{table}
-
-As documented in Table~\ref{tab:ablation_loss_and_model}, ConvNeXt-Tiny under Multiclass Focal Loss achieves the highest balanced discrimination across all metrics, yielding a $+3.65\%$ gain in Macro F1 over standard Cross-Entropy by down-weighting well-classified majority tiles and prioritizing gradients on scarce forensic taxa (e.g., \textit{Afzelia pachyloba}). The modern $7 \times 7$ depthwise convolutions of ConvNeXt-Tiny further outperform standard $3 \times 3$ ResNet-50 convolutions by $+3.35\%$ Macro F1, reflecting superior modeling of wide-field parenchyma halos and pore spatial distributions.
-
 \subsubsection{Comparative Technical Validation: Operational Canonical vs. Strict Specimen-Disjoint Benchmarks}
 \label{sec:comparative_validation}
 
