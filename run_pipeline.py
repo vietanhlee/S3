@@ -41,7 +41,11 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-from utils.statistical_testing import aggregate_multi_seed_results, print_statistical_summary_table
+from utils.statistical_testing import (
+    aggregate_multi_seed_results,
+    print_statistical_summary_table,
+    plot_averaged_confusion_matrix
+)
 
 
 def run_command(cmd: List[str]) -> None:
@@ -217,8 +221,155 @@ def run_classify_multi_seed(
             print(f"[+] Đã lưu bảng Classification Report (Mean ± Std): {stat_txt_path}")
 
         print_statistical_summary_table(summary_stats)
+
+        # Tự động vẽ và lưu Averaged Confusion Matrix & Representative Seed Confusion Matrix
+        cm_stats = summary_stats.get("confusion_matrix_statistics", {})
+        if "averaged_confusion_matrix" in cm_stats and "class_names" in cm_stats:
+            avg_cm = cm_stats["averaged_confusion_matrix"]
+            c_names = cm_stats["class_names"]
+            rep_seed = cm_stats.get("representative_seed", seeds[0])
+
+            # 1. Vẽ ma trận trung bình chuẩn hóa qua các seeds
+            plot_averaged_confusion_matrix(avg_cm, c_names, fig_dir / "confusion_matrix_focal_test_averaged", num_seeds=len(seed_payloads))
+            plot_averaged_confusion_matrix(avg_cm, c_names, fig_dir / "confusion_matrix_focal_test", num_seeds=len(seed_payloads))
+
+            # Đồng bộ sang paper_data/fig nếu có
+            paper_fig_dir = Path("paper_data/fig")
+            if paper_fig_dir.exists():
+                plot_averaged_confusion_matrix(avg_cm, c_names, paper_fig_dir / "confusion_matrix_focal_test", num_seeds=len(seed_payloads))
+
+            # 2. Đồng bộ ma trận của Representative Seed để người dùng có cả 2 lựa chọn
+            rep_fig_dir = fig_dir / f"seed_{rep_seed}"
+            if rep_fig_dir.exists():
+                for ext in [".pdf", ".png"]:
+                    rep_src = rep_fig_dir / f"confusion_matrix_focal_test{ext}"
+                    if rep_src.exists():
+                        shutil.copy(rep_src, fig_dir / f"confusion_matrix_focal_test_representative{ext}")
+                        if paper_fig_dir.exists():
+                            shutil.copy(rep_src, paper_fig_dir / f"confusion_matrix_focal_test_representative{ext}")
+            print(f"[+] Đã tạo thành công: (1) Averaged Confusion Matrix và (2) Representative Seed ({rep_seed}) Matrix.")
     elif len(seed_payloads) == 1:
         print("\n[+] Đã hoàn thành huấn luyện với 1 seed duy nhất.")
+
+
+def ensure_disjoint_split_exists(assets_dir: Path) -> Path:
+    """Tự động kiểm tra và sinh tệp split_specimen_disjoint.csv nếu chưa tồn tại."""
+    disjoint_path = assets_dir / "splits" / "split_specimen_disjoint.csv"
+    if not disjoint_path.exists():
+        print(f"[*] Chưa phát hiện '{disjoint_path}'. Đang tự động khởi tạo từ metadata.csv...")
+        try:
+            from create_specimen_disjoint_split import generate_disjoint_split
+            meta_csv = assets_dir / "metadata" / "metadata.csv"
+            if not meta_csv.exists() and (Path("out") / "metadata" / "metadata.csv").exists():
+                meta_csv = Path("out") / "metadata" / "metadata.csv"
+            generate_disjoint_split(meta_csv, disjoint_path, seed=42)
+            print(f"[+] Đã tự động sinh thành công: {disjoint_path}")
+        except Exception as e:
+            print(f"[!] Lỗi khi tự động sinh split_specimen_disjoint.csv: {e}")
+    return disjoint_path
+
+
+def run_split_comparison_summary(
+    canonical_dir: Path,
+    disjoint_dir: Path,
+    output_dir: Path,
+    loss_tag: str = "focal"
+) -> Dict[str, Any]:
+    """Tổng hợp đối chiếu kết quả giữa Canonical Split và Specimen-Disjoint Split."""
+    print("\n" + "=" * 90)
+    print("      BẢNG ĐỐI CHIẾU ĐÁNH GIÁ: CANONICAL SPLIT vs. STRICT SPECIMEN-DISJOINT SPLIT       ")
+    print("=" * 90)
+
+    def load_metrics(d: Path) -> Dict[str, float]:
+        # Ưu tiên multi_seed summary nếu có, nếu không lấy kết quả của seed đầu
+        multi_p = d / "multi_seed_statistical_summary.json"
+        if multi_p.exists():
+            try:
+                with open(multi_p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    agg = data.get("aggregate_metrics", {})
+                    return {
+                        "accuracy": agg.get("accuracy", {}).get("mean", 0.0),
+                        "macro_precision": agg.get("macro_precision", {}).get("mean", 0.0),
+                        "macro_recall": agg.get("macro_recall", {}).get("mean", 0.0),
+                        "macro_f1": agg.get("macro_f1", {}).get("mean", 0.0),
+                        "weighted_f1": agg.get("weighted_f1", {}).get("mean", 0.0),
+                    }
+            except Exception:
+                pass
+
+        single_p = d / f"classification_results_{loss_tag}.json"
+        if not single_p.exists():
+            for sub in d.glob("seed_*"):
+                cand = sub / f"classification_results_{loss_tag}.json"
+                if cand.exists():
+                    single_p = cand
+                    break
+
+        if single_p.exists():
+            try:
+                with open(single_p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return {
+                        "accuracy": data.get("accuracy", 0.0),
+                        "macro_precision": data.get("macro_precision", 0.0),
+                        "macro_recall": data.get("macro_recall", 0.0),
+                        "macro_f1": data.get("macro_f1", 0.0),
+                        "weighted_f1": data.get("weighted_f1", 0.0),
+                    }
+            except Exception:
+                pass
+        return {"accuracy": 0.0, "macro_precision": 0.0, "macro_recall": 0.0, "macro_f1": 0.0, "weighted_f1": 0.0}
+
+    m_can = load_metrics(canonical_dir)
+    m_dis = load_metrics(disjoint_dir)
+
+    comparison = {
+        "canonical_split": m_can,
+        "specimen_disjoint_split": m_dis,
+        "gap_delta": {
+            k: round(m_dis.get(k, 0.0) - m_can.get(k, 0.0), 4) for k in m_can
+        }
+    }
+
+    print(f"{'Chỉ số đánh giá (Evaluation Metric)':<36} | {'Canonical Split':<18} | {'Specimen-Disjoint':<18} | {'Gap (Delta)':<12}")
+    print("-" * 90)
+    for k, label in [
+        ("accuracy", "Overall Top-1 Accuracy"),
+        ("macro_precision", "Macro Precision"),
+        ("macro_recall", "Macro Recall"),
+        ("macro_f1", "Macro F1-Score"),
+        ("weighted_f1", "Weighted F1-Score")
+    ]:
+        v_can = m_can.get(k, 0.0) * 100
+        v_dis = m_dis.get(k, 0.0) * 100
+        delta = (v_dis - v_can)
+        delta_str = f"{delta:+.2f}%"
+        print(f"{label:<36} | {v_can:>6.2f}%{'':<11} | {v_dis:>6.2f}%{'':<11} | {delta_str:>8}")
+    print("=" * 90)
+
+    # Lưu JSON & Markdown
+    out_json = output_dir / "split_comparison_summary.json"
+    with open(out_json, "w", encoding="utf-8") as f:
+        json.dump(comparison, f, indent=2)
+    print(f"[+] Đã lưu bản ghi so sánh: {out_json}")
+
+    out_md = output_dir / "split_comparison_summary.md"
+    md_content = f"""# Báo cáo Đối chiếu Phân vùng: Canonical vs. Specimen-Disjoint
+
+| Chỉ số đánh giá | Canonical Governed Split | Strict Specimen-Disjoint Split | Generalization Gap (Delta) |
+| :--- | :---: | :---: | :---: |
+| **Overall Top-1 Accuracy** | **{m_can.get('accuracy',0)*100:.2f}%** | **{m_dis.get('accuracy',0)*100:.2f}%** | **{(m_dis.get('accuracy',0)-m_can.get('accuracy',0))*100:+.2f}%** |
+| **Macro Precision** | {m_can.get('macro_precision',0)*100:.2f}% | {m_dis.get('macro_precision',0)*100:.2f}% | {(m_dis.get('macro_precision',0)-m_can.get('macro_precision',0))*100:+.2f}% |
+| **Macro Recall** | {m_can.get('macro_recall',0)*100:.2f}% | {m_dis.get('macro_recall',0)*100:.2f}% | {(m_dis.get('macro_recall',0)-m_can.get('macro_recall',0))*100:+.2f}% |
+| **Macro F1-Score** | **{m_can.get('macro_f1',0)*100:.2f}%** | **{m_dis.get('macro_f1',0)*100:.2f}%** | **{(m_dis.get('macro_f1',0)-m_can.get('macro_f1',0))*100:+.2f}%** |
+| **Weighted F1-Score** | {m_can.get('weighted_f1',0)*100:.2f}% | {m_dis.get('weighted_f1',0)*100:.2f}% | {(m_dis.get('weighted_f1',0)-m_can.get('weighted_f1',0))*100:+.2f}% |
+"""
+    with open(out_md, "w", encoding="utf-8") as f:
+        f.write(md_content)
+    print(f"[+] Đã lưu báo cáo Markdown: {out_md}")
+
+    return comparison
 
 
 def main():
@@ -233,6 +384,8 @@ def main():
     parser.add_argument("--split-type", type=str, default="canonical",
                         choices=["canonical", "specimen_disjoint"],
                         help="Kiểu phân vùng: 'canonical' (mặc định) hoặc 'specimen_disjoint'")
+    parser.add_argument("--compare-splits", action="store_true",
+                        help="Kích hoạt cờ này để chạy và đối chiếu cả 2 split: Canonical vs. Specimen-Disjoint")
     parser.add_argument("--data-dir", type=str, default="/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3",
                         help="Đường dẫn đến thư mục chứa 19 lớp ảnh macroscopic wood")
     parser.add_argument("--assets-dir", type=str, default="paper_data_assets",
@@ -276,28 +429,77 @@ def main():
     if args.step in ["audit"]:
         run_audit_step(python_bin, assets_dir)
 
-    # BƯỚC 2: HUẤN LUYỆN CLASSIFICATION BASELINE (CONVNEXT-TINY QUA CÁC SEEDS)
+    # BƯỚC 2: HUẤN LUYỆN CLASSIFICATION BASELINE (CONVNEXT-TINY)
     if args.step in ["all", "classify"]:
-        split_file = "split_canonical.csv" if args.split_type == "canonical" else "split_specimen_disjoint.csv"
-        split_csv = assets_dir / "splits" / split_file
         metadata_csv = assets_dir / "metadata" / "metadata.csv"
-        out_p = Path("baseline_outputs")
-        fig_p = Path("paper_data/fig") / args.split_type
+        ensure_disjoint_split_exists(assets_dir)
 
-        print(f"\n[*] Đang thực thi phân loại trên split [{args.split_type}] với {len(active_seeds)} seeds -> {out_p}...")
-        run_classify_multi_seed(
-            python_bin=python_bin,
-            split_csv=split_csv,
-            metadata_csv=metadata_csv,
-            output_dir=out_p,
-            fig_dir=fig_p,
-            epochs=args.classify_epochs,
-            loss_mode=args.classify_loss,
-            seeds=active_seeds,
-            data_dir=args.data_dir,
-            batch_size=args.batch_size,
-            lr=args.classify_lr
-        )
+        if args.compare_splits:
+            print("\n" + "=" * 80)
+            print(" [CHẾ ĐỘ ĐỐI CHIẾU PHÂN VÙNG] HUẤN LUYỆN CANONICAL & SPECIMEN-DISJOINT ")
+            print("=" * 80)
+            # 1. Chạy trên Canonical Split
+            can_split_csv = assets_dir / "splits" / "split_canonical.csv"
+            can_out = Path("baseline_outputs") / "canonical"
+            can_fig = Path("paper_data/fig") / "canonical"
+            print("\n>>> (A) HUẤN LUYỆN TRÊN CANONICAL SPLIT <<<")
+            run_classify_multi_seed(
+                python_bin=python_bin,
+                split_csv=can_split_csv,
+                metadata_csv=metadata_csv,
+                output_dir=can_out,
+                fig_dir=can_fig,
+                epochs=args.classify_epochs,
+                loss_mode=args.classify_loss,
+                seeds=active_seeds,
+                data_dir=args.data_dir,
+                batch_size=args.batch_size,
+                lr=args.classify_lr
+            )
+
+            # 2. Chạy trên Specimen-Disjoint Split (chỉ cần chạy seed đầu tiên hoặc toàn bộ seeds)
+            dis_split_csv = assets_dir / "splits" / "split_specimen_disjoint.csv"
+            dis_out = Path("baseline_outputs") / "specimen_disjoint"
+            dis_fig = Path("paper_data/fig") / "specimen_disjoint"
+            dis_seeds = [active_seeds[0]] if len(active_seeds) > 1 and not args.all else active_seeds
+            print(f"\n>>> (B) HUẤN LUYỆN TRÊN SPECIMEN-DISJOINT SPLIT (Seeds: {dis_seeds}) <<<")
+            run_classify_multi_seed(
+                python_bin=python_bin,
+                split_csv=dis_split_csv,
+                metadata_csv=metadata_csv,
+                output_dir=dis_out,
+                fig_dir=dis_fig,
+                epochs=args.classify_epochs,
+                loss_mode=args.classify_loss,
+                seeds=dis_seeds,
+                data_dir=args.data_dir,
+                batch_size=args.batch_size,
+                lr=args.classify_lr
+            )
+
+            # 3. Tổng hợp bảng so sánh đối chiếu
+            run_split_comparison_summary(can_out, dis_out, Path("baseline_outputs"), loss_tag=args.classify_loss)
+
+        else:
+            split_file = "split_canonical.csv" if args.split_type == "canonical" else "split_specimen_disjoint.csv"
+            split_csv = assets_dir / "splits" / split_file
+            out_p = Path("baseline_outputs") / args.split_type
+            fig_p = Path("paper_data/fig") / args.split_type
+
+            print(f"\n[*] Đang thực thi phân loại trên split [{args.split_type}] với {len(active_seeds)} seeds -> {out_p}...")
+            run_classify_multi_seed(
+                python_bin=python_bin,
+                split_csv=split_csv,
+                metadata_csv=metadata_csv,
+                output_dir=out_p,
+                fig_dir=fig_p,
+                epochs=args.classify_epochs,
+                loss_mode=args.classify_loss,
+                seeds=active_seeds,
+                data_dir=args.data_dir,
+                batch_size=args.batch_size,
+                lr=args.classify_lr
+            )
 
     print("\n" + "=" * 78)
     print(" [✓] HOÀN TẤT QUY TRÌNH THỰC NGHIỆM! DỮ LIỆU ĐÃ ĐỒNG BỘ CHUẨN PUBLICATION.")
@@ -306,3 +508,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -133,6 +133,28 @@ def aggregate_multi_seed_results(seed_payloads: List[Dict[str, Any]], confidence
             "support": support
         }
 
+    # 3. Tổng hợp ma trận nhầm lẫn (Confusion Matrix) qua các seeds
+    cm_list = [p["confusion_matrix_raw"] for p in seed_payloads if "confusion_matrix_raw" in p]
+    cm_stats = {}
+    if len(cm_list) > 0:
+        cm_arr = np.array(cm_list, dtype=float)
+        cm_mean = np.mean(cm_arr, axis=0)
+        cm_std = np.std(cm_arr, axis=0, ddof=1) if len(cm_list) > 1 else np.zeros_like(cm_mean)
+
+        # Xác định seed đại diện (Representative Median Seed) có Macro-F1 tiệm cận giá trị trung bình nhất
+        macro_f1_mean = overall_stats["macro_f1"]["mean"]
+        diffs = [abs(p.get("summary_metrics", {}).get("macro_f1", 0.0) - macro_f1_mean) for p in seed_payloads]
+        rep_idx = int(np.argmin(diffs))
+        rep_seed = seeds_list[rep_idx]
+
+        cm_stats = {
+            "averaged_confusion_matrix": cm_mean.tolist(),
+            "std_confusion_matrix": cm_std.tolist(),
+            "representative_seed": rep_seed,
+            "representative_seed_macro_f1": float(seed_payloads[rep_idx].get("summary_metrics", {}).get("macro_f1", 0.0)),
+            "class_names": class_names
+        }
+
     summary_dict = {
         "metadata": {
             "num_seeds": n_seeds,
@@ -142,12 +164,69 @@ def aggregate_multi_seed_results(seed_payloads: List[Dict[str, Any]], confidence
         },
         "overall_statistics": overall_stats,
         "per_class_statistics": per_class_stats,
+        "confusion_matrix_statistics": cm_stats,
         "raw_per_seed": seed_payloads
     }
 
     # Sinh báo cáo phân loại định dạng Mean +- Std chuẩn sklearn
     summary_dict["formatted_classification_report"] = format_multi_seed_classification_report(summary_dict)
     return summary_dict
+
+
+def plot_averaged_confusion_matrix(
+    cm_mean: Any,
+    class_names: List[str],
+    save_path: Path,
+    num_seeds: int = 5
+) -> None:
+    """
+    Vẽ ma trận nhầm lẫn trung bình qua nhiều hạt giống (Averaged Confusion Matrix) chuẩn Elsevier.
+    Mỗi ô hiển thị số lượng mẫu trung bình (làm tròn số nguyên) và tỷ lệ Recall trung bình (%).
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    save_path = Path(save_path)
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.figure(figsize=(12, 10), dpi=300)
+
+    cm = np.array(cm_mean, dtype=float)
+    cm_norm = cm / np.maximum(cm.sum(axis=1)[:, np.newaxis], 1e-12)
+
+    im = plt.imshow(cm_norm, interpolation='nearest', cmap=plt.cm.Blues)
+    im.set_clim(0, 1.0)
+    total_n = int(round(cm.sum()))
+    plt.title(f"ConvNeXt-Tiny Baseline — Averaged Confusion Matrix ({num_seeds} Seeds, Test N={total_n:,})", fontsize=13, fontweight="bold", pad=15)
+    cbar = plt.colorbar(im, fraction=0.046, pad=0.04)
+    cbar.set_label("Mean Normalized Ratio (Recall)", fontsize=10)
+
+    tick_marks = np.arange(len(class_names))
+    short_names = [c.replace("Dalbergia", "D.").replace("Pterocarpus", "P.").replace("Afzelia", "A.").replace("Guibourtia", "G.").replace("Sindora", "S.") for c in class_names]
+    plt.xticks(tick_marks, short_names, rotation=45, ha="right", fontsize=9)
+    plt.yticks(tick_marks, short_names, fontsize=9)
+
+    thresh = cm_norm.max() / 2.0
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            val = cm[i, j]
+            if val >= 0.5:
+                cnt = int(round(val))
+                pct = cm_norm[i, j] * 100.0
+                plt.text(j, i, f"{cnt}\n({pct:.0f}%)",
+                         horizontalalignment="center",
+                         verticalalignment="center",
+                         fontsize=6.5,
+                         color="white" if cm_norm[i, j] > thresh else "black")
+
+    plt.ylabel("Ground-Truth Species Nomenclature", fontsize=11, fontweight="bold")
+    plt.xlabel("Predicted Taxonomic Epithet", fontsize=11, fontweight="bold")
+    plt.tight_layout()
+
+    plt.savefig(str(save_path.with_suffix(".pdf")), bbox_inches="tight")
+    plt.savefig(str(save_path.with_suffix(".png")), bbox_inches="tight", dpi=300)
+    plt.close()
+    print(f"[+] Đã lưu Averaged Confusion Matrix ({num_seeds} Seeds): {save_path.with_suffix('.pdf')}")
 
 
 def format_multi_seed_classification_report(summary: Dict[str, Any]) -> str:
