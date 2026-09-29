@@ -18,16 +18,11 @@ IMG_ROOT="out"
 BASE_DIR="specimen_invariance_outputs"
 
 METHODS=(
-    "conditional_grl"
     "focal"
-    "arcface"
-    "strong_reg"
     "mixup"
     "dann_unconditional"
     "club"
-    "supcon"
-    "semihard_triplet"
-    "frozen_linear"
+    "conditional_grl"
 )
 
 echo "=================================================================="

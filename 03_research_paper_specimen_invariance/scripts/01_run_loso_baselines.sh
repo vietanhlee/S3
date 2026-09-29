@@ -5,20 +5,19 @@
 # Automatically detects all available GPUs on the system and trains all 13
 # specimen-invariance baselines in parallel across all available GPU slots.
 #
-# Baselines:
-#   1. Proposed: conditional_grl
-#   2. No intervention: focal, arcface, supcon, semihard_triplet
-#   3. General regularization: strong_reg, mixup
-#   4. Adversarial: dann_unconditional
-#   5. Mutual Information: club
-#   6. Strong-simple: frozen_linear
+# Baselines (Core Minimal Benchmark - 5 Key Paradigms):
+#   1. Proposed: conditional_grl (Species-Conditioned Masked Softmax GRL)
+#   2. Baseline: focal (Standard ERM with Focal Loss)
+#   3. Regularization: mixup (Data Augmentation)
+#   4. Adversarial: dann_unconditional (Domain Adaptation without class conditioning)
+#   5. Mutual Information: club (Variational MI Bottleneck)
 # ==============================================================================
 
 set -e
 
 BACKBONE="convnext_tiny"
 FOLD=0
-EPOCHS=17
+EPOCHS=10
 BATCH_SIZE=64
 METADATA="out/metadata/metadata.csv"
 IMG_ROOT="out"

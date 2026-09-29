@@ -42,17 +42,13 @@ from typing import List, Dict, Any, Optional
 import torch
 
 
+# Core Minimal Benchmark (Option A: 5 representative paradigms)
 BASELINES = [
-    "conditional_grl",
-    "focal",
-    "arcface",
-    "strong_reg",
-    "mixup",
-    "dann_unconditional",
-    "club",
-    "supcon",
-    "semihard_triplet",
-    "frozen_linear",
+    "focal",                # Baseline: Standard empirical risk minimization (Focal loss)
+    "mixup",                # Baseline: General data augmentation / regularization
+    "dann_unconditional",   # Baseline: Unconditional domain adaptation (collapses on singleton taxa)
+    "club",                 # Baseline: Variational mutual information bottleneck
+    "conditional_grl",      # Proposed: Species-Conditioned Masked Softmax GRL
 ]
 
 BACKBONES = [
@@ -193,7 +189,7 @@ def parse_args():
                         help="Custom list of methods to run (when --mode custom)")
     parser.add_argument("--backbone", type=str, default="convnext_tiny", help="Default backbone")
     parser.add_argument("--fold", type=int, default=0, help="Round-robin fold index")
-    parser.add_argument("--epochs", type=int, default=17, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--gpus", nargs="+", type=int, default=None,

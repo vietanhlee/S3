@@ -13,7 +13,7 @@
 set -e
 
 FOLD=0
-EPOCHS=17
+EPOCHS=10
 BATCH_SIZE=64
 METADATA="out/metadata/metadata.csv"
 IMG_ROOT="out"
