@@ -34,6 +34,15 @@ import os
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 import sys
+
+# Đảm bảo in tiếng Việt có dấu an toàn tuyệt đối trên Windows terminal (cmd/powershell)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import json
 import argparse
 from pathlib import Path
@@ -300,12 +309,41 @@ def evaluate_embedding_geometry(embeddings: np.ndarray, labels: np.ndarray) -> D
     }
 
 
-def compute_retrieval_recalls(embeddings: np.ndarray, labels: np.ndarray, ks=(1, 2, 4)) -> Dict[str, float]:
-    """Tính toán độ chính xác truy vấn Nearest Neighbor Recall@K."""
+def compute_cross_split_retrieval(
+    query_embs: np.ndarray,
+    query_labels: np.ndarray,
+    gallery_embs: np.ndarray,
+    gallery_labels: np.ndarray,
+    ks=(1, 2, 4)
+) -> Dict[str, float]:
+    """
+    Tính toán độ chính xác truy vấn Nearest Neighbor Recall@K theo chuẩn khoa học:
+      - Query: Tập Test (các mẫu vật cần giám định)
+      - Gallery: Tập Train (kho tham chiếu chuẩn đã học)
+    Tránh hoàn toàn hiện tượng 'trùng block' (self-block leakage) khi truy vấn nội bộ tập test.
+    """
+    dists = cdist(query_embs, gallery_embs, metric="euclidean")
+    recalls = {f"Recall@{k}": 0.0 for k in ks}
+    n = len(query_labels)
+
+    for i in range(n):
+        nearest_indices = np.argsort(dists[i])[:max(ks)]
+        query_label = query_labels[i]
+        for k in ks:
+            if query_label in gallery_labels[nearest_indices[:k]]:
+                recalls[f"Recall@{k}"] += 1.0
+
+    for k in ks:
+        recalls[f"Recall@{k}"] = float((recalls[f"Recall@{k}"] / max(1, n)) * 100.0)
+    return recalls
+
+
+def compute_self_test_retrieval(embeddings: np.ndarray, labels: np.ndarray, ks=(1, 2, 4)) -> Dict[str, float]:
+    """Tính toán truy vấn nội bộ tập test (Self-Test Retrieval) phục vụ đối chiếu phân tích rò rỉ block."""
     dists = cdist(embeddings, embeddings, metric="euclidean")
     np.fill_diagonal(dists, float("inf"))
 
-    recalls = {f"Recall@{k}": 0.0 for k in ks}
+    recalls = {f"Self_Recall@{k}": 0.0 for k in ks}
     n = len(labels)
 
     for i in range(n):
@@ -313,10 +351,10 @@ def compute_retrieval_recalls(embeddings: np.ndarray, labels: np.ndarray, ks=(1,
         query_label = labels[i]
         for k in ks:
             if query_label in labels[nearest_indices[:k]]:
-                recalls[f"Recall@{k}"] += 1.0
+                recalls[f"Self_Recall@{k}"] += 1.0
 
     for k in ks:
-        recalls[f"Recall@{k}"] = float((recalls[f"Recall@{k}"] / n) * 100.0)
+        recalls[f"Self_Recall@{k}"] = float((recalls[f"Self_Recall@{k}"] / max(1, n)) * 100.0)
     return recalls
 
 
@@ -442,13 +480,13 @@ def load_or_generate_dataset_split(
         if cls_col and "split" in df.columns:
             af_test = df[(df[cls_col] == "Afzelia africana") & (df["split"] == "test")]
             test_total = len(df[df["split"] == "test"])
-            # Nếu Afzelia africana chỉ có < 15 ảnh test (do lỗi split cũ), hoặc tổng test < 1050
-            if len(af_test) < 15 or test_total < 1050:
+            # Chỉ áp dụng kiểm tra cấu trúc cũ đối với split_canonical.csv
+            if split_csv_path and "split_canonical" in str(split_csv_path) and (len(af_test) < 15 or test_total < 1050):
                 print("\n" + "=" * 76)
                 print(f"[!] PHÁT HIỆN FILE PHÂN VÙNG CŨ BỊ LỖI CHIA DỮ LIỆU:")
                 print(f"    - 'Afzelia africana' trong tập test chỉ có {len(af_test)} ảnh (< 15 ảnh chuẩn).")
                 print(f"    - Tổng số mẫu tập test: {test_total} (< 1,065 chuẩn bài báo).")
-                print(f"[*] HỆ THỐNG ĐANG TỰ ĐỘNG TÁI SINH PHÂN VÙNG CHUẨN (PP8 của Val ~74 ảnh) TỪ DỮ LIỆU GỐC...")
+                print(f"[*] HỆ THỐNG ĐANG TỰ ĐỘNG TÁI SINH PHÂN VÙNG CHUẨN TỪ DỮ LIỆU GỐC...")
                 print("=" * 76 + "\n")
                 need_regenerate = True
                 df = None
@@ -598,6 +636,7 @@ def main():
     print(f"[+] Đã tải phân vùng 19 loài (Tổng cộng: {len(df):,} ảnh)")
 
     train_df = df[df["split"] == "train"]
+    val_df = df[df["split"] == "val"]
     test_df = df[df["split"] == "test"]
 
     tf_train = transforms.Compose([
@@ -614,10 +653,14 @@ def main():
     ])
 
     train_ds = MetricDataset(train_df, class_to_idx, transform=tf_train)
+    train_eval_ds = MetricDataset(train_df, class_to_idx, transform=tf_eval)
+    val_ds = MetricDataset(val_df, class_to_idx, transform=tf_eval)
     test_ds = MetricDataset(test_df, class_to_idx, transform=tf_eval)
 
     pk_sampler = PKSampler(train_ds.labels, p=args.p_classes, k=args.k_samples)
     train_loader = DataLoader(train_ds, batch_size=args.p_classes * args.k_samples, sampler=pk_sampler, num_workers=2, pin_memory=True)
+    train_eval_loader = DataLoader(train_eval_ds, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(val_ds, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
     test_loader = DataLoader(test_ds, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
 
     # 2. Khởi tạo mô hình
@@ -626,9 +669,15 @@ def main():
 
     # 3. Trích xuất Embeddings Trước Huấn Luyện (Baseline Evaluation)
     print("\n[*] Đang đánh giá không gian nhúng BAN ĐẦU (Before Metric Learning)...")
-    embs_before, labels_test = extract_features(model, test_loader, device)
-    metrics_before = evaluate_embedding_geometry(embs_before, labels_test)
-    recalls_before = compute_retrieval_recalls(embs_before, labels_test)
+    embs_train_before, labels_train = extract_features(model, train_eval_loader, device)
+    embs_test_before, labels_test = extract_features(model, test_loader, device)
+
+    metrics_before = evaluate_embedding_geometry(embs_test_before, labels_test)
+    cross_recalls_before = compute_cross_split_retrieval(
+        query_embs=embs_test_before, query_labels=labels_test,
+        gallery_embs=embs_train_before, gallery_labels=labels_train
+    )
+    self_recalls_before = compute_self_test_retrieval(embs_test_before, labels_test)
     use_cuda = (device.type == "cuda")
     if use_cuda:
         torch.cuda.empty_cache()
@@ -689,67 +738,84 @@ def main():
         scheduler.step()
         avg_loss = total_loss / max(1, n_batches)
 
-        # Đánh giá nhanh định kỳ mỗi 5 epochs
+        # Đánh giá nhanh định kỳ mỗi 5 epochs trên tập VAL để chọn checkpoint độc lập (không snooping test)
         if epoch % 5 == 0 or epoch == args.epochs:
-            embs_val, _ = extract_features(model, test_loader, device)
-            val_dbi = davies_bouldin_score(embs_val, labels_test)
+            embs_val, labels_val = extract_features(model, val_loader, device)
+            val_dbi = davies_bouldin_score(embs_val, labels_val)
             is_best = val_dbi < best_dbi
             if is_best:
                 best_dbi = val_dbi
                 torch.save(model.state_dict(), best_ckpt)
-            print(f"Epoch [{epoch:02d}/{args.epochs:02d}] | Triplet Loss: {avg_loss:.4f} | Test DBI: {val_dbi:.4f} {'★ [BEST]' if is_best else ''}")
-            del embs_val
+            print(f"Epoch [{epoch:02d}/{args.epochs:02d}] | Triplet Loss: {avg_loss:.4f} | Val DBI: {val_dbi:.4f} {'★ [BEST]' if is_best else ''}")
+            del embs_val, labels_val
             if use_cuda:
                 torch.cuda.empty_cache()
         else:
             print(f"Epoch [{epoch:02d}/{args.epochs:02d}] | Triplet Loss: {avg_loss:.4f}")
 
     # 6. Đánh giá Final sau khi học Semi-Hard Triplet Learning
-    print("\n[*] Đang tải checkpoint tốt nhất để đánh giá trên Test split...")
+    print("\n[*] Đang tải checkpoint tốt nhất (lựa chọn theo Val DBI) để đánh giá trên Test split...")
     if best_ckpt.exists():
         model.load_state_dict(torch.load(best_ckpt, map_location=device))
     if use_cuda:
         torch.cuda.empty_cache()
 
-    embs_after, _ = extract_features(model, test_loader, device)
-    metrics_after = evaluate_embedding_geometry(embs_after, labels_test)
-    recalls_after = compute_retrieval_recalls(embs_after, labels_test)
+    embs_train_after, _ = extract_features(model, train_eval_loader, device)
+    embs_test_after, _ = extract_features(model, test_loader, device)
+    metrics_after = evaluate_embedding_geometry(embs_test_after, labels_test)
+    cross_recalls_after = compute_cross_split_retrieval(
+        query_embs=embs_test_after, query_labels=labels_test,
+        gallery_embs=embs_train_after, gallery_labels=labels_train
+    )
+    self_recalls_after = compute_self_test_retrieval(embs_test_after, labels_test)
 
     # 7. Báo cáo Bảng Đối Chiếu So Sánh Khớp Chuẩn Table 8 trong Bài Báo
-    print("\n" + "=" * 80)
-    print("  BẢNG ĐỐI CHIẾU HÌNH HỌC KHÔNG GIAN NHÚNG SEMI-HARD TRIPLET (TABLE 8)    ")
-    print("=" * 80)
-    print(f"{'Chỉ số đánh giá (Evaluation Metric)':<40} | {'Trước huấn luyện':<16} | {'Sau huấn luyện':<16} | {'Cải thiện':<10}")
-    print("-" * 80)
+    print("\n" + "=" * 88)
+    print("      BẢNG ĐỐI CHIẾU HÌNH HỌC VÀ TRUY VẤN SEMI-HARD TRIPLET (TABLE 8 REVISED)       ")
+    print("=" * 88)
+    print(f"{'Chỉ số đánh giá (Evaluation Metric)':<44} | {'Trước huấn luyện':<16} | {'Sau huấn luyện':<16} | {'Cải thiện':<10}")
+    print("-" * 88)
 
     # 1. Intra / Inter Ratio
     b_r, a_r = metrics_before["intra_inter_ratio"], metrics_after["intra_inter_ratio"]
-    print(f"{'Intra/Inter Distance Ratio (thấp hơn tốt)':<40} | {b_r:<16.4f} | {a_r:<16.4f} | {((b_r-a_r)/b_r)*100:+.1f}%")
+    print(f"{'Intra/Inter Distance Ratio (thấp hơn tốt)':<44} | {b_r:<16.4f} | {a_r:<16.4f} | {((b_r-a_r)/b_r)*100:+.1f}%")
 
     # 2. Davies-Bouldin Index
     b_dbi, a_dbi = metrics_before["davies_bouldin"], metrics_after["davies_bouldin"]
-    print(f"{'Davies-Bouldin Index (DBI, thấp hơn tốt)':<40} | {b_dbi:<16.4f} | {a_dbi:<16.4f} | {((b_dbi-a_dbi)/b_dbi)*100:+.1f}%")
+    print(f"{'Davies-Bouldin Index (DBI, thấp hơn tốt)':<44} | {b_dbi:<16.4f} | {a_dbi:<16.4f} | {((b_dbi-a_dbi)/b_dbi)*100:+.1f}%")
 
     # 3. Silhouette Score
     b_s, a_s = metrics_before["silhouette"], metrics_after["silhouette"]
-    print(f"{'Silhouette Score (cao hơn tốt)':<40} | {b_s:<16.4f} | {a_s:<16.4f} | {((a_s-b_s)/max(1e-6, abs(b_s)))*100:+.1f}%")
+    print(f"{'Silhouette Score (cao hơn tốt)':<44} | {b_s:<16.4f} | {a_s:<16.4f} | {((a_s-b_s)/max(1e-6, abs(b_s)))*100:+.1f}%")
 
     # 4. Calinski-Harabasz Index
     b_c, a_c = metrics_before["calinski_harabasz"], metrics_after["calinski_harabasz"]
-    print(f"{'Calinski-Harabasz Index (CHI, cao hơn tốt)':<40} | {b_c:<16.1f} | {a_c:<16.1f} | {((a_c-b_c)/b_c)*100:+.1f}%")
+    print(f"{'Calinski-Harabasz Index (CHI, cao hơn tốt)':<44} | {b_c:<16.1f} | {a_c:<16.1f} | {((a_c-b_c)/b_c)*100:+.1f}%")
 
     # 5. Normalized Mutual Info
     b_n, a_n = metrics_before["nmi"], metrics_after["nmi"]
-    print(f"{'Normalized Mutual Info (NMI, cao hơn tốt)':<40} | {b_n:<16.4f} | {a_n:<16.4f} | {((a_n-b_n)/b_n)*100:+.1f}%")
+    print(f"{'Normalized Mutual Info (NMI, cao hơn tốt)':<44} | {b_n:<16.4f} | {a_n:<16.4f} | {((a_n-b_n)/b_n)*100:+.1f}%")
 
-    # 6. Recall@1
-    b_r1, a_r1 = recalls_before["Recall@1"], recalls_after["Recall@1"]
-    print(f"{'Nearest Neighbor Recall@1 (%)':<40} | {b_r1:<16.2f} | {a_r1:<16.2f} | {a_r1 - b_r1:+.2f}%")
-    print("=" * 80)
+    print("-" * 88)
+    print("  [CHUẨN KHOA HỌC] CROSS-SPLIT RETRIEVAL (Query = Test, Gallery = Train)")
+    print("-" * 88)
+    for k in (1, 2, 4):
+        b_rk = cross_recalls_before[f"Recall@{k}"]
+        a_rk = cross_recalls_after[f"Recall@{k}"]
+        print(f"{f'Cross-Split Nearest Neighbor Recall@{k} (%)':<44} | {b_rk:<16.2f} | {a_rk:<16.2f} | {a_rk - b_rk:+.2f}%")
+
+    print("-" * 88)
+    print("  [ĐỐI CHỨNG RÒ RỈ BLOCK] SELF-TEST RETRIEVAL (Query = Test, Gallery = Test - Leakage Diagnostic)")
+    print("-" * 88)
+    for k in (1, 2, 4):
+        b_sk = self_recalls_before[f"Self_Recall@{k}"]
+        a_sk = self_recalls_after[f"Self_Recall@{k}"]
+        print(f"{f'Diagnostic Self-Test Recall@{k} (%)':<44} | {b_sk:<16.2f} | {a_sk:<16.2f} | {a_sk - b_sk:+.2f}%")
+    print("=" * 88)
 
     # 8. Xuất Biểu Đồ Publication vào paper_data/fig/
-    plot_tsne_side_by_side(embs_before, embs_after, labels_test, class_names, fig_dir / "tsne_comparison")
-    plot_distance_distributions(embs_before, embs_after, labels_test, fig_dir / "distance_distribution")
+    plot_tsne_side_by_side(embs_test_before, embs_test_after, labels_test, class_names, fig_dir / "tsne_comparison")
+    plot_distance_distributions(embs_test_before, embs_test_after, labels_test, fig_dir / "distance_distribution")
 
     # Lưu metrics và dữ liệu raw ra JSON
     results = {
@@ -764,12 +830,16 @@ def main():
             "learning_rate": args.lr,
             "seed": args.seed,
             "pure_semihard": args.pure_semihard,
-            "num_test_samples": len(labels_test)
+            "num_train_samples": len(train_df),
+            "num_val_samples": len(val_df),
+            "num_test_samples": len(test_df)
         },
         "metrics_before": metrics_before,
         "metrics_after": metrics_after,
-        "recalls_before": recalls_before,
-        "recalls_after": recalls_after,
+        "cross_recalls_before": cross_recalls_before,
+        "cross_recalls_after": cross_recalls_after,
+        "self_recalls_before": self_recalls_before,
+        "self_recalls_after": self_recalls_after,
         "class_names": class_names
     }
     with open(out_dir / "semihard_triplet_results.json", "w", encoding="utf-8") as f:

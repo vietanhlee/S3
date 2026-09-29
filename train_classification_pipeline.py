@@ -18,6 +18,15 @@ Chức năng chính:
 
 import os
 import sys
+
+# Đảm bảo in tiếng Việt có dấu an toàn tuyệt đối trên Windows terminal (cmd/powershell)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import json
 import argparse
 from pathlib import Path
@@ -511,13 +520,13 @@ def load_or_generate_dataset_split(
         if cls_col and "split" in df.columns:
             af_test = df[(df[cls_col] == "Afzelia africana") & (df["split"] == "test")]
             test_total = len(df[df["split"] == "test"])
-            # Nếu Afzelia africana chỉ có < 15 ảnh test (do lỗi split cũ), hoặc tổng test < 1050
-            if len(af_test) < 15 or test_total < 1050:
+            # Chỉ áp dụng kiểm tra cấu trúc cũ đối với split_canonical.csv
+            if split_csv_path and "split_canonical" in str(split_csv_path) and (len(af_test) < 15 or test_total < 1050):
                 print("\n" + "=" * 76)
                 print(f"[!] PHÁT HIỆN FILE PHÂN VÙNG CŨ BỊ LỖI CHIA DỮ LIỆU:")
                 print(f"    - 'Afzelia africana' trong tập test chỉ có {len(af_test)} ảnh (< 15 ảnh chuẩn).")
                 print(f"    - Tổng số mẫu tập test: {test_total} (< 1,065 chuẩn bài báo).")
-                print(f"[*] HỆ THỐNG ĐANG TỰ ĐỘNG TÁI SINH PHÂN VÙNG CHUẨN (PP8 của Val ~74 ảnh) TỪ DỮ LIỆU GỐC...")
+                print(f"[*] HỆ THỐNG ĐANG TỰ ĐỘNG TÁI SINH PHÂN VÙNG CHUẨN TỪ DỮ LIỆU GỐC...")
                 print("=" * 76 + "\n")
                 need_regenerate = True
                 df = None

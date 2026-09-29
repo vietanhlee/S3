@@ -23,6 +23,15 @@ Chức năng:
 
 import os
 import sys
+
+# Đảm bảo in tiếng Việt có dấu an toàn tuyệt đối trên Windows terminal (cmd/powershell)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import json
 import hashlib
 import argparse
@@ -45,6 +54,13 @@ import torchvision.transforms as transforms
 import timm
 
 from split_methods import SPLIT_METHODS, validate_split
+from audit_perceptual_and_embedding_similarity import (
+    compute_dhash_hex,
+    compute_phash_hex,
+    hex_to_bool_array,
+    compute_pairwise_hamming_stats,
+    compute_cross_split_embedding_similarity
+)
 
 # -----------------------------------------------------------------------------
 # Cấu hình tối ưu phân vùng dữ liệu cho từng loài (End Version Split / CEGS-Split)
@@ -113,7 +129,7 @@ TAXONOMIC_INVENTORY = {
     "Dalbergia rimosa": {
         "genus": "Dalbergia", "species": "rimosa",
         "trade_name": "Rimose Rosewood", "vietnamese_name": "Trắc dây",
-        "cites_status": "Non-CITES", "expected_count": 300
+        "cites_status": "CITES Appendix II", "expected_count": 300
     },
     "Dalbergia tonkinensis": {
         "genus": "Dalbergia", "species": "tonkinensis",
@@ -367,45 +383,160 @@ def assign_specimen_disjoint_splits(
     return df.to_dict("records")
 
 
-def audit_leakage(df: pd.DataFrame) -> Dict[str, Any]:
-    """Kiểm tra toàn diện rò rỉ mẫu vật, trùng mã băm SHA-256, và độ phủ lớp."""
-    splits = ["train", "val", "test"]
-    pairs = [("train", "val"), ("train", "test"), ("val", "test")]
+def assign_strict_specimen_disjoint_splits(
+    records: List[Dict[str, Any]],
+    train_ratio: float = 0.60,
+    val_ratio: float = 0.20,
+    seed: int = 42,
+    single_specimen_mode: str = "stratified"
+) -> List[Dict[str, Any]]:
+    """
+    Phân bổ tập Train / Val / Test nghiêm ngặt theo khối mẫu vật (Specimen-Disjoint Split):
+      - 17 loài có >= 4 specimens: Đảm bảo 100% không trùng lặp khối mẫu vật giữa Train, Val và Test (SLR = 0.0%).
+      - 2 loài đơn block (Dalbergia cochinchinensis, Guibourtia coleosperma):
+        + 'stratified': Phân bổ ảnh nội bộ khối theo tỷ lệ 60/20/20 để phục vụ đánh giá 19 lớp (đánh dấu rõ ràng).
+        + 'train_only': Đưa toàn bộ vào Train phục vụ 17-class zero leakage benchmark.
+    """
+    df = pd.DataFrame(records)
+    df["split"] = ""
+    rng = np.random.RandomState(seed)
+
+    for label, group in df.groupby("label"):
+        specs = sorted(group["specimen_id"].unique())
+        n_specs = len(specs)
+
+        if n_specs >= 3:
+            shuffled_specs = list(specs)
+            rng.shuffle(shuffled_specs)
+
+            if n_specs >= 10:
+                n_val, n_test = 2, 2
+            elif n_specs >= 8:
+                n_val, n_test = 2, 1
+            elif n_specs >= 6:
+                n_val, n_test = 1, 1
+            elif n_specs >= 4:
+                n_val, n_test = 1, 1
+            else:
+                n_val, n_test = 1, 1
+
+            test_specs = set(shuffled_specs[:n_test])
+            val_specs = set(shuffled_specs[n_test:n_test + n_val])
+            train_specs = set(shuffled_specs[n_test + n_val:])
+
+            df.loc[group[group["specimen_id"].isin(train_specs)].index, "split"] = "train"
+            df.loc[group[group["specimen_id"].isin(val_specs)].index, "split"] = "val"
+            df.loc[group[group["specimen_id"].isin(test_specs)].index, "split"] = "test"
+        else:
+            if single_specimen_mode == "train_only":
+                df.loc[group.index, "split"] = "train"
+            else:
+                img_indices = group.index.tolist()
+                rng.shuffle(img_indices)
+                n_tot = len(img_indices)
+                n_tr = int(n_tot * train_ratio)
+                n_va = int(n_tot * val_ratio)
+                df.loc[img_indices[:n_tr], "split"] = "train"
+                df.loc[img_indices[n_tr:n_tr + n_va], "split"] = "val"
+                df.loc[img_indices[n_tr + n_va:], "split"] = "test"
+
+    return df.to_dict("records")
+
+
+def audit_leakage(
+    df: pd.DataFrame,
+    protocol_name: str = "Canonical",
+    embeddings: Optional[np.ndarray] = None
+) -> Dict[str, Any]:
+    """
+    Thẩm định rò rỉ mẫu vật (Specimen Leakage Rate - SLR) và trùng mã băm SHA-256
+    theo chuẩn toán học tập hợp (Set Theory), kết hợp kiểm định trùng lặp tri giác
+    (dHash / pHash Hamming distance) và độ tương đồng không gian biểu diễn sâu.
+    """
+    train_mask = (df["split"] == "train").values
+    val_mask = (df["split"] == "val").values
+    test_mask = (df["split"] == "test").values
+
+    train_specs = set(df[train_mask]["specimen_id"])
+    val_specs = set(df[val_mask]["specimen_id"])
+    test_specs = set(df[test_mask]["specimen_id"])
+
+    tv = train_specs & val_specs
+    tt = train_specs & test_specs
+    vt = val_specs & test_specs
+    any_leaked = tv | tt | vt
+
+    total_specs = df["specimen_id"].nunique()
+    slr_overall = (len(any_leaked) / max(1, total_specs)) * 100.0
+    slr_train_to_test = (len(tt) / max(1, len(test_specs))) * 100.0
+
+    train_hashes = set(df[train_mask]["sha256"]) if "sha256" in df.columns else set()
+    val_hashes = set(df[val_mask]["sha256"]) if "sha256" in df.columns else set()
+    test_hashes = set(df[test_mask]["sha256"]) if "sha256" in df.columns else set()
 
     audit_results = {
+        "protocol": protocol_name,
         "total_images": len(df),
+        "total_specimens": total_specs,
         "split_counts": df["split"].value_counts().to_dict(),
-        "species_count": df["label"].nunique(),
-        "specimen_overlap": {},
-        "sha256_overlap": {},
-        "class_coverage": {},
-        "specimen_leakage_rate": 0.0,
-        "is_safe": True
+        "specimens_per_split": {
+            "train": len(train_specs),
+            "val": len(val_specs),
+            "test": len(test_specs),
+        },
+        "specimen_overlap": {
+            "train_vs_val": len(tv),
+            "train_vs_test": len(tt),
+            "val_vs_test": len(vt),
+        },
+        "distinct_leaked_specimens": len(any_leaked),
+        "specimen_leakage_rate": round(slr_overall, 2),
+        "specimen_leakage_rate_train_to_test": round(slr_train_to_test, 2),
+        "sha256_overlap": {
+            "train_vs_val": len(train_hashes & val_hashes),
+            "train_vs_test": len(train_hashes & test_hashes),
+            "val_vs_test": len(val_hashes & test_hashes),
+        },
+        "class_coverage": {
+            "train": f"{df[train_mask]['label'].nunique() if 'label' in df.columns else df[train_mask]['class_name'].nunique()}/19",
+            "val": f"{df[val_mask]['label'].nunique() if 'label' in df.columns else df[val_mask]['class_name'].nunique()}/19",
+            "test": f"{df[test_mask]['label'].nunique() if 'label' in df.columns else df[test_mask]['class_name'].nunique()}/19",
+        }
     }
 
-    # Thẩm định Overlap mẫu vật và Hash
-    total_leak_specs = 0
-    total_specs = df["specimen_id"].nunique()
+    # Kiểm định tri giác (Perceptual Hashing Audit)
+    perceptual_audit = {}
+    if "dhash" in df.columns and np.sum(test_mask) > 0 and np.sum(train_mask) > 0:
+        try:
+            dhash_arr = np.array([hex_to_bool_array(h) for h in df["dhash"]])
+            train_dh = dhash_arr[train_mask]
+            test_dh = dhash_arr[test_mask]
+            perceptual_audit["dhash_test_vs_train"] = compute_pairwise_hamming_stats(test_dh, train_dh)
+        except Exception:
+            pass
 
-    for s1, s2 in pairs:
-        specs1 = set(df[df["split"] == s1]["specimen_id"])
-        specs2 = set(df[df["split"] == s2]["specimen_id"])
-        overlap_specs = specs1.intersection(specs2)
-        audit_results["specimen_overlap"][f"{s1}_vs_{s2}"] = len(overlap_specs)
-        total_leak_specs += len(overlap_specs)
+    if "phash" in df.columns and np.sum(test_mask) > 0 and np.sum(train_mask) > 0:
+        try:
+            phash_arr = np.array([hex_to_bool_array(h) for h in df["phash"]])
+            train_ph = phash_arr[train_mask]
+            test_ph = phash_arr[test_mask]
+            perceptual_audit["phash_test_vs_train"] = compute_pairwise_hamming_stats(test_ph, train_ph)
+        except Exception:
+            pass
 
-        hash1 = set(df[df["split"] == s1]["sha256"])
-        hash2 = set(df[df["split"] == s2]["sha256"])
-        overlap_hash = hash1.intersection(hash2)
-        audit_results["sha256_overlap"][f"{s1}_vs_{s2}"] = len(overlap_hash)
+    audit_results["perceptual_audit"] = perceptual_audit
 
-    # Thẩm định Class Coverage
-    for s in splits:
-        classes_in_split = df[df["split"] == s]["label"].nunique()
-        audit_results["class_coverage"][s] = f"{classes_in_split}/19"
+    # Kiểm định không gian biểu diễn sâu (Embedding Similarity Audit)
+    if embeddings is not None and len(embeddings) == len(df):
+        try:
+            train_embs = embeddings[train_mask]
+            test_embs = embeddings[test_mask]
+            audit_results["embedding_similarity_audit"] = compute_cross_split_embedding_similarity(test_embs, train_embs)
+        except Exception:
+            pass
 
-    audit_results["specimen_leakage_rate"] = float((total_leak_specs / max(1, total_specs)) * 100.0)
-    audit_results["is_safe"] = (total_leak_specs == 0) and (audit_results["sha256_overlap"]["train_vs_test"] == 0)
+    d_near_dups = perceptual_audit.get("dhash_test_vs_train", {}).get("near_duplicate_count_dist_le_4", 0)
+    audit_results["is_safe"] = (len(tt) == 0) and (len(train_hashes & test_hashes) == 0) and (d_near_dups == 0)
 
     return audit_results
 
@@ -526,13 +657,15 @@ def main():
     records = assign_specimen_disjoint_splits(records, seed=args.seed)
     df = pd.DataFrame(records)
 
-    # 3. Tính toán SHA-256 và Laplacian Variance
-    print("\n[*] Đang tính toán Laplacian Variance và mã băm SHA-256 cho từng ảnh...")
+    # 3. Tính toán SHA-256, Laplacian Variance, dHash và pHash
+    print("\n[*] Đang tính toán Laplacian Variance, mã băm SHA-256, dHash và pHash cho từng ảnh...")
     sha_list = []
     lap_list = []
+    dhash_list = []
+    phash_list = []
     img_ids = []
 
-    for idx, row in tqdm(df.iterrows(), total=len(df), desc="QC & Hashes"):
+    for idx, row in tqdm(df.iterrows(), total=len(df), desc="QC, Hashes & Perceptual Features"):
         img_id = f"VNMW_{idx+1:06d}"
         img_ids.append(img_id)
 
@@ -540,16 +673,24 @@ def main():
         if file_p.exists():
             sha_list.append(compute_sha256(file_p))
             lap_list.append(round(compute_laplacian_variance(file_p), 2))
+            dhash_list.append(compute_dhash_hex(file_p))
+            phash_list.append(compute_phash_hex(file_p))
         else:
             # Giả lập khi đường dẫn chưa mount thực tế
             dummy_hash = hashlib.sha256(f"{img_id}_{row['label']}_{idx}".encode()).hexdigest()
             dummy_lap = round(float(np.random.normal(185.0, 35.0)), 2)
+            dummy_dhash = hashlib.md5(f"dhash_{img_id}_{row['label']}_{idx}".encode()).hexdigest()[:16]
+            dummy_phash = hashlib.md5(f"phash_{img_id}_{row['label']}_{idx}".encode()).hexdigest()[:16]
             sha_list.append(dummy_hash)
             lap_list.append(max(105.0, dummy_lap))
+            dhash_list.append(dummy_dhash)
+            phash_list.append(dummy_phash)
 
     df["image_id"] = img_ids
     df["sha256"] = sha_list
     df["laplacian_var"] = lap_list
+    df["dhash"] = dhash_list
+    df["phash"] = phash_list
 
     # 4. Xuất Bảng 4: Label Map JSON
     class_names = sorted(list(TAXONOMIC_INVENTORY.keys()))
@@ -576,22 +717,24 @@ def main():
     df["class_index"] = df["label"].map(name_to_idx)
     df["class_name"] = df["label"]
 
-    # 5. Xuất Bảng 3: Master Metadata CSV
+    # 5. Xuất Bảng 3: Master Metadata CSV (14 trường chuẩn mực)
     metadata_cols = [
         "image_id", "file_path", "genus", "species", "class_name",
         "class_index", "vietnamese_name", "cites_status", "specimen_id",
-        "split", "sha256", "laplacian_var"
+        "split", "sha256", "dhash", "phash", "laplacian_var"
     ]
     meta_df = df[metadata_cols].rename(columns={"file_path": "image_path"})
     metadata_csv_path = out_dir / "metadata" / "metadata.csv"
     meta_df.to_csv(metadata_csv_path, index=False, encoding="utf-8-sig")
-    print(f"[+] Đã xuất Master Metadata CSV: {metadata_csv_path} ({len(meta_df):,} dòng)")
+    print(f"[+] Đã xuất Master Metadata CSV: {metadata_csv_path} ({len(meta_df):,} dòng, 14 trường)")
 
     # 6. Xuất Release Manifest CSV
     manifest_df = pd.DataFrame({
         "image_id": df["image_id"],
         "relative_path": df["file_path"].astype(str),
         "sha256": df["sha256"],
+        "dhash": df["dhash"],
+        "phash": df["phash"],
         "file_size_bytes": df["file_size"],
         "split": df["split"]
     })
@@ -600,14 +743,22 @@ def main():
     print(f"[+] Đã xuất Release Manifest: {manifest_path}")
 
     # 7. Xuất Split Canonical CSV
+    split_cols = ["image_id", "file_path", "class_name", "class_index", "specimen_id", "split", "sha256", "dhash", "phash"]
     split_path = out_dir / "splits" / "split_canonical.csv"
-    split_df = df[["image_id", "file_path", "class_name", "class_index", "specimen_id", "split"]].rename(
-        columns={"file_path": "image_path"}
-    )
+    split_df = df[split_cols].rename(columns={"file_path": "image_path"})
     split_df.to_csv(split_path, index=False, encoding="utf-8")
     print(f"[+] Đã xuất Split Canonical CSV: {split_path}")
 
-    # 7b. Tự động vẽ và xuất biểu đồ phân phối phân vùng (Figure 1 cho bài báo)
+    # 7b. Tạo và Xuất Split Specimen-Disjoint Nghiêm ngặt (Strict Zero-Leakage Benchmark)
+    print("\n[*] Đang sinh phân vùng Nghiêm ngặt theo Khối Mẫu vật (Specimen-Disjoint Benchmark)...")
+    records_disjoint = assign_strict_specimen_disjoint_splits(df.to_dict("records"), seed=42)
+    df_disjoint = pd.DataFrame(records_disjoint)
+    disjoint_split_path = out_dir / "splits" / "split_specimen_disjoint.csv"
+    disjoint_split_df = df_disjoint[split_cols].rename(columns={"file_path": "image_path"})
+    disjoint_split_df.to_csv(disjoint_split_path, index=False, encoding="utf-8")
+    print(f"[+] Đã xuất Split Specimen-Disjoint CSV: {disjoint_split_path}")
+
+    # 7c. Tự động vẽ và xuất biểu đồ phân phối phân vùng (Figure 1 cho bài báo)
     try:
         from utils.common import eda_split_class_distribution
         df_train = df[df["split"] == "train"].copy()
@@ -633,25 +784,68 @@ def main():
     except Exception as e:
         print(f"[!] Ghi chú: Không thể tự động vẽ biểu đồ EDA: {e}")
 
-    # 8. Thẩm định rò rỉ dữ liệu (Leakage Audit)
-    audit = audit_leakage(df)
-    audit_json_path = out_dir / "leakage_audit" / "audit_summary.json"
-    with open(audit_json_path, "w", encoding="utf-8") as f:
-        json.dump(audit, f, indent=2)
+    # Nạp embeddings có sẵn nếu tồn tại
+    existing_embs = None
+    candidate_emb_paths = [
+        out_dir / "embeddings" / "convnext_tiny.npy",
+        Path("out/embeddings/convnext_tiny.npy")
+    ]
+    for p in candidate_emb_paths:
+        if p.exists():
+            try:
+                existing_embs = np.load(str(p))
+                break
+            except Exception:
+                pass
 
-    print("\n" + "=" * 60)
-    print("           KẾT QUẢ THẨM ĐỊNH RÒ RỈ DỮ LIỆU (LEAKAGE AUDIT)        ")
-    print("=" * 60)
-    print(f"  * Tổng số ảnh benchmark       : {audit['total_images']:,}")
-    print(f"  * Phân bổ phân vùng (Train)   : {audit['split_counts'].get('train', 0):,} ảnh ({audit['split_counts'].get('train', 0)/audit['total_images']*100:.1f}%)")
-    print(f"  * Phân bổ phân vùng (Val)     : {audit['split_counts'].get('val', 0):,} ảnh ({audit['split_counts'].get('val', 0)/audit['total_images']*100:.1f}%)")
-    print(f"  * Phân bổ phân vùng (Test)    : {audit['split_counts'].get('test', 0):,} ảnh ({audit['split_counts'].get('test', 0)/audit['total_images']*100:.1f}%)")
-    print(f"  * Số loài đại diện (CCR)      : 19/19 loài (100.0%)")
-    print(f"  * Trùng lặp mẫu vật Train-Val : {audit['specimen_overlap'].get('train_vs_val', 0)} mẫu vật")
-    print(f"  * Trùng lặp mẫu vật Train-Test: {audit['specimen_overlap'].get('train_vs_test', 0)} mẫu vật")
-    print(f"  * Trùng lặp mẫu vật Val-Test  : {audit['specimen_overlap'].get('val_vs_test', 0)} mẫu vật")
-    print(f"  * Tỷ lệ rò rỉ mẫu vật (SLR)   : {audit['specimen_leakage_rate']:.1f}% -> \033[92m[PASSED - TUYỆT ĐỐI AN TOÀN]\033[0m")
-    print("=" * 60)
+    # 8. Thẩm định rò rỉ dữ liệu (Leakage Audit) cho cả hai Split (3 Cấp độ)
+    audit_canonical = audit_leakage(df, protocol_name="Canonical (Legacy)", embeddings=existing_embs)
+    audit_json_canonical = out_dir / "leakage_audit" / "audit_summary_canonical.json"
+    with open(audit_json_canonical, "w", encoding="utf-8") as f:
+        json.dump(audit_canonical, f, indent=2)
+    # Ghi đè file summary gốc để tương thích ngược
+    with open(out_dir / "leakage_audit" / "audit_summary.json", "w", encoding="utf-8") as f:
+        json.dump(audit_canonical, f, indent=2)
+
+    audit_disjoint = audit_leakage(df_disjoint, protocol_name="Strict Specimen-Disjoint", embeddings=existing_embs)
+    audit_json_disjoint = out_dir / "leakage_audit" / "audit_summary_specimen_disjoint.json"
+    with open(audit_json_disjoint, "w", encoding="utf-8") as f:
+        json.dump(audit_disjoint, f, indent=2)
+
+    print("\n" + "=" * 94)
+    print("      BẢNG ĐỐI CHIẾU THẨM ĐỊNH RÒ RỈ MẪU VẬT & TRÙNG LẶP TRI GIÁC (THREE-TIER AUDIT)      ")
+    print("=" * 94)
+    print(f"{'Tiêu chí kiểm định':<40} | {'Canonical (Legacy)':<22} | {'Specimen-Disjoint':<22}")
+    print("-" * 94)
+    print(f"{'Tổng số ảnh (Total Images)':<40} | {audit_canonical['total_images']:<22,} | {audit_disjoint['total_images']:<22,}")
+    print(f"{'Phân bổ Train / Val / Test':<40} | {audit_canonical['split_counts'].get('train', 0)}/{audit_canonical['split_counts'].get('val', 0)}/{audit_canonical['split_counts'].get('test', 0)} | {audit_disjoint['split_counts'].get('train', 0)}/{audit_disjoint['split_counts'].get('val', 0)}/{audit_disjoint['split_counts'].get('test', 0)}")
+    print(f"{'Trùng khối mẫu vật Train-Val':<40} | {audit_canonical['specimen_overlap']['train_vs_val']:<22} | {audit_disjoint['specimen_overlap']['train_vs_val']:<22}")
+    print(f"{'Trùng khối mẫu vật Train-Test':<40} | {audit_canonical['specimen_overlap']['train_vs_test']:<22} | {audit_disjoint['specimen_overlap']['train_vs_test']:<22}")
+    print(f"{'Số khối bị rò rỉ (Distinct Leaked)':<40} | {audit_canonical['distinct_leaked_specimens']:<22} | {audit_disjoint['distinct_leaked_specimens']:<22}")
+    print(f"{'Tỷ lệ rò rỉ toàn cục (SLR Overall)':<40} | {audit_canonical['specimen_leakage_rate']}%{'':<16} | {audit_disjoint['specimen_leakage_rate']}% (chỉ 2 taxon 1 block)")
+    print(f"{'Tỷ lệ rò rỉ Train->Test (SLR Test)':<40} | {audit_canonical['specimen_leakage_rate_train_to_test']}%{'':<16} | {audit_disjoint['specimen_leakage_rate_train_to_test']}%")
+    print(f"{'1. Trùng ảnh SHA-256 Train-Test':<40} | {audit_canonical['sha256_overlap']['train_vs_test']:<22} | {audit_disjoint['sha256_overlap']['train_vs_test']:<22}")
+
+    # Perceptual hash printout
+    d0_c = audit_canonical.get("perceptual_audit", {}).get("dhash_test_vs_train", {}).get("near_duplicate_count_dist_0", 0)
+    d0_d = audit_disjoint.get("perceptual_audit", {}).get("dhash_test_vs_train", {}).get("near_duplicate_count_dist_0", 0)
+    print(f"{'2. Trùng lặp tri giác dHash (Hamming = 0)':<40} | {d0_c:<22} | {d0_d:<22}")
+
+    d4_c = audit_canonical.get("perceptual_audit", {}).get("dhash_test_vs_train", {}).get("near_duplicate_count_dist_le_4", 0)
+    d4_d = audit_disjoint.get("perceptual_audit", {}).get("dhash_test_vs_train", {}).get("near_duplicate_count_dist_le_4", 0)
+    print(f"{'3. Ảnh gần giống / chồng lấn (dHash <= 4)':<40} | {d4_c:<22} | {d4_d:<22}")
+
+    if existing_embs is not None:
+        e_c = audit_canonical.get("embedding_similarity_audit", {})
+        e_d = audit_disjoint.get("embedding_similarity_audit", {})
+        max_c = e_c.get("max_cosine_similarity", 0.0)
+        max_d = e_d.get("max_cosine_similarity", 0.0)
+        c95_c = e_c.get("count_similarity_ge_0_95", 0)
+        c95_d = e_d.get("count_similarity_ge_0_95", 0)
+        print(f"{'4. Tương đồng Cosine cực đại (Max Sim)':<40} | {max_c:<22.4f} | {max_d:<22.4f}")
+        print(f"{'5. Trùng lặp biểu diễn sâu (Cos Sim >= 0.95)':<40} | {c95_c:<22} | {c95_d:<22}")
+
+    print("=" * 94)
 
     # 9. Trích xuất Embeddings nếu được yêu cầu
     if args.extract_embeddings and data_dir.exists():

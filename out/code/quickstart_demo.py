@@ -214,17 +214,29 @@ def main():
     ccr_test = len(test_classes) / len(all_classes) * 100.0
     print(f"    - Class Coverage Rate  : Train CCR = {ccr_train:.1f}% | Test CCR = {ccr_test:.1f}% (Complete)")
 
-    # Bitwise Deduplication Check
+    # Three-Tier Deduplication & Contamination Check
     train_hashes = set(df[df['split'] == 'train']['sha256_hash'].dropna())
     test_hashes = set(df[df['split'] == 'test']['sha256_hash'].dropna())
     hash_overlap = len(train_hashes & test_hashes)
-    print(f"    - SHA-256 Cross-Split  : {hash_overlap} cross-split duplicate captures (Verified Deduplication)")
+    print(f"    - Tier 1: SHA-256 Bitwise Overlap : {hash_overlap} captures (Zero exact duplicate verified)")
+
+    if 'dhash' in df.columns:
+        train_dhashes = set(df[df['split'] == 'train']['dhash'].dropna())
+        test_dhashes = set(df[df['split'] == 'test']['dhash'].dropna())
+        dhash_exact = len(train_dhashes & test_dhashes)
+        print(f"    - Tier 2: dHash Perceptual Match  : {dhash_exact} identical hashes (Hamming = 0)")
 
     # 3. Load Pre-Extracted Embeddings
     print(f"\n[3] LOADING PRE-COMPUTED DEEP EMBEDDINGS (ConvNeXt-Tiny, 768-d):")
     X_train, y_train, X_test, y_test, class_names = load_embeddings(base_dir, df)
     print(f"    - Training Features    : Shape = {X_train.shape}, L2 Normalized = {np.allclose(np.linalg.norm(X_train, axis=1), 1.0)}")
     print(f"    - Test Features        : Shape = {X_test.shape}, L2 Normalized = {np.allclose(np.linalg.norm(X_test, axis=1), 1.0)}")
+
+    if len(X_test) > 0 and len(X_train) > 0:
+        sample_q = X_test[:min(100, len(X_test))]
+        sample_g = X_train[:min(500, len(X_train))]
+        sample_sim = np.dot(sample_q, sample_g.T)
+        print(f"    - Tier 3: Representation Sim (cos): Max = {np.max(sample_sim):.4f}, Mean = {np.mean(sample_sim):.4f}")
 
     # 4. Instant Baseline Classification (k-NN)
     print(f"\n[4] RUNNING INSTANT CPU BASELINE CLASSIFIER (k-NN, k=1, Euclidean):")

@@ -8,7 +8,19 @@ Central configuration dataclasses, hyperparameters, and path definitions for:
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
+import torch
+
+
+def safe_load_checkpoint(ckpt_path: Any, map_location: Any = None) -> Any:
+    """
+    Tải checkpoint PyTorch an toàn trên mọi phiên bản PyTorch (đặc biệt PyTorch 2.6+).
+    Khắc phục lỗi WeightsUnpickler error: Unsupported global khi checkpoint chứa dataclass / config.
+    """
+    try:
+        return torch.load(ckpt_path, map_location=map_location, weights_only=False)
+    except TypeError:
+        return torch.load(ckpt_path, map_location=map_location)
 
 
 @dataclass
@@ -119,3 +131,16 @@ class EvaluationConfig:
     # Output paths
     results_dir: str = "specimen_invariance_outputs/eval_results"
     plots_dir: str = "specimen_invariance_outputs/plots"
+
+
+# Tự động đăng ký các lớp Config vào PyTorch 2.6+ safe globals allowlist
+if hasattr(torch.serialization, "add_safe_globals"):
+    try:
+        torch.serialization.add_safe_globals([
+            DatasetConfig,
+            ModelConfig,
+            TrainingConfig,
+            EvaluationConfig,
+        ])
+    except Exception:
+        pass

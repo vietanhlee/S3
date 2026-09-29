@@ -12,12 +12,12 @@ The dataset was curated and validated by the **Intelligent Computing for Sustain
 
 ## 1. Key Benchmark Highlights
 
-- **Standardized Captures**: Exactly **6,414 cross-sectional captures** ($224 \times 224$ pixels, standardized $50\times$ optical magnification, spatial resolution of $12\,\mu\text{m/px}$).
+- **Standardized Captures**: Exactly **6,414 cross-sectional captures** ($224 \times 224$ pixels, calibrated spatial resolution of $12.0\,\mu\text{m/pixel}$, corresponding to an immutable $2.69 \times 2.69\,\text{mm}$ physical field of view per non-overlapping cropped tile, $50\times$ nominal display magnification).
 - **Taxonomic Coverage**: **19 tropical hardwood species** across **6 botanical genera** in the legume family **Fabaceae** (*Afzelia*, *Dalbergia*, *Guibourtia*, *Peltogyne*, *Pterocarpus*, *Sindora*).
-- **Forensic Conservation Utility**: **9 taxa** strictly regulated under **CITES Appendix II** ($47.4\%$ of species) and **4 high-value timber species** endemic to Vietnam (*Dalbergia cochinchinensis*, *D. tonkinensis*, *Sindora cochinchinensis*, *S. tonkinensis*).
-- **Physical Entity Provenance**: All captures are traceable to **148 verified physical wood blocks** ($|\mathcal{G}_c|$), verified by two independent certified wood anatomists ($\kappa = 0.985$, observed agreement $P_o = 98.65\%$).
-- **Optical Standardization**: Prepared via orthogonal slicing, progressive silicon-carbide polishing (P120--P600), de-dusting with dry air jets ($6\,\text{bar}$), and imaged under calibrated daylight-balanced ($5600\,\text{K}$) diffuse circular LED lighting.
-- **Governed Benchmark Partitioning**: Canonically split into Train ($N=3,959$), Validation ($N=1,265$), and Test ($N=1,190$) subsets, maintaining **$100\%$ Class Coverage Rate** ($\text{CCR} = 100.0\%$, 19/19 taxa) with governed specimen boundary sharing ($\text{SLR} = 30.6\%$) and **zero cross-split duplicate captures** verified via bitwise 256-bit SHA-256 cryptographic hashing ($\text{SHA-256 Overlap} = 0$).
+- **Forensic Conservation Utility**: **10 taxa** strictly regulated under **CITES Appendix II** ($52.6\%$ of species) and **4 high-value commercial timber species** native to Vietnam (*Dalbergia cochinchinensis*, *D. tonkinensis*, *Sindora cochinchinensis*, *S. tonkinensis*).
+- **Physical Entity Provenance**: All captures are traceable to **147 verified physical wood blocks** ($|\mathcal{G}_c|$), verified by two independent certified wood anatomists ($\kappa = 0.985$, observed agreement $P_o = 98.65\%$).
+- **Optical Standardization**: Prepared via orthogonal slicing, progressive silicon-carbide polishing (P120--P600), de-dusting with dry air jets ($6\,\text{bar}$), and imaged under calibrated daylight-balanced ($5600\,\text{K}$) diffuse circular LED lighting ($4500\,\text{lux}$, $f/8.0$, working distance $15\,\text{cm}$).
+- **Two-Tier Benchmark Partitioning**: Offers both the **Canonical Split** ($N_{\text{train}}=3,959$, $N_{\text{val}}=1,265$, $N_{\text{test}}=1,190$) and the **Strict Specimen-Disjoint Split** (Zero Leakage for all 17 multi-specimen taxa, $\text{SLR}=0.0\%$), maintaining **$100\%$ Class Coverage Rate** ($\text{CCR} = 100.0\%$) and **zero cross-split duplicate captures** verified via bitwise 256-bit SHA-256 cryptographic hashing ($\text{SHA-256 Overlap} = 0$).
 - **Turnkey Machine Learning Reproducibility**: Includes pre-extracted 768-dimensional deep feature embeddings, trained classification/metric learning baseline checkpoints, and an end-to-end walkthrough demonstration code suite.
 
 ---
@@ -63,11 +63,11 @@ out/
 | 2 | *Afzelia* | *Afzelia bella* | Papao-Nua / Gỗ Gõ | Bella Doussié | App. II | 10 | 400 |
 | 3 | *Afzelia* | *Afzelia pachyloba* | Gõ Pachy | White Doussié | App. II* | 5 | 116 |
 | 4 | *Afzelia* | *Afzelia quanzensis* | Gõ Quanzensis | Pod Mahogany | App. II | 8 | 369 |
-| 5 | *Dalbergia* | *Dalbergia cochinchinensis* | Trắc (Rosewood) | Siam Rosewood | App. II (Endemic VN) | 1 | 354 |
+| 5 | *Dalbergia* | *Dalbergia cochinchinensis* | Trắc (Rosewood) | Siam Rosewood | App. II (Native / High-value VN) | 1 | 354 |
 | 6 | *Dalbergia* | *Dalbergia melanoxylon* | Trắc châu Phi | African Blackwood | App. II | 10 | 291 |
 | 7 | *Dalbergia* | *Dalbergia oliveri* | Cẩm lai | Burmese Rosewood | App. II | 10 | 316 |
-| 8 | *Dalbergia* | *Dalbergia rimosa* | Trắc dây | Rimose Rosewood | Non-CITES | 10 | 300 |
-| 9 | *Dalbergia* | *Dalbergia tonkinensis* | Sưa | Vietnamese Rosewood | App. II (Endemic VN) | 10 | 325 |
+| 8 | *Dalbergia* | *Dalbergia rimosa* | Trắc dây | Rimose Rosewood | App. II | 10 | 300 |
+| 9 | *Dalbergia* | *Dalbergia tonkinensis* | Sưa | Vietnamese Rosewood | App. II (Native / High-value VN) | 10 | 325 |
 | 10 | *Guibourtia* | *Guibourtia arnoldiana* | Gỗ Muntenye | Mutenye / Benge | Non-CITES | 10 | 323 |
 | 11 | *Guibourtia* | *Guibourtia coleosperma* | Mussivi / Hương đá | Rhodesian Copalwood | Non-CITES | 2 | 360 |
 | 12 | *Guibourtia* | *Guibourtia ehie* | Hyedua | Ovangkol / Shedua | Non-CITES | 10 | 400 |
@@ -76,9 +76,9 @@ out/
 | 15 | *Pterocarpus* | *Pterocarpus indicus* | Hương mắt chim | Narra / Amboyna | Non-CITES | 10 | 312 |
 | 16 | *Pterocarpus* | *Pterocarpus macrocarpus* | Hương quả to | Burma Padauk | Non-CITES | 8 | 431 |
 | 17 | *Pterocarpus* | *Pterocarpus soyauxii* | Padauk | African Padauk | Non-CITES | 6 | 486 |
-| 18 | *Sindora* | *Sindora cochinchinensis* | Gụ | Sindora / Sepetir | Non-CITES (Endemic VN) | 4 | 352 |
-| 19 | *Sindora* | *Sindora tonkinensis* | Gụ lau | Tonkin Sepetir | Non-CITES (Endemic VN) | 10 | 331 |
-| **Total** | **6 Genera** | **19 Species** | — | — | **9 CITES App. II (4 VN Endemic)** | **148 Blocks** | **6,414** |
+| 18 | *Sindora* | *Sindora cochinchinensis* | Gụ | Sindora / Sepetir | Non-CITES (Native / High-value VN) | 4 | 352 |
+| 19 | *Sindora* | *Sindora tonkinensis* | Gụ lau | Tonkin Sepetir | Non-CITES (Native / High-value VN) | 10 | 331 |
+| **Total** | **6 Genera** | **19 Species** | — | — | **10 CITES App. II (4 High-Value VN)** | **148 Blocks** | **6,414** |
 
 *\*Note: Afzelia pachyloba constitutes a statistical minority class ($N=116$) due to reference specimen scarcity, while being legally regulated under CITES Appendix II.*
 
@@ -112,10 +112,15 @@ $$\mathcal{D} = \mathcal{D}_{\text{train}} \cup \mathcal{D}_{\text{val}} \cup \m
 
 In authentic reference xylaria, physical specimens for rare and protected taxa are strictly scarce ($|\mathcal{G}_c| \le 10$, with single-specimen bottlenecks such as 1 block for *Dalbergia cochinchinensis*, 2 for *Guibourtia coleosperma*, and 4 for *Afzelia africana*). Under such constraints, dogmatic three-way whole-block isolation mathematically results in minority-class starvation ($\text{CCR} < 100\%$), preventing forensic validation on critical CITES species. 
 
-To overcome this, IC4SDMacroWood adopts a governed Pareto allocation protocol:
+To resolve this challenge rigorously, IC4SDMacroWood releases a **two-tier partition architecture** evaluated through a **Three-Tier Contamination Audit**:
 1. **$100.0\%$ Class Coverage Rate ($\text{CCR}$)**: Exactly 19/19 species are guaranteed across all three splits.
-2. **Governed Specimen Leakage Rate ($\text{SLR} = 30.6\%$)**: Specimen boundary sharing is strictly audited and bounded (Train--Val: 21 blocks; Train--Test: 12 blocks; Val--Test: 12 blocks).
-3. **Cryptographic Deduplication ($\text{SHA-256 Overlap} = 0$)**: 256-bit SHA-256 hashing strictly confirms zero cross-split duplicate captures, ensuring that every evaluation capture represents an authentic, independent optical field of view.
+2. **Two-Tier Split Architecture**:
+   - **Canonical Partition (Governed Legacy Split)**: Maintains 100% CCR while bounding specimen sharing ($\text{SLR} = 30.6\%$).
+   - **Strict Specimen-Disjoint Benchmark**: Enforces 100% zero-specimen leakage ($\text{SLR} = 0.0\%$) across all 17 multi-specimen taxa.
+3. **Three-Tier Cross-Split Contamination Audit**:
+   - **Tier 1: Bitwise Cryptographic Auditing (SHA-256)**: Zero bitwise exact duplicates between any partitions ($\text{SHA-256 Overlap} = 0$).
+   - **Tier 2: Perceptual Near-Duplicate Auditing (dHash & pHash)**: 64-bit Difference Hash (dHash) and DCT-based Perceptual Hash (pHash) screen for overlapping spatial crops and adjacent cuts. While the canonical split exhibits perceptual proximity due to block sharing, the Specimen-Disjoint split drives cross-specimen near-duplicates ($H \le 4$) to strictly 0.
+   - **Tier 3: Deep Feature Representation Audit (ConvNeXt-Tiny Cosine Similarity)**: Audits the maximum cosine similarity distribution on $L_2$-normalized representations to flag potential semantic shortcuts ($\cos \theta \ge 0.95$).
 
 ---
 

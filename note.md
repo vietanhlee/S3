@@ -1,168 +1,34 @@
-Tôi cần bạn làm một file training mới lại và sử dụng  PP end_version mới (viết lại vào file training mới). Đại khái là vẫn như context ngữ nghĩa form như file train_split_comparision.py cũ những chỉ dùng cho một PP chuẩn cuối. Phương pháp chuẩn cuối này là sự kết hợp của nhiều PP cũ áp dụng cho từng loài gỗ (class). Cụ thể, tối ưu cho việc chia data, chủ yếu là việc chọn tập test cho từng class, ví dụ viết PP1 của val thì ta chia theo PP1 (tập train chia theo PP1, val lấy test còn test lấy của val PP1) cụ thể thì theo đánh giá tôi chọn như sau:
+# Ghi Chú Cập Nhật & Phản Biện Bài Báo IC4SDMacroWood
 
-Afzelia africana: PP8 của val
-Afzelia bella: PP4 của val
-Afzelia pachyloba: PP2 của val
-Afzelia quanzensis: PP7 của val 
-Dalbergia cochinchinensis: PP4 của test
-Dalbergia melanoxylon: PP4 của test
-Dalbergia oliveri: PP5 của test
-Dalbergia rimosa: PP4 của test
-Dalbergia tonkinensis: PP4 của val
-Guibourtia arnoldiana: PP4 của val 
-Guibourtia coleosperma: PP4 của test
-Guibourtia ehie: PP2 của val
-Peltogyne pubescens: PP4 của val 
-Pterocarpus erinaceus: PP2 của test 
-Pterocarpus indicus: PP4 của val
-Pterocarpus macrocarpus: PP9 của val
-Pterocarpus soyauxii: PP4 của test
-Pterocarpus sp: bỏ class này, không training class này nữa
-Sindora cochinchinensis: PP9 của val 
-Sindora tonkinensis: PP7 của test
+## 1. Các Hiệu Chỉnh Đã Thực Hiện Trên `paper_data/main.tex` & `out/README.md`
+- **CITES Phụ lục II:** Đã cập nhật loài *Dalbergia rimosa* thuộc CITES Appendix II (theo quy định CoP17 bao quát toàn chi *Dalbergia*). Nâng tổng số loài CITES trong tập dữ liệu lên **10/19 loài** (tỷ lệ chuẩn xác: **52.6%**).
+- **Phân bố địa lý:** Đổi *"Endemic VN"* thành **`native / high-value in Vietnam`** cho *Dalbergia cochinchinensis* và *Sindora cochinchinensis* (do hai loài này phân bố trên toàn tiểu vùng sông Mê Kông).
+- **Phần Ethics Statement:** Đã viết nhẹ văn phong, khẳng định rõ **không sử dụng tài nguyên di truyền** (chỉ chụp ảnh quang học vi ảnh vĩ mô, không trích xuất/giải trình tự DNA), không thuộc phạm vi điều chỉnh ABS của Nghị định thư Nagoya; mẫu vật được lưu trữ trong viện bảo tàng/phòng thí nghiệm và tiếp nhận qua thư chuyển giao khoa học.
+- **Đính chính số liệu F1:** Sửa "12 species" thành **"13 species"** có F1 > 0.90 khớp hoàn toàn với Bảng 7.
+- **Giới hạn đặc điểm transverse cho VQA/XAI:** Phân định rõ các thuộc tính trực tiếp quan sát được trên mặt cắt ngang transverse (lỗ mạch, mô mềm cánh/kết tụ, chất tiết lòng mạch, màu tâm gỗ) vs. các đặc điểm vi thể ngoài (tia tầng trên TLS, mùi, tỉ trọng) là siêu dữ liệu phụ trợ trích từ tài liệu IAWA / InsideWood.
+- **Chuẩn hóa văn phong học thuật:** Thay thế các từ ngữ tiếp thị ("authoritative", "unprecedented", "unmistakable",...) bằng ngôn từ khoa học trung tính; thay "Unaudited" trong Bảng so sánh 1 thành "Not reported".
+- **Giải mã ma trận nhầm lẫn (Hình 2):** Phân tích chi tiết các lỗi nhầm lẫn xuyên chi (*A. quanzensis* $\to$ *G. coleosperma* 24 ảnh, *A. pachyloba* $\to$ *G. ehie* 13 ảnh, *A. africana* $\to$ *P. soyauxii* 9 ảnh), lý giải việc Precision của *Guibourtia* rớt xuống ~0.75 và sự sụp đổ Recall = 0.025 của loài thiểu số *Afzelia pachyloba*.
+- **Tính toán tỷ lệ split lệch:** Bổ sung luận điểm giải thích sự lệch tỷ lệ phần trăm giữa các loài là do ràng buộc nguyên khối mẫu vật lý (integer block constraint với $|\mathcal{G}_c| \le 10$).
 
-1. Thêm các chỉ số đánh giá sau cho 2 file tripletloss vs constractive loss (thêm metric đó cho báo cáo cuối): Tỷ lệ Intra-class vs Inter-class Distance (in tỉ lệ này lên cái ảnh histogram ấy luôn nhé), Silhouette Score và các chỉ số sau (tự tìm hiểu và code cho cẩn thận):
+---
 
-1. Chỉ số Davies-Bouldin (Davies-Bouldin Index - DBI)
+## 2. Công Cụ Benchmark Đa Seed Chuẩn Production: `run_multiseed_baselines.py`
+- Tệp thực thi: [run_multiseed_baselines.py](file:///g:/S3_paper/run_multiseed_baselines.py)
+- Hỗ trợ chạy **5 seeds** (`[42, 123, 456, 789, 1024]`), mỗi seed **17 epochs**, phân tách learning rate (`1e-4` backbone, `5e-4` head).
+- Đánh giá song song 3 phương pháp:
+  1. `linear_probe`: Đánh giá vector đặc trưng 768-d của ConvNeXt-Tiny (ImageNet-1K).
+  2. `cross_entropy`: Standard Cross-Entropy Baseline.
+  3. `focal`: Multiclass Focal Loss ($\gamma = 2.0$, scalar $\alpha = 0.25$).
+- Tự động tính toán: Giá trị trung bình ($\mu$), độ lệch chuẩn ($\sigma$), khoảng tin cậy 95% CI (Student's $t$, $df=4$), kiểm định Paired $t$-test, $p$-value và Cohen's $d$.
+- Báo cáo chi tiết đã lưu tại: [docs/multiseed_baseline_benchmark_report.md](file:///g:/S3_paper/docs/multiseed_baseline_benchmark_report.md).
 
-Ý nghĩa: DBI tính toán tỷ lệ giữa sự phân tán (độ phình to) của các cụm và khoảng cách giữa các tâm cụm (centroids) đó.
+---
 
-Tiêu chí: Giá trị càng thấp càng tốt (tối thiểu là 0).
+## 3. Lệnh Thực Thi Cho Bạn Trên Terminal / CMD
+```powershell
+# Chạy benchmark 5 seeds x 17 epochs:
+python run_multiseed_baselines.py --epochs 17 --seeds 42 123 456 789 1024 --gpu 0
 
-Ứng dụng cho WoodID: DBI rất giỏi trong việc phát hiện "sự chồng lấn" (overlap). Nếu DBI của mô hình giảm mạnh sau khi áp dụng Contrastive Loss, điều đó chứng minh toán học rằng cụm chứa ảnh Gỗ Trắc đã co cụm lại và tách rời hoàn toàn khỏi cụm chứa ảnh Gỗ Hương.
-
-2. Chỉ số Calinski-Harabasz (Calinski-Harabasz Index - CHI)
-
-Ý nghĩa: Còn được gọi là Variance Ratio Criterion, CHI đánh giá độ tốt của không gian nhúng bằng cách tính tỷ lệ giữa tổng phương sai liên cụm (inter-cluster dispersion) và tổng phương sai nội cụm (intra-cluster dispersion).
-
-Tiêu chí: Giá trị càng cao càng tốt. Khoảng cách giữa các cụm càng lớn và các điểm trong cụm càng đặc thì điểm CHI càng "bay".
-
-Ứng dụng cho WoodID: Điểm này rất nhạy với các cụm hình cầu. Nếu Metric Learning của bạn thành công trong việc ép các feature vector của cùng một loài hội tụ về một điểm trung tâm, CHI sẽ phản ánh điều đó rất rõ rệt.
-
-3. Chỉ số Dunn (Dunn Index)
-
-Ý nghĩa: Đây là chỉ số đo lường tỷ lệ giữa khoảng cách nhỏ nhất giữa hai điểm thuộc hai cụm khác nhau (inter-cluster) và khoảng cách lớn nhất giữa hai điểm trong cùng một cụm (intra-cluster).
-
-Tiêu chí: Giá trị càng cao càng tốt.
-
-Ứng dụng cho WoodID: Dunn Index đặc biệt khắt khe đối với các điểm kỳ dị (outliers). Trong dữ liệu gỗ, sẽ có những bức ảnh macro bị nhiễu hoặc có cấu trúc bất thường. Nếu mô hình của bạn đẩy được các "ca khó" này về đúng cụm mà không làm giãn nở cụm đó ra quá to, Dunn Index sẽ cao.
-
-4. Normalized Mutual Information (NMI)
-
-Ý nghĩa: Mặc dù bài toán của bạn đã có nhãn (20 loài), NMI thường được dùng để đánh giá chất lượng của biểu diễn đặc trưng (feature representation) dưới góc độ phân cụm không giám sát (unsupervised clustering). Bạn lấy tập embedding chạy qua thuật toán K-Means (với $K=20$), sau đó so sánh kết quả phân cụm của K-Means với nhãn gốc.
-
-Tiêu chí: Chạy từ 0 đến 1. Giá trị càng gần 1 càng tốt.
-
-Ứng dụng cho WoodID: Rất nhiều paper top-tier về Metric Learning dùng NMI để chứng minh rằng: "Không gian embedding của tôi xịn đến mức, kể cả bỏ lớp phân loại đi và chỉ dùng K-Means thuần túy, nó vẫn gom nhóm chính xác các loài gỗ."
-
-
-
-2. Báo cáo cuối của 2 file constractive loss với triplet loss cần đưa ra các metrics đánh giá đó cho từng loài (class) nữa chứ không tổng hợp chung như hiện tại được (giống như cái classification report ấy). Làm nó cho tập val và test luôn nhé (làm 1 bảng cho các class luôn, không cần riêng từng chi đâu)
-
-
-
-Pairwise losses: 
-Triplet-based: 
-Proxy-based: 
-Angular margin: 
-Mining-based: Multi-
-`Self-supervised: SimCLR, BYOL, SimSiam, Barlow Twins, SupCon`
-
-{
-  "Afzelia africana": [
-    "PP9",
-    "test",
-    "swin"
-  ],
-  "Afzelia bella": [
-    "PP5",
-    "test",
-    "swin"
-  ],
-  "Afzelia pachyloba": [
-    "PP4",
-    "val",
-    "swin"
-  ],
-  "Afzelia quanzensis": [
-    "PP9",
-    "test",
-    "swin"
-  ],
-  "Dalbergia cochinchinensis": [
-    "PP4",
-    "val",
-    "swin"
-  ],
-  "Dalbergia melanoxylon": [
-    "PP2",
-    "val",
-    "swin"
-  ],
-  "Dalbergia oliveri": [
-    "PP7",
-    "val",
-    "swin"
-  ],
-  "Dalbergia rimosa": [
-    "PP7",
-    "val",
-    "swin"
-  ],
-  "Dalbergia tonkinensis": [
-    "PP4",
-    "test",
-    "swin"
-  ],
-  "Guibourtia arnoldiana": [
-    "PP4",
-    "test",
-    "swin"
-  ],
-  "Guibourtia coleosperma": [
-    "PP1",
-    "test",
-    "swin"
-  ],
-  "Guibourtia ehie": [
-    "PP5",
-    "test",
-    "swin"
-  ],
-  "Peltogyne pubescens": [
-    "PP1",
-    "val",
-    "swin"
-  ],
-  "Pterocarpus erinaceus": [
-    "PP9",
-    "test",
-    "swin"
-  ],
-  "Pterocarpus indicus": [
-    "PP9",
-    "test",
-    "swin"
-  ],
-  "Pterocarpus macrocarpus": [
-    "PP7",
-    "val",
-    "swin"
-  ],
-  "Pterocarpus soyauxii": [
-    "PP4",
-    "test",
-    "swin"
-  ],
-  "Sindora cochinchinensis": [
-    "PP9",
-    "test",
-    "swin"
-  ],
-  "Sindora tonkinensis": [
-    "PP7",
-    "test",
-    "swin"
-  ]
-}
-}
+# Hoặc chạy thử nhanh 1 seed:
+python run_multiseed_baselines.py --epochs 3 --seeds 42 --gpu 0
+```
