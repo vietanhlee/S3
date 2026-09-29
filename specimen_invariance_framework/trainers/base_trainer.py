@@ -9,6 +9,7 @@ import os
 import time
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
+from dataclasses import asdict, is_dataclass
 
 import numpy as np
 import torch
@@ -17,14 +18,14 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, f1_score
 
 try:
-    from config import TrainingConfig, ModelConfig
+    from config import TrainingConfig, ModelConfig, safe_load_checkpoint
     from datasets.augmentations import FourierAmplitudeMixing
 except (ImportError, ValueError):
     try:
-        from ..config import TrainingConfig, ModelConfig
+        from ..config import TrainingConfig, ModelConfig, safe_load_checkpoint
         from ..datasets.augmentations import FourierAmplitudeMixing
     except (ImportError, ValueError):
-        from config import TrainingConfig, ModelConfig
+        from config import TrainingConfig, ModelConfig, safe_load_checkpoint
         from augmentations import FourierAmplitudeMixing
 
 
@@ -151,12 +152,15 @@ class BaseTrainer:
             if is_best:
                 self.best_val_metric = current_metric
                 self.best_epoch = epoch
+                cfg_payload = asdict(self.config) if is_dataclass(self.config) else (
+                    self.config.__dict__ if hasattr(self.config, "__dict__") else self.config
+                )
                 torch.save({
                     "epoch": epoch,
                     "model_state_dict": self.model.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
                     "val_metrics": val_metrics,
-                    "config": self.config,
+                    "config": cfg_payload,
                 }, best_ckpt_path)
                 
             log_entry = {
@@ -177,7 +181,7 @@ class BaseTrainer:
                   
         # Load best checkpoint for final held-out test evaluation
         if best_ckpt_path.exists():
-            checkpoint = torch.load(best_ckpt_path, map_location=self.device)
+            checkpoint = safe_load_checkpoint(best_ckpt_path, map_location=self.device)
             self.model.load_state_dict(checkpoint["model_state_dict"])
             print(f"[+] Loaded best checkpoint from Epoch {self.best_epoch} (Val Macro-F1: {self.best_val_metric:.2f}%)")
             

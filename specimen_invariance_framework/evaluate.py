@@ -35,7 +35,7 @@ for p in [str(CURRENT_DIR), str(REPO_ROOT)]:
         sys.path.insert(0, p)
 
 try:
-    from config import ModelConfig
+    from config import ModelConfig, safe_load_checkpoint
     from datasets.dataset import TimberDataset, build_taxonomy_mappings
     from datasets.augmentations import build_val_transform
     from datasets.splits import generate_round_robin_loso_splits, generate_leaky_stratified_split
@@ -45,7 +45,7 @@ try:
     from evaluation.metrics import compute_ggsl
     from evaluation.visualizer import plot_tsne_species_vs_specimen
 except (ImportError, ValueError):
-    from specimen_invariance_framework.config import ModelConfig
+    from specimen_invariance_framework.config import ModelConfig, safe_load_checkpoint
     from specimen_invariance_framework.datasets.dataset import TimberDataset, build_taxonomy_mappings
     from specimen_invariance_framework.datasets.augmentations import build_val_transform
     from specimen_invariance_framework.datasets.splits import generate_round_robin_loso_splits, generate_leaky_stratified_split
@@ -170,7 +170,7 @@ def main():
         specimen_counts=mappings["specimen_counts"],
         num_total_specimens=mappings["num_total_specimens"]
     )
-    checkpoint = torch.load(ckpt_path, map_location=device)
+    checkpoint = safe_load_checkpoint(ckpt_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
     model.eval()

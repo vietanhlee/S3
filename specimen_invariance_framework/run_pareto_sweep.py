@@ -31,7 +31,7 @@ for p in [str(CURRENT_DIR), str(REPO_ROOT)]:
         sys.path.insert(0, p)
 
 try:
-    from config import ModelConfig, TrainingConfig
+    from config import ModelConfig, TrainingConfig, safe_load_checkpoint
     from datasets.dataset import TimberDataset, build_taxonomy_mappings
     from datasets.samplers import SpecimenBalancedBatchSampler
     from datasets.augmentations import build_train_transform, build_val_transform
@@ -42,7 +42,7 @@ try:
     from evaluation.metrics import compute_ggsl
     from evaluation.visualizer import plot_pareto_curve, plot_correlation_sri_vs_ggsl
 except (ImportError, ValueError):
-    from specimen_invariance_framework.config import ModelConfig, TrainingConfig
+    from specimen_invariance_framework.config import ModelConfig, TrainingConfig, safe_load_checkpoint
     from specimen_invariance_framework.datasets.dataset import TimberDataset, build_taxonomy_mappings
     from specimen_invariance_framework.datasets.samplers import SpecimenBalancedBatchSampler
     from specimen_invariance_framework.datasets.augmentations import build_train_transform, build_val_transform
@@ -209,7 +209,7 @@ def main():
         # Load best checkpoint
         best_ckpt = run_dir / "best_model.pth"
         if best_ckpt.exists():
-            ckpt = torch.load(best_ckpt, map_location=device)
+            ckpt = safe_load_checkpoint(best_ckpt, map_location=device)
             model.load_state_dict(ckpt["model_state_dict"])
             
         # Evaluate LOSO vs Leaky
