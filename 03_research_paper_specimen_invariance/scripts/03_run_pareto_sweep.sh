@@ -27,7 +27,7 @@ python run_pareto_sweep.py \
     --fold "${FOLD}" \
     --epochs "${EPOCHS}" \
     --batch_size "${BATCH_SIZE}" \
-    --lambdas 0.0 0.1 0.25 0.5 1.0 2.0 \
+    --lambdas 0.0 0.5 1.0 \
     --metadata_csv "${METADATA}" \
     --image_root "${IMG_ROOT}" \
     --output_dir "${OUTPUT_DIR}"
