@@ -7,6 +7,7 @@ Visualization utilities:
 3. Correlation Analysis: Specimen Recoverability Index vs. Generalization Gap (GGSL).
 """
 
+import inspect
 from typing import List, Dict, Any, Optional
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +39,12 @@ def plot_tsne_species_vs_specimen(
         sp_lbls = species_labels
         spec_lbls = specimen_labels
 
-    tsne = TSNE(n_components=2, perplexity=30, random_state=42, n_iter=1000)
+    tsne_kwargs = {"n_components": 2, "perplexity": 30, "random_state": 42}
+    if "max_iter" in inspect.signature(TSNE.__init__).parameters:
+        tsne_kwargs["max_iter"] = 1000
+    else:
+        tsne_kwargs["n_iter"] = 1000
+    tsne = TSNE(**tsne_kwargs)
     coords = tsne.fit_transform(embs)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
@@ -134,12 +140,14 @@ def plot_correlation_sri_vs_ggsl(
             fontsize=9
         )
 
-    # Fit linear regression line
-    m, b = np.polyfit(sri_vals, ggsl_vals, 1)
-    ax.plot(sri_vals, m * sri_vals + b, "-", color="#4d9221", label=f"Fit (Slope: {m:.2f})")
-
-    r, p = pearsonr(sri_vals, ggsl_vals)
-    ax.set_title(f"Correlation: SRI vs. GGSL (Pearson r = {r:.3f}, p = {p:.3e})", fontsize=12, fontweight="bold")
+    # Fit linear regression line safely
+    if len(sri_vals) >= 2 and float(np.std(sri_vals)) > 1e-7 and float(np.std(ggsl_vals)) > 1e-7:
+        m, b = np.polyfit(sri_vals, ggsl_vals, 1)
+        ax.plot(sri_vals, m * sri_vals + b, "-", color="#4d9221", label=f"Fit (Slope: {m:.2f})")
+        r, p = pearsonr(sri_vals, ggsl_vals)
+        ax.set_title(f"Correlation: SRI vs. GGSL (Pearson r = {r:.3f}, p = {p:.3e})", fontsize=12, fontweight="bold")
+    else:
+        ax.set_title("Correlation: SRI vs. GGSL", fontsize=12, fontweight="bold")
     ax.set_xlabel("Specimen Recoverability Index (SRI)", fontsize=11)
     ax.set_ylabel("Generalization Gap GGSL (Acc %)", fontsize=11)
     ax.legend(loc="upper left")

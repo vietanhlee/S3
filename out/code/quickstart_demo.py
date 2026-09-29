@@ -196,10 +196,10 @@ def main():
     print(f"    - Total Curated Images : {len(df):,}")
     print(f"    - Botanical Genera     : {df['genus'].nunique()} genera in family Fabaceae")
     print(f"    - Total Species (Spp.) : {df['scientific_binomial'].nunique()} species")
-    cites_spp = df[df['cites_status'].str.contains('CITES App. II', na=False)]['scientific_binomial'].nunique()
+    cites_spp = df[df['cites_status'].str.contains('Appendix', case=False, na=False)]['scientific_binomial'].nunique()
     print(f"    - CITES Appendix II    : {cites_spp} species ({cites_spp / df['scientific_binomial'].nunique() * 100:.1f}%)")
 
-    # 2. Governed Split Integrity
+    # 2. Governed Partition Integrity
     print(f"\n[2] GOVERNED PARTITION INTEGRITY CHECK:")
     train_count = (df['split'] == 'train').sum()
     val_count = (df['split'] == 'val').sum()
@@ -218,7 +218,8 @@ def main():
     train_hashes = set(df[df['split'] == 'train']['sha256_hash'].dropna())
     test_hashes = set(df[df['split'] == 'test']['sha256_hash'].dropna())
     hash_overlap = len(train_hashes & test_hashes)
-    print(f"    - Tier 1: SHA-256 Bitwise Overlap : {hash_overlap} captures (Zero exact duplicate verified)")
+    status_str = "(Zero cross-split duplicate in verified clean partition)" if hash_overlap == 0 else f"({hash_overlap} captures in baseline manifest)"
+    print(f"    - Tier 1: SHA-256 Bitwise Overlap : {hash_overlap} captures {status_str}")
 
     if 'dhash' in df.columns:
         train_dhashes = set(df[df['split'] == 'train']['dhash'].dropna())

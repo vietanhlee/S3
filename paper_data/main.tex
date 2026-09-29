@@ -162,26 +162,29 @@ Fabaceae hardwoods \sep CITES Appendix~II trade compliance \sep Forest products 
 
 \vspace{0.5em}
 
-To contextualize the forensic utility and technical characteristics of IC4SDMacroWood, Table~\ref{tab:dataset_comparison} systematically compares its core attributes against prominent publicly available macroscopic wood datasets and recent literature benchmarks~\cite{ravindran2020,ravindran2021,figueroamata2022,song2025,liu2025}. While foundational initiatives such as the XyloTron project~\cite{ravindran2020,ravindran2021} and regional surveys~\cite{figueroamata2022,song2025} have significantly advanced computer vision in wood science, existing public collections typically focus on broader regional taxa with minimal CITES coverage ($<15\%$), utilize lower optical magnifications ($10\times$ or non-standardized mobile lenses), and frequently partition images without auditing specimen boundary leakage. Conversely, specialized studies targeting high-value taxa (such as congeneric \textit{Pterocarpus} discrimination~\cite{liu2025}) remain confined to private, unshared research archives. IC4SDMacroWood addresses these limitations by offering an open, calibrated high-resolution ($12.0\,\mu\text{m/pixel}$, $2.69 \times 2.69\,\text{mm}$ tile FOV, $50\times$ nominal magnification) benchmark with a substantial concentration of regulated Fabaceae hardwoods ($52.6\%$ CITES Appendix~II, 10 regulated taxa), accompanied by governed partition manifests, zero bitwise cross-split redundancy ($\text{SHA-256 Overlap} = 0$), and pre-extracted deep feature embeddings.
+To contextualize the forensic utility and technical characteristics of IC4SDMacroWood, Table~\ref{tab:dataset_comparison} systematically compares its core attributes against prominent publicly available macroscopic wood datasets and recent literature benchmarks~\cite{ravindran2020,ravindran2021,figueroamata2022,song2025,liu2025,nguyentrong2026eucalyptus}. While foundational initiatives such as the XyloTron project~\cite{ravindran2020,ravindran2021} and regional surveys~\cite{figueroamata2022,song2025} have advanced computer vision in forestry, existing public collections typically focus on non-regulated commercial forestry timbers with minimal or zero CITES coverage ($<15\%$) or utilize lower optical magnifications ($10\times$ or non-standardized mobile lenses). In particular, prior institutional work on plantation hardwoods (such as the IC4SD-Wood-Eucalyptus benchmark~\cite{nguyentrong2026eucalyptus}) established rigorous transverse image curation and leakage auditing for the genus \textit{Eucalyptus} (10 species, 2,910 images, $0\%$ CITES), primarily serving pulpwood and timber plantation management. Conversely, specialized studies targeting high-value CITES taxa (such as congeneric \textit{Pterocarpus} discrimination~\cite{liu2025}) remain restricted to private, unshared archives.
+
+IC4SDMacroWood introduces a fundamentally distinct, high-impact forensic contribution: (i) it targets \textbf{19 commercially significant tropical hardwoods across 6 genera in the legume family Fabaceae}, featuring a critical concentration of international trade-restricted timbers (\textbf{52.6\% CITES Appendix~II}, 10 regulated species) alongside 4 high-value timber species native to Vietnam (\textit{Dalbergia cochinchinensis}, \textit{Dalbergia tonkinensis}, \textit{Sindora cochinchinensis}, and \textit{Sindora tonkinensis}); (ii) it provides an expert-curated matrix of \textbf{14 diagnostic macroscopic anatomical descriptors} (\texttt{metadata/anatomical\_features.csv}) structured under IAWA xylotomical standards, enabling emerging Multimodal Vision-Language (VLM), Visual Question Answering (VQA), and Explainable AI (XAI) paradigms that were absent in prior single-modality collections; and (iii) it delivers high optical calibration ($12.0\,\mu\text{m/pixel}$, $2.69 \times 2.69\,\text{mm}$ tile FOV, $50\times$ nominal display magnification), verified physical block traceability ($|\mathcal{G}_c| = 148$ wood blocks), governed split manifests with zero bitwise redundancy ($\text{SHA-256 Overlap} = 0$), and pre-extracted deep feature embeddings.
 
 \begin{table}[pos=htbp]
 \centering
 \small
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.18}
-\caption{Systematic comparison of IC4SDMacroWood against prominent public and literature macroscopic timber datasets, contrasting taxonomic focus, optical magnification, forensic regulation, partition governance, and machine learning accessibility.}
+\caption{Systematic comparison of IC4SDMacroWood against prominent public and literature macroscopic timber datasets, contrasting taxonomic focus, optical magnification, forensic regulation, partition governance, multimodal descriptors, and machine learning accessibility.}
 \label{tab:dataset_comparison}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccccccc}
 \toprule
-\textbf{Dataset / Study} & \textbf{Taxonomic Focus} & \makecell{\textbf{No.}\\\textbf{Spp.}} & \makecell{\textbf{Total}\\\textbf{Images}} & \makecell{\textbf{Optical Mag.}\\\textbf{/ Resolution}} & \makecell{\textbf{CITES App.~II}\\\textbf{Ratio (\%)}} & \makecell{\textbf{Partition}\\\textbf{Protocol}} & \makecell{\textbf{Contamination Audit}\\\textbf{(SHA / pHash)}} & \makecell{\textbf{Pre-computed}\\\textbf{Embeddings}} & \makecell{\textbf{Access}\\\textbf{Model}} \\
+\textbf{Dataset / Study} & \textbf{Taxonomic Focus} & \makecell{\textbf{No.}\\\textbf{Spp.}} & \makecell{\textbf{Total}\\\textbf{Images}} & \makecell{\textbf{Optical Mag.}\\\textbf{/ Resolution}} & \makecell{\textbf{CITES App.~II}\\\textbf{Ratio (\%)}} & \makecell{\textbf{Partition}\\\textbf{Protocol}} & \makecell{\textbf{Contamination Audit}\\\textbf{(SHA / pHash)}} & \makecell{\textbf{IAWA Multimodal}\\\textbf{Descriptors}} & \makecell{\textbf{Access}\\\textbf{Model}} \\
 \midrule
 XyloTron Datasets~\cite{ravindran2020,ravindran2021} & Neotropical/US hardwoods & 10--40 & 2,300--5,000 & $10\times$ ($24\,\mu\text{m/px}$) & Low ($<15\%$) & Specimen-level (SLR not reported) & Not reported & No & Open \\
 Costa Rican Timbers~\cite{figueroamata2022} & Native Costa Rican trees & 21 & 2,360 & Variable (phone macro) & Minimal ($<5\%$) & Random image split & Not reported & No & Open \\
 Asian Commercial~\cite{song2025} & Vietnamese/Asian timber & 15 & $\sim$3,000 & $20\times$--$40\times$ USB & Moderate ($20\%$) & Random $k$-fold (SLR not reported) & Not reported & No & Restricted \\
 \textit{Pterocarpus} Discrimination~\cite{liu2025} & \textit{Pterocarpus} genus only & 6 & $\sim$1,800 & $20\times$--$30\times$ stereo & Subset ($50\%$, 3 spp.) & Random split (SLR not reported) & Not reported & No & Private \\
+IC4SD-Wood-Eucalyptus~\cite{nguyentrong2026eucalyptus} & Plantation genus \textit{Eucalyptus} & 10 & 2,910 & $12.0\,\mu\text{m/px}$ ($50\times$) & None ($0.0\%$, 0 spp.) & Specimen-aware (audited) & SHA-256 audited & No & Open (CC BY 4.0) \\
 \midrule
-\textbf{IC4SDMacroWood (This Work)} & \textbf{Tropical Fabaceae (6 genera)} & \textbf{19} & \textbf{6,414} & \textbf{12.0}\,$\mu$\textbf{m/px (50}$\times$ \textbf{nominal)} & \textbf{High (52.6\%, 10 spp.)} & \textbf{Two-Tier (SLR=0\% / Gov)} & \textbf{Three-Tier Audited} & \textbf{Yes (768-d)} & \textbf{Open (CC BY 4.0)} \\
+\textbf{IC4SDMacroWood (This Work)} & \textbf{Tropical Fabaceae (6 genera)} & \textbf{19} & \textbf{6,414} & \textbf{12.0}\,$\mu$\textbf{m/px (50}$\times$ \textbf{nominal)} & \textbf{High (52.6\%, 10 spp.)} & \textbf{Two-Tier (SLR=0\% / Gov)} & \textbf{Three-Tier Audited} & \textbf{Yes (14-axis CSV)} & \textbf{Open (CC BY 4.0)} \\
 \bottomrule
 \end{tabular}%
 }
@@ -476,15 +479,15 @@ To guarantee benchmark integrity, a rigorous two-phase quality control and gover
 
 Standardized $224 \times 224$ px images are normalized during training using ImageNet channel statistics ($\boldsymbol{\mu} = [0.485, 0.456, 0.406]$, $\boldsymbol{\sigma} = [0.229, 0.224, 0.225]$). Training augmentations include random resized crops (scale $0.8$--$1.0$), random horizontal and vertical flips ($p = 0.5$), mild color jitter (factors of $0.25$, hue $0.05$), and subtle grayscale conversion ($p = 0.05$).
 
-\subsection{Technical Validation: Baseline Classification and Metric Learning}
+\section{Technical Validation}
 \label{sec:technical_validation}
 
-To verify the technical usability and reproducibility of the released dataset, metadata, and governed split manifests, dual baseline models were evaluated using the ConvNeXt-Tiny architecture~\cite{convnext}: (i) a supervised fine-grained classification baseline under Multiclass Focal Loss, and (ii) a deep metric representation learning baseline under Semi-Hard Triplet Loss. These experiments demonstrate end-to-end dataset execution and provide reproducible reference baselines for future studies rather than an exhaustive algorithmic benchmark.
+To verify the technical usability, integrity, and reproducibility of the released dataset, metadata tables, and governed partition manifests, baseline validation experiments were conducted using the modern ConvNeXt-Tiny architecture~\cite{convnext}: (i) a supervised fine-grained classification baseline under Multiclass Focal Loss, and (ii) a deep metric representation learning baseline under Semi-Hard Triplet Loss evaluating nearest-neighbor similarity retrieval. In accordance with the publication mandate of \textit{Data in Brief}, these baseline experiments serve strictly to confirm dataset functionality, establish standard reference benchmarks, and demonstrate turnkey execution for timber forensics, rather than presenting exhaustive algorithmic comparisons or exploring complex invariance formulations, which are reserved for dedicated machine learning research publications.
 
-\subsubsection{Supervised Classification Baseline}
+\subsection{Supervised Classification Baseline}
 \label{sec:classification_baseline}
 
-The classification baseline fine-tunes the ConvNeXt-Tiny architecture~\cite{convnext} (pre-trained on ImageNet-1K) on the governed training partition ($N_{\text{train}} = 3,959$). To address class imbalance across the 19 species without synthetic oversampling, the network was optimized under Multiclass Focal Loss~\cite{focal} ($\alpha = 0.25, \gamma = 2.0$) using AdamW ($\eta = 5 \times 10^{-4}$, weight decay $10^{-2}$) and cosine annealing schedule over 30 epochs (batch size 64). Checkpoint selection was governed strictly by validation macro-F1 score.
+The classification baseline fine-tunes the ConvNeXt-Tiny architecture~\cite{convnext} (pre-trained on ImageNet-1K) on the governed training partition ($N_{\text{train}} = 3,959$). To address natural class imbalance across the 19 Fabaceae species without synthetic oversampling, the network was optimized under Multiclass Focal Loss~\cite{focal} ($\alpha = 0.25, \gamma = 2.0$) using AdamW ($\eta = 5 \times 10^{-4}$, weight decay $10^{-2}$) and a cosine annealing schedule over 30 epochs (batch size 64). Checkpoint selection was governed strictly by validation macro-F1 score.
 
 \begin{table}[pos=htbp]
 \centering
@@ -537,71 +540,56 @@ The classification baseline fine-tunes the ConvNeXt-Tiny architecture~\cite{conv
 
 As summarized in Table~\ref{tab:baseline_classification_report}, the classification baseline achieved an overall top-1 accuracy of $90.42\%$, a macro-averaged F1-score of $86.80\%$, and a weighted F1-score of $88.82\%$ across the $1,190$ held-out test captures. Across the 19 individual taxa, 13 species achieved F1-scores exceeding $0.90$, with perfect scores ($1.000$) recorded on three taxa (\textit{Dalbergia melanoxylon}, \textit{Peltogyne pubescens}, and \textit{Sindora cochinchinensis}) and near-perfect classification on \textit{Dalbergia cochinchinensis} ($0.9929$), \textit{Guibourtia arnoldiana} ($0.9787$), \textit{Dalbergia oliveri} ($0.9756$), and \textit{Sindora tonkinensis} ($0.9552$).
 
-Inspection of the test-set confusion matrix (Figure~\ref{fig:confusion_matrix}) reveals distinct behavioral patterns across taxonomic clades. While strong intra-genus confusion occurs between congeneric sister taxa with pronounced anatomical convergence (notably 21 test captures of \textit{Afzelia pachyloba} misclassified as \textit{Afzelia bella} due to shared lozenge-aliform parenchyma topography), notable inter-genus misclassifications also occur across distinct clades: (i) 24 captures of \textit{Afzelia quanzensis} ($42.9\%$) are confused with \textit{Guibourtia coleosperma}; (ii) 13 captures of \textit{Afzelia pachyloba} ($32.5\%$) are predicted as \textit{Guibourtia ehie}; and (iii) 9 captures of \textit{Afzelia africana} ($15.5\%$) are misclassified as \textit{Pterocarpus soyauxii}. These cross-genus errors stem from shared macroscopic traits, such as comparable diffuse-porous pore diameters and similar reddish-brown heartwood colorations, and directly explain why the precision of \textit{Guibourtia coleosperma} ($75.0\%$) and \textit{Guibourtia ehie} ($75.5\%$) is comparatively reduced. In addition, the acute minority class \textit{Afzelia pachyloba} ($N=116$ total, support $= 40$ in test) suffers from severe class imbalance, yielding a recall of only $0.025$ (only 1 out of 40 captures correctly identified), as gradient updates favor higher-prevalence taxa under standard scalar focal loss weighting.
+Inspection of the test-set confusion matrix (Figure~\ref{fig:confusion_matrix}) reveals distinct behavioral patterns across taxonomic clades. While strong intra-genus confusion occurs between congeneric sister taxa with pronounced anatomical convergence (notably 21 test captures of \textit{Afzelia pachyloba} misclassified as \textit{Afzelia bella} due to shared lozenge-aliform parenchyma topography), notable inter-genus misclassifications also occur across distinct clades: (i) 24 captures of \textit{Afzelia quanzensis} ($42.9\%$) are confused with \textit{Guibourtia coleosperma}; (ii) 13 captures of \textit{Afzelia pachyloba} ($32.5\%$) are predicted as \textit{Guibourtia ehie}; and (iii) 9 captures of \textit{Afzelia africana} ($15.5\%$) are misclassified as \textit{Pterocarpus soyauxii}. These cross-genus errors stem from shared macroscopic traits, such as comparable diffuse-porous pore diameters and similar reddish-brown heartwood colorations, and directly explain why the precision of \textit{Guibourtia coleosperma} ($75.0\%$) and \textit{Guibourtia ehie} ($75.5\%$) is comparatively reduced. In addition, the acute minority class \textit{Afzelia pachyloba} ($N=116$ total, support $= 40$ in test) suffers from severe class imbalance, yielding a recall of $0.025$ (only 1 out of 40 captures correctly identified), reflecting the small-sample regime documented in Table~\ref{tab:taxonomic_inventory}.
 
 \begin{figure}[pos=htbp]
 \centering
 \includegraphics[width=0.92\linewidth]{fig/confusion_matrix_focal_test.pdf}
-\caption{Confusion matrix of the ConvNeXt-Tiny technical-validation baseline under Multiclass Focal Loss evaluated across all 19 Fabaceae taxa on the held-out test split ($N_{\text{test}} = 1,190$). While the diagonal density confirms robust overall discrimination ($90.42\%$), notable off-diagonal misclassifications emerge both within congeneric taxa (\textit{A. pachyloba} $\to$ \textit{A. bella}) and across genera (\textit{A. quanzensis} $\to$ \textit{G. coleosperma}, \textit{A. pachyloba} $\to$ \textit{G. ehie}), reflecting cross-genus macroscopic similarities and acute minority-class collapse on \textit{A. pachyloba} (recall $0.025$).}
+\caption{Confusion matrix of the ConvNeXt-Tiny technical-validation baseline under Multiclass Focal Loss evaluated across all 19 Fabaceae taxa on the held-out test split ($N_{\text{test}} = 1,190$). While the diagonal density confirms robust overall discrimination ($90.42\%$), notable off-diagonal misclassifications emerge both within congeneric taxa (\textit{A. pachyloba} $\to$ \textit{A. bella}) and across genera (\textit{A. quanzensis} $\to$ \textit{G. coleosperma}, \textit{A. pachyloba} $\to$ \textit{G. ehie}), reflecting cross-genus macroscopic similarities and acute minority-class constraints.}
 \label{fig:confusion_matrix}
 \end{figure}
 
-\subsubsection{Deep Metric Representation Learning Baseline}
+\subsection{Deep Feature Representation and Similarity Retrieval Usability}
 \label{sec:metric_baseline}
 
-In addition to supervised classification, a deep metric representation baseline was evaluated using \textbf{Semi-Hard Triplet Loss} to provide reference embedding-space quality metrics and nearest-neighbor retrieval verification. To prevent ambiguity between distributed data assets and technical-validation modeling, we explicitly distinguish the dimensionality of these representations:
-\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
-    \item \textbf{Distributed General-Purpose Embeddings ($768$-d)}: The publicly archived asset \texttt{embeddings/convnext\_tiny.npy} contains general-purpose, $L_2$-normalized 768-dimensional feature representations pooled directly from the frozen ConvNeXt-Tiny backbone pre-trained on ImageNet-1K. These static embeddings are distributed to facilitate rapid downstream experimentation (e.g., linear probing, clustering, zero-shot exploration) without requiring GPU compute.
-    \item \textbf{Metric Learning Baseline Head ($256$-d)}: For deep metric learning validation, the ConvNeXt-Tiny backbone was coupled with a dedicated linear projection head ($768 \to 256$, with batch normalization). The resulting 256-dimensional vectors were $L_2$-normalized onto the unit hypersphere $\mathcal{S}^{255}$ ($d=256$) and fine-tuned under Semi-Hard Triplet Loss. This projection head represents an experimental validation model trained strictly to quantify geometric cluster compaction and open-set retrieval capability (Table~\ref{tab:metric_learning_comparison}) and is not bundled as a static file in the public data release.
-\end{itemize}
+In addition to closed-set supervised classification, representation learning and nearest-neighbor retrieval were evaluated to confirm that the macroscopic image captures provide separable embedding manifolds suitable for open-set forensic triage (e.g., matching unknown timber consignments against reference xylarium specimens).
 
-Given anchor ($\boldsymbol{z}_a$), positive ($\boldsymbol{z}_p$), and negative ($\boldsymbol{z}_n$) projected embeddings on $\mathcal{S}^{255}$, the metric objective enforces:
-\begin{equation}
-\mathcal{L}_{\text{Triplet}} = \max\left(0, \|\boldsymbol{z}_a - \boldsymbol{z}_p\|_2^2 - \|\boldsymbol{z}_a - \boldsymbol{z}_n\|_2^2 + \alpha\right),
-\end{equation}
-with Euclidean margin $\alpha = 0.50$ on $L_2$-normalized embeddings ($\|\boldsymbol{z}\|_2 = 1$). Optimization employed online semi-hard negative mining~\cite{facenet} via a PK-sampler ($P=19$ classes, $K=4$ samples/class, batch size 76).
+To distinguish data distribution assets from experimental baseline models:
+\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
+    \item \textbf{Public Static Embeddings ($768$-d)}: The publicly archived asset \texttt{embeddings/convnext\_tiny.npy} contains general-purpose, $L_2$-normalized 768-dimensional feature representations pooled directly from the frozen ConvNeXt-Tiny backbone pre-trained on ImageNet-1K. These static vectors allow users to perform rapid clustering, linear classification, or search queries without requiring local GPU infrastructure.
+    \item \textbf{Fine-Tuned Metric Representation Head ($256$-d)}: For similarity retrieval validation, the ConvNeXt-Tiny backbone was coupled with a linear projection head ($768 \to 256$, with batch normalization) and fine-tuned under Semi-Hard Triplet Loss~\cite{facenet} ($\alpha = 0.50$, PK-sampler with $P=19$, $K=4$, batch size 76) on the unit hypersphere $\mathcal{S}^{255}$.
+\end{itemize}
 
 \begin{table}[pos=htbp]
 \centering
 \small
-\setlength{\tabcolsep}{8pt}
+\setlength{\tabcolsep}{10pt}
 \renewcommand{\arraystretch}{1.18}
-\caption{Quantitative comparison of embedding space geometry and nearest-neighbor retrieval metrics on the IC4SDMacroWood held-out test split ($N_{\text{test}} = 1,190$) before and after Semi-Hard Triplet representation learning in the projected 256-dimensional metric space ($d=256$, margin $\alpha=0.50$).}
+\caption{Embedding space compactness and nearest-neighbor retrieval performance on the IC4SDMacroWood held-out test split ($N_{\text{test}} = 1,190$) before and after Semi-Hard Triplet fine-tuning in the projected metric space ($d=256$, margin $\alpha=0.50$).}
 \label{tab:metric_learning_comparison}
-\resizebox{0.88\linewidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Evaluation Metric} & \textbf{Target} & \makecell{\textbf{Pre-trained}\\\textbf{Baseline}} & \makecell{\textbf{Semi-Hard}\\\textbf{Triplet}} & \makecell{\textbf{Relative}\\\textbf{Gain}} \\
+\textbf{Validation Metric} & \textbf{Desirable Target} & \makecell{\textbf{Pre-trained}\\\textbf{Backbone}} & \makecell{\textbf{Metric-Tuned}\\\textbf{Baseline}} & \makecell{\textbf{Relative}\\\textbf{Gain}} \\
 \midrule
-Intra/Inter Distance Ratio & $\downarrow$ & 0.7136 & \textbf{0.1931} & $+72.9\%$ \\
-Davies-Bouldin Index (DBI) & $\downarrow$ & 2.2250 & \textbf{0.5671} & $+74.5\%$ \\
-Silhouette Score & $\uparrow$ & 0.1584 & \textbf{0.7538} & $+375.9\%$ \\
-Calinski-Harabasz Index (CHI) & $\uparrow$ & 57.4 & \textbf{927.6} & $+1,515.5\%$ \\
-Normalized Mutual Information (NMI) & $\uparrow$ & 0.8526 & \textbf{0.9815} & $+15.1\%$ \\
-Nearest Neighbor Recall@1 (\%) & $\uparrow$ & 98.74\% & \textbf{99.92\%} & $+1.18\%$ \\
+Nearest Neighbor Recall@1 (\%) & $\uparrow$ (Higher is better) & 98.74\% & \textbf{99.92\%} & $+1.18\%$ \\
+Silhouette Score & $\uparrow$ (Higher is better) & 0.1584 & \textbf{0.7538} & $+375.9\%$ \\
+Davies-Bouldin Index (DBI) & $\downarrow$ (Lower is better) & 2.2250 & \textbf{0.5671} & $+74.5\%$ \\
+Intra/Inter Distance Ratio & $\downarrow$ (Lower is better) & 0.7136 & \textbf{0.1931} & $+72.9\%$ \\
 \bottomrule
-\multicolumn{5}{@{}p{\linewidth}@{}}{\vspace{3pt}\footnotesize \textit{Note:} Evaluated on $N_{\text{test}} = 1,190$ independent test captures across all 19 Fabaceae species in the projected 256-dimensional metric space ($d=256$, mapped from the 768-d backbone via a linear projection head; distinct from the unprojected 768-d general-purpose representations released in \texttt{embeddings/convnext\_tiny.npy}). $\uparrow$ indicates higher is better; $\downarrow$ indicates lower is better. Relative gain represents the percentage improvement achieved by online Semi-Hard Triplet metric learning over the pre-trained feature baseline.}
-\end{tabular}%
-}
+\multicolumn{5}{@{}p{\linewidth}@{}}{\vspace{3pt}\footnotesize \textit{Note:} Evaluated across $N_{\text{test}} = 1,190$ captures in the projected 256-dimensional space (Query = Test, Gallery = Train). The baseline demonstrates high intra-species cluster compaction and near-perfect top-1 retrieval ($99.92\%$) suitable for customs specimen verification.}
+\end{tabular}
 \end{table}
 
-Table~\ref{tab:metric_learning_comparison} summarizes quantitative representation metrics across five geometric clustering indices and top-1 nearest-neighbor retrieval on the held-out test split ($N_{\text{test}} = 1,190$). Online Semi-Hard Triplet metric learning substantially compresses intra-class dispersion while expanding inter-class boundaries: the intra-to-inter distance ratio decreases from $0.7136$ to \textbf{0.1931} ($+72.9\%$ relative compaction), Davies-Bouldin Index drops from $2.2250$ to \textbf{0.5671} ($+74.5\%$), Silhouette Score surges from $0.1584$ to \textbf{0.7538} ($+375.9\%$), and Calinski-Harabasz Index increases over fifteen-fold to \textbf{927.6}. Unsupervised $K$-means clustering achieves a Normalized Mutual Information (NMI) of \textbf{0.9815}, demonstrating high congruence with biological ground-truth species boundaries without relying on classification logits. Correspondingly, nearest-neighbor Recall@1 reaches \textbf{99.92\%}, validating that the extracted feature space provides a robust foundation for specimen verification and open-set retrieval.
+As documented in Table~\ref{tab:metric_learning_comparison}, fine-tuning under Semi-Hard Triplet loss substantially enhances representation geometry: nearest-neighbor Recall@1 improves from $98.74\%$ to \textbf{99.92\%}, the Silhouette Score surges from $0.1584$ to \textbf{0.7538} ($+375.9\%$), and the Davies-Bouldin Index drops from $2.2250$ to \textbf{0.5671} ($+74.5\%$). Furthermore, two-dimensional $t$-SNE visualizations (Figure~\ref{fig:tsne_comparison}) confirm that the fine-tuned representation cleanly disentangles congeneric sister species into discrete, biologically cohesive clusters.
 
 \begin{figure}[pos=htbp]
 \centering
 \includegraphics[width=0.96\linewidth]{fig/tsne_comparison}
-\caption{Two-dimensional $t$-SNE projections of the 19 wood taxa comparing the pre-trained baseline representations ($768 \to 256$-d, left) against the fine-tuned Semi-Hard Triplet metric learning representations (right). Metric learning resolves congeneric overlaps and organizes species into discrete, biologically coherent clusters.}
+\caption{Two-dimensional $t$-SNE projections of the 19 Fabaceae timber taxa comparing pre-trained ImageNet representations ($768 \to 256$-d, left) against the fine-tuned metric representation manifold (right). Metric fine-tuning resolves congeneric overlaps and confirms strong dataset separability for automated nearest-neighbor retrieval.}
 \label{fig:tsne_comparison}
 \end{figure}
 
-\begin{figure}[pos=htbp]
-\centering
-\includegraphics[width=0.96\linewidth]{fig/distance_distribution}
-\caption{Pairwise Euclidean distance empirical density histograms between intra-class pairs (same species, blue) and inter-class pairs (distinct species, orange/red) for the pre-trained baseline (left) versus the fine-tuned metric-learned model (right). Metric learning reduces the intra-to-inter distance ratio from $0.7136$ to $0.1931$ (+72.9\% improvement), establishing a distinct separation margin.}
-\label{fig:distance_distribution}
-\end{figure}
-
-Two-dimensional $t$-SNE projections (Figure~\ref{fig:tsne_comparison}) confirm that metric learning resolves congeneric overlaps and organizes taxa into discrete biological clusters. Pairwise Euclidean distance density distributions (Figure~\ref{fig:distance_distribution}) illustrate the emergence of a clear, separated decision margin between intra-class and inter-class pairs. Because these experiments serve as technical-validation baselines rather than exhaustive algorithmic comparisons, the reported performance metrics provide reproducible reference baselines establishing dataset usability under standard deep learning workflows.
+These technical validation baselines confirm that IC4SDMacroWood provides an accessible, high-quality, and computationally reproducible image repository. In accordance with the mandate of \textit{Data in Brief}, comprehensive algorithmic investigations—including domain generalization across physical growth provenances, specimen-invariant learning, and causal feature disentanglement—are reserved for dedicated machine learning research publications.
 
 \section{Limitations}
 \label{sec:limitations}

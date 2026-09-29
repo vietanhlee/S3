@@ -191,7 +191,7 @@ def main():
                 all_targets.extend(targets.cpu().numpy())
                 all_probs.extend(probs.cpu().numpy())
         acc = float(accuracy_score(all_targets, all_preds) * 100.0)
-        macro_f1 = float(f1_score(all_targets, all_preds, average="macro") * 100.0)
+        macro_f1 = float(f1_score(all_targets, all_preds, average="macro", zero_division=0) * 100.0)
         return acc, macro_f1, np.array(all_probs), np.array(all_preds), np.array(all_targets)
         
     acc_loso, f1_loso, probs_loso, preds_loso, targets_loso = run_eval(loader_loso)

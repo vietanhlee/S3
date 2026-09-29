@@ -119,8 +119,8 @@ class BaseTrainer:
             n_samples += targets.size(0)
             
         acc = accuracy_score(all_targets, all_preds) * 100.0
-        macro_f1 = f1_score(all_targets, all_preds, average="macro") * 100.0
-        weighted_f1 = f1_score(all_targets, all_preds, average="weighted") * 100.0
+        macro_f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0) * 100.0
+        weighted_f1 = f1_score(all_targets, all_preds, average="weighted", zero_division=0) * 100.0
         avg_loss = total_loss / max(1, n_samples)
         
         return {

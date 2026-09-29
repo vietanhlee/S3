@@ -26,7 +26,7 @@ The dataset was curated and validated by the **Intelligent Computing for Sustain
 
 ```
 out/
-├── classification_ouput/        # Supervised classification baseline logs, predictions & checkpoints
+├── classification_output/       # Supervised classification baseline logs, predictions & checkpoints
 │   ├── classification_results_focal.json   # Quantitative test metrics (Accuracy, Macro-F1, Per-class)
 │   ├── convnext_tiny_focal_best.pth        # Best ConvNeXt-Tiny model weights under Focal Loss (111 MB)
 │   └── raw_predictions_focal.json          # Per-sample test predictions, ground-truth & probabilities
@@ -135,20 +135,18 @@ Trained using **ConvNeXt-Tiny** with Multiclass Focal Loss ($\alpha=0.25, \gamma
 - **Macro-Averaged Recall**: $88.18\%$
 - **Macro-Averaged F1-Score**: **$86.80\%$**
 - **Weighted-Averaged F1-Score**: **$88.82\%$**
-- Residual confusion is strictly confined to congeneric sister species (e.g., *Dalbergia*, *Pterocarpus*). Detailed logs and per-class metrics are cataloged in `classification_ouput/classification_results_focal.json`.
+- Residual confusion is strictly confined to congeneric sister species (e.g., *Dalbergia*, *Pterocarpus*). Detailed logs and per-class metrics are cataloged in `classification_output/classification_results_focal.json`.
 
 ### Baseline 2: Deep Metric Representation Learning
 
 Evaluated using **Semi-Hard Triplet Loss** on projected unit hypersphere $\mathcal{S}^{255}$ ($d=256$, margin $\alpha=0.50$):
 
-| Evaluation Metric | Optimization Target | Pre-trained Baseline | Semi-Hard Triplet | Relative Gain |
+| Validation Metric | Optimization Target | Pre-trained Baseline | Semi-Hard Triplet | Relative Gain |
 | :--- | :---: | :---: | :---: | :---: |
-| **Intra/Inter Distance Ratio** | $\downarrow$ | 0.7136 | **0.1931** | **$+72.9\%$** |
-| **Davies-Bouldin Index (DBI)** | $\downarrow$ | 2.2250 | **0.5671** | **$+74.5\%$** |
-| **Silhouette Score** | $\uparrow$ | 0.1584 | **0.7538** | **$+375.9\%$** |
-| **Calinski-Harabasz Index (CHI)** | $\uparrow$ | 57.4 | **927.6** | **$+1,515.5\%$** |
-| **Normalized Mutual Information (NMI)** | $\uparrow$ | 0.8526 | **0.9815** | **$+15.1\%$** |
 | **Nearest Neighbor Recall@1 (%)** | $\uparrow$ | 98.74% | **99.92%** | **$+1.18\%$** |
+| **Silhouette Score** | $\uparrow$ | 0.1584 | **0.7538** | **$+375.9\%$** |
+| **Davies-Bouldin Index (DBI)** | $\downarrow$ | 2.2250 | **0.5671** | **$+74.5\%$** |
+| **Intra/Inter Distance Ratio** | $\downarrow$ | 0.7136 | **0.1931** | **$+72.9\%$** |
 
 > **Clarification on Embedding Dimensionality**:
 > - **768-d Distributed Features (`convnext_tiny.npy`)**: Pooled representations extracted directly from the frozen ConvNeXt-Tiny backbone for lightweight downstream classification/clustering.

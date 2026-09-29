@@ -109,8 +109,8 @@ def evaluate_specimen_recoverability(
         if len(np.unique(y_train)) < 2:
             continue
             
-        # Fit linear probe
-        clf = LogisticRegression(max_iter=300, C=1.0, random_state=seed)
+        # Fit linear probe (max_iter=1000 to ensure full L-BFGS convergence without warning)
+        clf = LogisticRegression(max_iter=1000, C=1.0, random_state=seed)
         clf.fit(X_train, y_train)
         probe_acc = float(clf.score(X_test, y_test))
         

@@ -26,7 +26,7 @@ class ArcMarginProduct(nn.Module):
         self.out_features = out_features
         self.s = s
         self.m = m
-        self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        self.weight = nn.Parameter(torch.empty(out_features, in_features))
         nn.init.xavier_uniform_(self.weight)
 
         self.cos_m = math.cos(m)
