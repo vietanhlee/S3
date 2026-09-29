@@ -99,7 +99,7 @@ def run_assets_step(python_bin: str, data_dir: str, assets_dir: Path) -> None:
     print(" [BƯỚC 1/2] SINH ASSETS, METADATA & KIỂM ĐỊNH RÒ RỈ MẪU VẬT 2 CẤP ĐỘ ")
     print("=" * 78)
     cmd = [
-        python_bin, "generate_benchmark_assets.py",
+        python_bin, "-m", "modules.curation.asset_generator",
         "--data-dir", data_dir,
         "--output-dir", str(assets_dir)
     ]
@@ -117,7 +117,7 @@ def run_audit_step(python_bin: str, assets_dir: Path) -> None:
     out_json = assets_dir / "leakage_audit" / "perceptual_audit_report.json"
 
     cmd = [
-        python_bin, "audit_perceptual_and_embedding_similarity.py",
+        python_bin, "-m", "modules.curation.leakage_auditor",
         "--split-csv", str(split_can),
         "--metadata-csv", str(meta_csv),
         "--output-json", str(out_json)
@@ -260,7 +260,7 @@ def ensure_disjoint_split_exists(assets_dir: Path) -> Path:
     if not disjoint_path.exists():
         print(f"[*] Chưa phát hiện '{disjoint_path}'. Đang tự động khởi tạo từ metadata.csv...")
         try:
-            from create_specimen_disjoint_split import generate_disjoint_split
+            from modules.curation.disjoint_splitter import generate_disjoint_split
             meta_csv = assets_dir / "metadata" / "metadata.csv"
             if not meta_csv.exists() and (Path("out") / "metadata" / "metadata.csv").exists():
                 meta_csv = Path("out") / "metadata" / "metadata.csv"

@@ -48,13 +48,20 @@ from utils import (
     ImageListDataset, build_transforms,
     freeze_model_layers, summarize_model,
 )
-from train_governed_baseline import (
-    FocalLoss, accuracy_from_logits,
-    train_model, build_model,
-    compute_embeddings_v2, end_version_split,
-    collect_predictions, SPLIT_CONFIG,
+from partitioning import (
+    compute_split_counts,
+    validate_split,
+    compute_embeddings_v2,
+    end_version_split,
+    SPLIT_CONFIG,
 )
-from split_protocols import compute_split_counts, validate_split
+from training import (
+    FocalLoss,
+    accuracy_from_logits,
+    train_model,
+    build_model,
+    collect_predictions,
+)
 
 
 # =============================================================================
