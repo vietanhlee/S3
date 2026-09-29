@@ -457,11 +457,11 @@ def main():
                 lr=args.classify_lr
             )
 
-            # 2. Chạy trên Specimen-Disjoint Split (chỉ cần chạy seed đầu tiên hoặc toàn bộ seeds)
+            # 2. Chạy trên Specimen-Disjoint Split (chạy đầy đủ các seeds như Canonical)
             dis_split_csv = assets_dir / "splits" / "split_specimen_disjoint.csv"
             dis_out = Path("baseline_outputs") / "specimen_disjoint"
             dis_fig = Path("paper_data/fig") / "specimen_disjoint"
-            dis_seeds = [active_seeds[0]] if len(active_seeds) > 1 and not args.all else active_seeds
+            dis_seeds = active_seeds
             print(f"\n>>> (B) HUẤN LUYỆN TRÊN SPECIMEN-DISJOINT SPLIT (Seeds: {dis_seeds}) <<<")
             run_classify_multi_seed(
                 python_bin=python_bin,
