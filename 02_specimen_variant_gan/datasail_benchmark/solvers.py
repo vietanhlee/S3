@@ -18,8 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from .config import TRAIN_RATIO, VAL_RATIO
 
-# Import trực tiếp từ điển SPLIT_METHODS từ split_methods.py
-import split_methods as sm
+# Import trực tiếp từ điển SPLIT_METHODS từ split_protocols.py
+import split_protocols as sm
 
 
 def _shuffle_df(df: pd.DataFrame, seed: int) -> pd.DataFrame:

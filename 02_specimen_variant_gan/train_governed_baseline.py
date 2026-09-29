@@ -105,7 +105,7 @@ from utils import (
 	CAM_METHODS,
 )
 
-from split_methods import (
+from split_protocols import (
 	SPLIT_METHODS,
 	validate_split,
 )
@@ -723,36 +723,11 @@ def _create_timm_model(model_name: str, num_classes: int, freeze_ratio: float) -
 	model.model_name = model_name
 	return model
 
-def build_mobilenet_large(num_classes: int) -> nn.Module:
-	return _create_timm_model("mobilenetv3_large_100", num_classes, freeze_ratio=0.90)
-
-def build_efficientnet_large(num_classes: int) -> nn.Module:
-	return _create_timm_model("tf_efficientnet_b4", num_classes, freeze_ratio=0.90)
-
-def build_resnet_large(num_classes: int) -> nn.Module:
-	return _create_timm_model("resnet50", num_classes, freeze_ratio=0.90)
-
-def build_convnext_large(num_classes: int) -> nn.Module:
-	return _create_timm_model("convnext_tiny", num_classes, freeze_ratio=0.97)
-
-def build_vit_large(num_classes: int) -> nn.Module:
-	return _create_timm_model("vit_base_patch16_224", num_classes, freeze_ratio=0.97)
-
-def build_deit_base(num_classes: int) -> nn.Module:
-	return _create_timm_model("deit_base_patch16_224", num_classes, freeze_ratio=0.90)
-
-def build_swin_large(num_classes: int) -> nn.Module:
-	return _create_timm_model("swin_large_patch4_window7_224", num_classes, freeze_ratio=0.97)
-
-def build_beit_large(num_classes: int) -> nn.Module:
-	return _create_timm_model("beit_large_patch16_224", num_classes, freeze_ratio=0.97)
-
-
-def build_model(num_classes: int) -> torch.nn.Module:
-	"""Tạo model pretrained, freeze theo tỉ lệ."""
-	model = timm.create_model(MODEL_NAME, pretrained=True, num_classes=num_classes)
-	freeze_model_layers(model, FREEZE_RATIO)
-	model.model_name = MODEL_NAME
+def build_model(num_classes: int, model_name: str = MODEL_NAME, freeze_ratio: float = FREEZE_RATIO) -> nn.Module:
+	"""Khởi tạo mô hình thị giác pretrained từ timm với tỷ lệ đóng băng trọng số xác định."""
+	model = timm.create_model(model_name, pretrained=True, num_classes=num_classes)
+	freeze_model_layers(model, freeze_ratio)
+	model.model_name = model_name
 	return model
 
 
@@ -892,7 +867,7 @@ def end_version_split(
 				)
 		except Exception as e:
 			print(f"[Error] Lỗi khi chia dữ liệu cho class '{label}' bằng {pp_key}: {e}")
-			from split_methods import stratified_random_split
+			from split_protocols import stratified_random_split
 			tr_df, val_df, te_df = stratified_random_split(
 				sub_df_reset, sub_emb,
 				train_ratio=train_ratio,
