@@ -4,8 +4,20 @@
 Module quản lý sinh siêu dữ liệu, phân vùng chống rò rỉ mẫu vật, và kiểm định trùng lặp quang học.
 """
 
-from .asset_generator import generate_assets
-from .leakage_auditor import run_leakage_audit
-from .disjoint_splitter import generate_disjoint_split
+
+def generate_assets(*args, **kwargs):
+    from .asset_generator import generate_assets as _fn
+    return _fn(*args, **kwargs)
+
+
+def run_leakage_audit(*args, **kwargs):
+    from .leakage_auditor import run_leakage_audit as _fn
+    return _fn(*args, **kwargs)
+
+
+def generate_disjoint_split(*args, **kwargs):
+    from .disjoint_splitter import generate_disjoint_split as _fn
+    return _fn(*args, **kwargs)
+
 
 __all__ = ["generate_assets", "run_leakage_audit", "generate_disjoint_split"]
