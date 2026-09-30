@@ -16,10 +16,10 @@ Supported Strategies:
 
 Usage:
     # Run core 5 baselines using ALL GPUs concurrently per model (DataParallel):
-    python run_parallel_dispatcher.py --mode baselines --fold 0 --epochs 25
+    python run_parallel_dispatcher.py --mode baselines --fold 0 --epochs 20
 
     # Run backbone ablations using ALL GPUs concurrently per model:
-    python run_parallel_dispatcher.py --mode backbones --fold 0 --epochs 25
+    python run_parallel_dispatcher.py --mode backbones --fold 0 --epochs 20
 
     # Run in task-parallel mode (1 method per GPU concurrently):
     python run_parallel_dispatcher.py --mode baselines --strategy task_parallel
@@ -303,7 +303,7 @@ def parse_args():
                         help="Custom list of methods to run (when --mode custom)")
     parser.add_argument("--backbone", type=str, default="convnext_tiny", help="Default backbone")
     parser.add_argument("--fold", type=int, default=0, help="Round-robin fold index")
-    parser.add_argument("--epochs", type=int, default=25, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--gpus", nargs="+", type=int, default=None,

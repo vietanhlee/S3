@@ -118,10 +118,10 @@ cd g:/S3_paper/03_research_paper_specimen_invariance
 Hệ thống tự động phát hiện số lượng GPU vật lý (`torch.cuda.device_count()`) và phân bổ worker thông minh vào hàng đợi:
 ```powershell
 # Chạy toàn bộ 13 baselines trên Fold 0 (chuẩn LOSO):
-python run_parallel_dispatcher.py --mode baselines --fold 0 --epochs 25
+python run_parallel_dispatcher.py --mode baselines --fold 0 --epochs 20
 
 # Chạy kiểm chứng trên 4 kiến trúc Vision Backbones:
-python run_parallel_dispatcher.py --mode backbones --fold 0 --epochs 25
+python run_parallel_dispatcher.py --mode backbones --fold 0 --epochs 20
 ```
 
 ### Lệnh 2: Huấn luyện Trực tiếp Mô hình Đề xuất Bằng CLI (`train.py`)
