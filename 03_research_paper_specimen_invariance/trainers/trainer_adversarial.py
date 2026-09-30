@@ -100,7 +100,7 @@ class InvarianceTrainer(BaseTrainer):
                     loss_adv = loss_adv.mean()
                 lambda_adv = out.get("lambda_adv", 0.0)
                 if isinstance(lambda_adv, torch.Tensor):
-                    lambda_adv = lambda_adv[0].item()
+                    lambda_adv = lambda_adv.mean().item()
                 
                 # In code, always use '+', GRL automatically reverses gradient to backbone
                 loss = loss_species + lambda_adv * loss_adv
@@ -119,7 +119,7 @@ class InvarianceTrainer(BaseTrainer):
                     loss_adv = loss_adv.mean()
                 lambda_adv = out.get("lambda_adv", 0.0)
                 if isinstance(lambda_adv, torch.Tensor):
-                    lambda_adv = lambda_adv[0].item()
+                    lambda_adv = lambda_adv.mean().item()
                 loss = loss_species + lambda_adv * loss_adv
 
             elif method == "club":

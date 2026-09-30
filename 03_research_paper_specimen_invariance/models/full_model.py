@@ -140,7 +140,7 @@ class SpecimenInvariantModel(nn.Module):
         if self.training:
             # Update GRL lambda_adv
             current_lambda = self.grl.update_lambda(training_progress)
-            out["lambda_adv"] = current_lambda
+            out["lambda_adv"] = torch.tensor([current_lambda], dtype=torch.float32, device=x.device)
             
             # Pass through GRL
             z_reversed = self.grl(z)
@@ -150,18 +150,21 @@ class SpecimenInvariantModel(nn.Module):
                 adv_cond_loss, n_valid = self.cond_discriminator(
                     z_reversed, species_targets, local_specimen_targets
                 )
-                out["loss_adv_cond"] = adv_cond_loss
-                out["n_valid_cond"] = n_valid
+                out["loss_adv_cond"] = adv_cond_loss.view(1) if adv_cond_loss.dim() == 0 else adv_cond_loss
+                out["n_valid_cond"] = torch.tensor([n_valid], dtype=torch.long, device=x.device)
                 
             # Unconditional DANN discrimination loss
             if global_specimen_targets is not None:
-                out["loss_adv_uncond"] = self.uncond_discriminator(
+                uncond_loss = self.uncond_discriminator(
                     z_reversed, global_specimen_targets
                 )
+                out["loss_adv_uncond"] = uncond_loss.view(1) if uncond_loss.dim() == 0 else uncond_loss
                 
             # CLUB upper bound
             if global_specimen_targets is not None:
-                out["club_mi_bound"] = self.club(z, global_specimen_targets)
-                out["club_var_loss"] = self.club.loglikeli(z, global_specimen_targets)
+                club_mi = self.club(z, global_specimen_targets)
+                club_var = self.club.loglikeli(z, global_specimen_targets)
+                out["club_mi_bound"] = club_mi.view(1) if club_mi.dim() == 0 else club_mi
+                out["club_var_loss"] = club_var.view(1) if club_var.dim() == 0 else club_var
                 
         return out
