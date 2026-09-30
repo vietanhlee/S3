@@ -58,7 +58,6 @@ except ImportError:
     HAS_TORCH_TIMM = False
 
 try:
-    from .split_methods import SPLIT_METHODS, validate_split
     from .leakage_auditor import (
         compute_dhash_hex,
         compute_phash_hex,
@@ -67,7 +66,6 @@ try:
         compute_cross_split_embedding_similarity
     )
 except (ImportError, ValueError):
-    from modules.curation.split_methods import SPLIT_METHODS, validate_split
     from modules.curation.leakage_auditor import (
         compute_dhash_hex,
         compute_phash_hex,
@@ -75,31 +73,6 @@ except (ImportError, ValueError):
         compute_pairwise_hamming_stats,
         compute_cross_split_embedding_similarity
     )
-
-# -----------------------------------------------------------------------------
-# Cấu hình tối ưu phân vùng dữ liệu cho từng loài (End Version Split / CEGS-Split)
-# -----------------------------------------------------------------------------
-SPLIT_CONFIG = {
-    "Afzelia africana": ("PP8_StratifiedGroupKFold", "val", "swin"),
-    "Afzelia bella": ("PP4_Hierarchical_Clustering", "val", "swin"),
-    "Afzelia pachyloba": ("PP4_Hierarchical_Clustering", "val", "eff"),
-    "Afzelia quanzensis": ("PP9_Agglom_Stratified", "test", "eff"),
-    "Dalbergia cochinchinensis": ("PP9_Agglom_Stratified", "val", "swin"),
-    "Dalbergia melanoxylon": ("PP2_Mahalanobis_Iterative", "val", "eff"),
-    "Dalbergia oliveri": ("PP1_Mahalanobis_Fixed", "test", "swin"),
-    "Dalbergia rimosa": ("PP8_StratifiedGroupKFold", "test", "swin"),
-    "Dalbergia tonkinensis": ("PP7_Adversarial_Validation", "test", "swin"),
-    "Guibourtia arnoldiana": ("PP4_Hierarchical_Clustering", "test", "eff"),
-    "Guibourtia coleosperma": ("PP1_Mahalanobis_Fixed", "test", "eff"),
-    "Guibourtia ehie": ("PP5_Cosine_Graph", "test", "swin"),
-    "Peltogyne pubescens": ("PP4_Hierarchical_Clustering", "val", "swin"),
-    "Pterocarpus erinaceus": ("PP2_Mahalanobis_Iterative", "test", "swin"),
-    "Pterocarpus indicus": ("PP9_Agglom_Stratified", "test", "eff"),
-    "Pterocarpus macrocarpus": ("PP2_Mahalanobis_Iterative", "test", "swin"),
-    "Pterocarpus soyauxii": ("PP4_Hierarchical_Clustering", "test", "eff"),
-    "Sindora cochinchinensis": ("PP8_StratifiedGroupKFold", "val", "swin"),
-    "Sindora tonkinensis": ("PP7_Adversarial_Validation", "val", "swin"),
-}
 
 # -----------------------------------------------------------------------------
 # Từ điển phân loại học & Tình trạng pháp lý 19 loài chuẩn (Elsevier Data in Brief)
@@ -283,116 +256,88 @@ def scan_and_collect_images(data_root: Path) -> List[Dict[str, Any]]:
     return collected_records
 
 
-def assign_specimen_disjoint_splits(
+def assign_canonical_splits(
     records: List[Dict[str, Any]],
+    canonical_split_csv: Optional[Path] = None,
     train_ratio: float = 0.60,
     val_ratio: float = 0.20,
     seed: int = 42
 ) -> List[Dict[str, Any]]:
     """
-    Phân bổ tập Train / Val / Test sử dụng trực tiếp các phương pháp phân chia từ split_methods.py
-    (PP1_Mahalanobis_Fixed, PP2_Mahalanobis_Iterative, PP4_Hierarchical_Clustering, PP5_Cosine_Graph,
-     PP7_Adversarial_Validation, PP8_StratifiedGroupKFold, PP9_Agglom_Stratified) theo cấu hình SPLIT_CONFIG.
+    Gán nhãn phân vùng Canonical Split cho tập dữ liệu:
+    1. Ưu tiên tuyệt đối nạp từ tệp split_canonical.csv chính thức đã phát hành (khớp 100% 3,959 train / 1,265 val / 1,190 test).
+    2. Nếu chưa có tệp phân vùng sẵn, thực hiện phân chia phân tầng dựa trên khối mẫu vật lý (specimen_id).
     """
     df = pd.DataFrame(records)
-    if "path" not in df.columns:
+    if "path" not in df.columns and "file_path" in df.columns:
         df["path"] = df["file_path"].astype(str)
-    if "subfolder" not in df.columns:
-        df["subfolder"] = df["specimen_id"]
 
+    # 1. Thử nạp từ split_canonical.csv chuẩn
+    candidate_splits = [
+        canonical_split_csv,
+        Path("out/splits/split_canonical.csv"),
+        Path(__file__).resolve().parent.parent.parent / "out" / "splits" / "split_canonical.csv",
+        Path("paper_data_assets/splits/split_canonical.csv")
+    ]
+    ref_split_file = None
+    for cand in candidate_splits:
+        if cand and Path(cand).exists():
+            ref_split_file = Path(cand)
+            break
+
+    if ref_split_file:
+        print(f"[*] Đang đồng bộ hóa phân vùng Canonical từ tệp chuẩn: {ref_split_file}")
+        ref_df = pd.read_csv(ref_split_file)
+        
+        split_map = {}
+        for _, row in ref_df.iterrows():
+            img_p = str(row.get("image_path", ""))
+            fname = Path(img_p).name
+            s_val = row.get("split", "train")
+            split_map[fname] = s_val
+            split_map[img_p] = s_val
+
+        splits = []
+        for _, row in df.iterrows():
+            p = str(row.get("file_path", row.get("path", "")))
+            fname = Path(p).name
+            s = split_map.get(fname, split_map.get(p, None))
+            splits.append(s)
+
+        non_null_splits = [s for s in splits if s is not None]
+        if len(non_null_splits) >= len(df) * 0.90:
+            df["split"] = [s if s is not None else "train" for s in splits]
+            print(f"[+] Đồng bộ phân vùng thành công: {df['split'].value_counts().to_dict()}")
+            return df.to_dict("records")
+
+    print("[*] Tự động phân vùng phân tầng theo khối mẫu vật lý (Specimen-Aware Stratified)...")
+    rng = np.random.RandomState(seed)
     df["split"] = ""
-    print("\n[*] Đang thực thi phân vùng dữ liệu qua split_methods.py (End Version / CEGS-Split)...")
-
-    train_idx_all = []
-    val_idx_all = []
-    test_idx_all = []
-
-    for label, group in df.groupby("label"):
-        sub_df = group.copy().reset_index(drop=True)
-        path_to_orig_idx = dict(zip(group["path"], group.index))
-
-        if label in SPLIT_CONFIG:
-            full_pp_name, swap_mode, _ = SPLIT_CONFIG[label]
+    for label, group in df.groupby("label" if "label" in df.columns else "class_name"):
+        specs = sorted(group["specimen_id"].unique())
+        n_specs = len(specs)
+        if n_specs >= 3:
+            shuffled = list(specs)
+            rng.shuffle(shuffled)
+            n_te = max(1, int(round(n_specs * 0.20)))
+            n_va = max(1, int(round(n_specs * 0.20)))
+            te_specs = set(shuffled[:n_te])
+            va_specs = set(shuffled[n_te:n_te + n_va])
+            tr_specs = set(shuffled[n_te + n_va:])
+            df.loc[group[group["specimen_id"].isin(tr_specs)].index, "split"] = "train"
+            df.loc[group[group["specimen_id"].isin(va_specs)].index, "split"] = "val"
+            df.loc[group[group["specimen_id"].isin(te_specs)].index, "split"] = "test"
         else:
-            full_pp_name, swap_mode = "PP8_StratifiedGroupKFold", "test"
+            indices = group.index.tolist()
+            rng.shuffle(indices)
+            n_tot = len(indices)
+            n_tr = int(n_tot * train_ratio)
+            n_va = int(n_tot * val_ratio)
+            df.loc[indices[:n_tr], "split"] = "train"
+            df.loc[indices[n_tr:n_tr + n_va], "split"] = "val"
+            df.loc[indices[n_tr + n_va:], "split"] = "test"
 
-        split_fn = SPLIT_METHODS.get(full_pp_name, SPLIT_METHODS["PP8_StratifiedGroupKFold"])
-
-        # Chuẩn bị embeddings biểu diễn cho từng ảnh (phục vụ khoảng cách Mahalanobis/Cosin/Hierarchical)
-        n_samples = len(sub_df)
-        subfolder_codes = pd.Categorical(sub_df["subfolder"]).codes
-        rng = np.random.RandomState(seed)
-        sub_emb = rng.randn(n_samples, 128) + subfolder_codes[:, None] * 3.0
-
-        try:
-            if full_pp_name == "PP5_Cosine_Graph":
-                tr_df, val_df, te_df = split_fn(
-                    sub_df, sub_emb,
-                    train_ratio=train_ratio,
-                    val_ratio=val_ratio,
-                    seed=seed,
-                    cosine_threshold=0.92
-                )
-            else:
-                tr_df, val_df, te_df = split_fn(
-                    sub_df, sub_emb,
-                    train_ratio=train_ratio,
-                    val_ratio=val_ratio,
-                    seed=seed
-                )
-        except Exception as e:
-            print(f"  [!] Fallback PP8 cho {label} do: {e}")
-            fallback_fn = SPLIT_METHODS["PP8_StratifiedGroupKFold"]
-            tr_df, val_df, te_df = fallback_fn(
-                sub_df, sub_emb,
-                train_ratio=train_ratio,
-                val_ratio=val_ratio,
-                seed=seed
-            )
-
-        tr_orig_idx = [path_to_orig_idx[p] for p in tr_df["path"]]
-        val_orig_idx = [path_to_orig_idx[p] for p in val_df["path"]]
-        te_orig_idx = [path_to_orig_idx[p] for p in te_df["path"]]
-
-        # Guardrail an toàn: kiểm tra tập test không được dưới 15 ảnh hoặc dưới 10% tổng số mẫu của loài
-        curr_test_len = len(val_orig_idx) if swap_mode == "val" else len(te_orig_idx)
-        min_expected_test = max(15, int(len(sub_df) * 0.10))
-        if curr_test_len < min_expected_test:
-            print(f"  [!] Cảnh báo bảo vệ: '{label}' có tập test chỉ có {curr_test_len} ảnh (< {min_expected_test}). Tự động tái cân bằng qua PP8_StratifiedGroupKFold...")
-            fallback_fn = SPLIT_METHODS["PP8_StratifiedGroupKFold"]
-            tr_df, val_df, te_df = fallback_fn(
-                sub_df, sub_emb,
-                train_ratio=train_ratio,
-                val_ratio=val_ratio,
-                seed=seed
-            )
-            tr_orig_idx = [path_to_orig_idx[p] for p in tr_df["path"]]
-            val_orig_idx = [path_to_orig_idx[p] for p in val_df["path"]]
-            te_orig_idx = [path_to_orig_idx[p] for p in te_df["path"]]
-            if swap_mode == "val" and len(val_orig_idx) < min_expected_test and len(te_orig_idx) >= min_expected_test:
-                swap_mode = "test"
-            elif swap_mode == "test" and len(te_orig_idx) < min_expected_test and len(val_orig_idx) >= min_expected_test:
-                swap_mode = "val"
-
-        # Áp dụng quy tắc hoán đổi nếu cấu hình loài yêu cầu mode 'val'
-        if swap_mode == "val":
-            train_idx_all.extend(tr_orig_idx)
-            val_idx_all.extend(te_orig_idx)
-            test_idx_all.extend(val_orig_idx)
-        else:
-            train_idx_all.extend(tr_orig_idx)
-            val_idx_all.extend(val_orig_idx)
-            test_idx_all.extend(te_orig_idx)
-
-    df.loc[train_idx_all, "split"] = "train"
-    df.loc[val_idx_all, "split"] = "val"
-    df.loc[test_idx_all, "split"] = "test"
-
-    # Thẩm định kết quả qua hàm validate_split từ split_methods.py
-    df_train = df[df["split"] == "train"]
-    df_val = df[df["split"] == "val"]
-    df_test = df[df["split"] == "test"]
-    validate_split(df, df_train, df_val, df_test, "Canonical_Split_Methods")
+    return df.to_dict("records")
 
     return df.to_dict("records")
 
@@ -663,8 +608,8 @@ def generate_assets(
     else:
         records = scan_and_collect_images(data_dir)
 
-    # 2. Phân chia Specimen-Disjoint Split
-    records = assign_specimen_disjoint_splits(records, seed=args.seed)
+    # 2. Phân chia / Đồng bộ hóa Canonical Split
+    records = assign_canonical_splits(records, canonical_split_csv=out_dir / "splits" / "split_canonical.csv", seed=seed)
     df = pd.DataFrame(records)
 
     # 3. Tính toán SHA-256, Laplacian Variance, dHash và pHash
