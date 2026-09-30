@@ -149,7 +149,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Sweep lambda_adv for Pareto Frontier & Correlation")
     parser.add_argument("--backbone", type=str, default="convnext_tiny")
     parser.add_argument("--fold", type=int, default=0)
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--epochs", type=int, default=17)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lambdas", nargs="+", type=float, default=[0.0, 0.5, 1.0],
                         help="List of lambda_adv values to sweep")

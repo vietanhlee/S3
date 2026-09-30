@@ -166,7 +166,7 @@ def parse_args():
                         help="Visual backbone architecture")
     parser.add_argument("--fold", type=int, default=0, help="Round-robin LOSO fold index [0..R-1]")
     parser.add_argument("--num_folds", type=int, default=5, help="Total number of round-robin folds")
-    parser.add_argument("--epochs", type=int, default=20, help="Training epochs")
+    parser.add_argument("--epochs", type=int, default=17, help="Training epochs")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--lr_backbone", type=float, default=1e-4, help="Learning rate for visual backbone")
     parser.add_argument("--lr_head", type=float, default=5e-4, help="Learning rate for classification/adversarial heads")
