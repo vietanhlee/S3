@@ -7,7 +7,7 @@
 import os
 import json
 from pathlib import Path
-from typing import Tuple, Dict, Any, List
+from typing import Tuple, Dict, Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -48,7 +48,13 @@ def train_one_epoch(model: nn.Module, loader: DataLoader, criterion: nn.Module, 
 
 
 @torch.no_grad()
-def evaluate_model(model: nn.Module, loader: DataLoader, criterion: nn.Module, device: torch.device) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
+def evaluate_model(
+    model: nn.Module,
+    loader: DataLoader,
+    criterion: nn.Module,
+    device: torch.device,
+    labels: Optional[List[int]] = None
+) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
     model.eval()
     total_loss = 0.0
     all_preds = []
@@ -67,7 +73,7 @@ def evaluate_model(model: nn.Module, loader: DataLoader, criterion: nn.Module, d
     all_preds = np.array(all_preds)
     all_targets = np.array(all_targets)
     acc = accuracy_score(all_targets, all_preds)
-    macro_f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
+    macro_f1 = f1_score(all_targets, all_preds, labels=labels, average="macro", zero_division=0)
     avg_loss = total_loss / max(1, len(all_targets))
 
     return avg_loss, acc, macro_f1, all_preds, all_targets
@@ -85,6 +91,7 @@ def run_training_session(
 ) -> Dict[str, Any]:
     """Thực thi một phiên huấn luyện mô hình ConvNeXt-Tiny hoàn chỉnh."""
     num_classes = len(class_names)
+    labels = list(range(num_classes))
     loss_tag = "focal" if loss_type in ["focal", "focal_loss"] else "cross_entropy"
 
     criterion, loss_desc = build_criterion(loss_type, alpha=args.alpha, gamma=args.gamma)
@@ -118,7 +125,7 @@ def run_training_session(
 
     for epoch in range(1, args.epochs + 1):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc, val_f1, _, _ = evaluate_model(model, val_loader, criterion, device)
+        val_loss, val_acc, val_f1, _, _ = evaluate_model(model, val_loader, criterion, device, labels=labels)
         scheduler.step()
 
         history.append({
@@ -145,9 +152,15 @@ def run_training_session(
         checkpoint = torch.load(best_ckpt_path, map_location=device)
         model.load_state_dict(checkpoint["model_state_dict"])
 
-    test_loss, test_acc, test_macro_f1, test_preds, test_targets = evaluate_model(model, test_loader, criterion, device)
-    report_dict = classification_report(test_targets, test_preds, target_names=class_names, output_dict=True, zero_division=0)
-    report_text = classification_report(test_targets, test_preds, target_names=class_names, digits=4, zero_division=0)
+    test_loss, test_acc, test_macro_f1, test_preds, test_targets = evaluate_model(
+        model, test_loader, criterion, device, labels=labels
+    )
+    report_dict = classification_report(
+        test_targets, test_preds, labels=labels, target_names=class_names, output_dict=True, zero_division=0
+    )
+    report_text = classification_report(
+        test_targets, test_preds, labels=labels, target_names=class_names, digits=4, zero_division=0
+    )
 
     print("\n" + "-" * 72)
     print(f"   KẾT QUẢ ĐÁNH GIÁ TẬP TEST [{loss_desc.upper()}]")
@@ -175,7 +188,7 @@ def run_training_session(
             "overall_accuracy": float(test_acc),
             "macro_precision": float(report_dict.get("macro avg", {}).get("precision", 0.0)),
             "macro_recall": float(report_dict.get("macro avg", {}).get("recall", 0.0)),
-            "macro_f1": float(test_macro_f1),
+            "macro_f1": float(report_dict.get("macro avg", {}).get("f1-score", test_macro_f1)),
             "weighted_precision": float(report_dict.get("weighted avg", {}).get("precision", 0.0)),
             "weighted_recall": float(report_dict.get("weighted avg", {}).get("recall", 0.0)),
             "weighted_f1": float(report_dict.get("weighted avg", {}).get("f1-score", 0.0)),
@@ -207,7 +220,7 @@ def run_training_session(
         "loss_type": loss_type,
         "loss_desc": loss_desc,
         "accuracy": test_acc,
-        "macro_f1": test_macro_f1,
+        "macro_f1": float(report_dict.get("macro avg", {}).get("f1-score", test_macro_f1)),
         "report_dict": report_dict,
         "raw_json_path": raw_json_path
     }
