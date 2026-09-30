@@ -8,8 +8,12 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-import timm
-from timm.data import resolve_data_config
+try:
+    import timm
+    from timm.data import resolve_data_config
+    HAS_TIMM = True
+except ImportError:
+    HAS_TIMM = False
 
 
 class ImageListDataset(Dataset):
