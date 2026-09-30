@@ -161,7 +161,7 @@ TAXONOMIC_INVENTORY = {
     "Pterocarpus soyauxii": {
         "genus": "Pterocarpus", "species": "soyauxii",
         "trade_name": "African Padauk", "vietnamese_name": "Padouk / Hương padouk",
-        "cites_status": "Non-CITES", "expected_count": 590
+        "cites_status": "CITES Appendix II", "expected_count": 590
     },
     "Sindora cochinchinensis": {
         "genus": "Sindora", "species": "cochinchinensis",
