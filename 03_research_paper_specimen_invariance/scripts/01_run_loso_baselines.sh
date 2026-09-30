@@ -29,8 +29,9 @@ echo " Backbone: ${BACKBONE} | Fold: ${FOLD} | Epochs: ${EPOCHS}       "
 echo " Output Dir: ${OUTPUT_DIR}                                        "
 echo "=================================================================="
 
-# Invoke the multi-GPU parallel dispatcher
+# Invoke the multi-GPU parallel dispatcher with DataParallel strategy
 python run_parallel_dispatcher.py \
+    --strategy data_parallel \
     --mode baselines \
     --backbone "${BACKBONE}" \
     --fold "${FOLD}" \

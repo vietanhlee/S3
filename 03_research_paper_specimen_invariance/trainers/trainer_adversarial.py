@@ -53,7 +53,8 @@ class InvarianceTrainer(BaseTrainer):
         # Handle frozen linear baseline
         if self.config.method == "frozen_linear":
             print("[*] Frozen Linear Baseline: Freezing all visual backbone weights.")
-            for param in self.model.backbone.parameters():
+            actual_model = self.model.module if hasattr(self.model, "module") else self.model
+            for param in actual_model.backbone.parameters():
                 param.requires_grad = False
 
     def train_epoch(self, epoch: int) -> Dict[str, float]:
@@ -95,7 +96,11 @@ class InvarianceTrainer(BaseTrainer):
                 logits = out["species_logits"]
                 loss_species = F.cross_entropy(logits, species_targets)
                 loss_adv = out.get("loss_adv_cond", torch.tensor(0.0, device=self.device))
+                if isinstance(loss_adv, torch.Tensor):
+                    loss_adv = loss_adv.mean()
                 lambda_adv = out.get("lambda_adv", 0.0)
+                if isinstance(lambda_adv, torch.Tensor):
+                    lambda_adv = lambda_adv[0].item()
                 
                 # In code, always use '+', GRL automatically reverses gradient to backbone
                 loss = loss_species + lambda_adv * loss_adv
@@ -110,7 +115,11 @@ class InvarianceTrainer(BaseTrainer):
                 logits = out["species_logits"]
                 loss_species = F.cross_entropy(logits, species_targets)
                 loss_adv = out.get("loss_adv_uncond", torch.tensor(0.0, device=self.device))
+                if isinstance(loss_adv, torch.Tensor):
+                    loss_adv = loss_adv.mean()
                 lambda_adv = out.get("lambda_adv", 0.0)
+                if isinstance(lambda_adv, torch.Tensor):
+                    lambda_adv = lambda_adv[0].item()
                 loss = loss_species + lambda_adv * loss_adv
 
             elif method == "club":
@@ -123,7 +132,11 @@ class InvarianceTrainer(BaseTrainer):
                 logits = out["species_logits"]
                 loss_species = F.cross_entropy(logits, species_targets)
                 mi_bound = out.get("club_mi_bound", torch.tensor(0.0, device=self.device))
+                if isinstance(mi_bound, torch.Tensor):
+                    mi_bound = mi_bound.mean()
                 var_loss = out.get("club_var_loss", torch.tensor(0.0, device=self.device))
+                if isinstance(var_loss, torch.Tensor):
+                    var_loss = var_loss.mean()
                 
                 # Jointly minimize species loss, MI upper bound, and train variational net
                 loss = loss_species + 0.1 * mi_bound + var_loss

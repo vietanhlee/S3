@@ -184,12 +184,23 @@ def main():
     
     if torch.cuda.is_available():
         device_count = torch.cuda.device_count()
-        gpu_idx = args.gpu if (args.gpu is not None and args.gpu < device_count) else 0
-        device = torch.device(f"cuda:{gpu_idx}")
-        torch.cuda.set_device(device)
+        if args.gpu is not None and args.gpu < device_count:
+            device = torch.device(f"cuda:{args.gpu}")
+            torch.cuda.set_device(device)
+            use_data_parallel = False
+            print(f"[*] Executing on single pinned device: {device} | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}")
+        else:
+            device = torch.device("cuda:0")
+            torch.cuda.set_device(device)
+            use_data_parallel = (device_count > 1)
+            if use_data_parallel:
+                print(f"[+] Multi-GPU DataParallel Activated: Concurrently training 1 model across all {device_count} GPUs! | Method: {args.method}")
+            else:
+                print(f"[*] Executing on single device: {device} | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}")
     else:
         device = torch.device("cpu")
-    print(f"[*] Executing on device: {device} | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}")
+        use_data_parallel = False
+        print(f"[*] Executing on device: cpu | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}")
     
     # 1. Load metadata
     meta_path = resolve_metadata_path(args.metadata_csv)
@@ -258,6 +269,9 @@ def main():
         specimen_counts=mappings["specimen_counts"],
         num_total_specimens=mappings["num_total_specimens"]
     )
+    if use_data_parallel:
+        model = nn.DataParallel(model)
+        print(f"[+] Model wrapped in torch.nn.DataParallel across all visible GPUs.")
     
     # 8. Training loop
     run_dir = Path(args.output_base_dir) / f"{args.method}_{args.backbone}_fold{args.fold}_seed{args.seed}"

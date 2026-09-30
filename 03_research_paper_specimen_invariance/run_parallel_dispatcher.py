@@ -1,27 +1,28 @@
 """
 specimen_invariance_framework/run_parallel_dispatcher.py
 ========================================================
-Automatic Multi-GPU Task Dispatcher & Parallel Runner.
+Automatic Multi-GPU Training Runner & Dispatcher.
 
-Functionality:
-1. Automatically detects available CUDA GPUs via PyTorch (torch.cuda.device_count()).
-2. Spawns a parallel worker pool matching the exact number of detected GPUs.
-3. Automatically queues all experimental methods (or backbones) and dispatches tasks
-   dynamically to the next free GPU as soon as a previous run completes.
-4. Isolates each process on its dedicated GPU (--gpu <id> and CUDA_VISIBLE_DEVICES).
-5. Directs detailed outputs to per-method log files while displaying a clean real-time
-   progress dashboard in the console.
-6. Prints an executive completion summary table with durations and exit statuses.
+Supported Strategies:
+1. 'data_parallel' (DEFAULT & RECOMMENDED):
+   - Trains models sequentially.
+   - For EACH model, harnesses ALL detected GPUs simultaneously using torch.nn.DataParallel.
+   - Ideal for maximizing throughput on Kaggle dual GPUs (e.g. 2x T4) while streaming live training progress.
+   
+2. 'task_parallel':
+   - Trains different models concurrently in parallel.
+   - Pin 1 model to GPU 0, 1 model to GPU 1, etc.
+   - Best when memory allows and running multiple quick experiments at once.
 
 Usage:
-    # Run all 13 baselines in parallel across all detected GPUs:
-    python run_parallel_dispatcher.py --mode baselines --fold 0 --epochs 40
+    # Run core 5 baselines using ALL GPUs concurrently per model (DataParallel):
+    python run_parallel_dispatcher.py --mode baselines --fold 0 --epochs 20
 
-    # Run backbone ablations in parallel across all detected GPUs:
-    python run_parallel_dispatcher.py --mode backbones --fold 0 --epochs 40
+    # Run backbone ablations using ALL GPUs concurrently per model:
+    python run_parallel_dispatcher.py --mode backbones --fold 0 --epochs 20
 
-    # Run custom methods:
-    python run_parallel_dispatcher.py --methods conditional_grl ce focal arcface
+    # Run in task-parallel mode (1 method per GPU concurrently):
+    python run_parallel_dispatcher.py --mode baselines --strategy task_parallel
 """
 
 import argparse
@@ -67,6 +68,122 @@ def safe_print(msg: str):
         print(msg, flush=True)
 
 
+def run_data_parallel_sequential(
+    tasks: List[Dict[str, Any]],
+    script_args: argparse.Namespace,
+    log_dir: Path,
+    gpu_ids: List[Optional[int]],
+) -> List[Dict[str, Any]]:
+    """
+    Executes tasks sequentially. For each task, PyTorch uses ALL visible GPUs
+    concurrently via torch.nn.DataParallel. Real-time stdout is streamed to console
+    and saved to the log file.
+    """
+    current_script_dir = Path(__file__).resolve().parent
+    train_script = current_script_dir / "train.py"
+    results_list: List[Dict[str, Any]] = []
+    total_tasks = len(tasks)
+
+    num_gpus = len([g for g in gpu_ids if g is not None])
+    device_desc = f"{num_gpus} GPUs (DataParallel)" if num_gpus > 1 else (f"GPU {gpu_ids[0]}" if num_gpus == 1 else "CPU")
+
+    safe_print("=" * 90)
+    safe_print(f"[*] DATA-PARALLEL ENGINE ACTIVATED: Concurrently training each model on {device_desc}")
+    safe_print(f"[*] Total queued tasks: {total_tasks} | Epochs per run: {script_args.epochs}")
+    safe_print("=" * 90 + "\n")
+
+    for idx, task in enumerate(tasks, start=1):
+        method = task["method"]
+        backbone = task.get("backbone", script_args.backbone)
+        fold = task.get("fold", script_args.fold)
+        seed = task.get("seed", script_args.seed)
+
+        task_name = f"{method}_{backbone}_fold{fold}_seed{seed}"
+        log_file = log_dir / f"{task_name}.log"
+
+        start_time = time.time()
+        start_dt = datetime.now().strftime("%H:%M:%S")
+
+        safe_print("-" * 90)
+        safe_print(f"[{start_dt}] >>> STARTING TASK [{idx}/{total_tasks}]: {method} ({backbone})")
+        safe_print(f"         Strategy: Multi-GPU DataParallel across {device_desc}")
+        safe_print(f"         Log File: {log_file}")
+        safe_print("-" * 90)
+
+        cmd = [
+            sys.executable,
+            str(train_script),
+            "--method", method,
+            "--backbone", backbone,
+            "--fold", str(fold),
+            "--epochs", str(script_args.epochs),
+            "--batch_size", str(script_args.batch_size),
+            "--seed", str(seed),
+            "--metadata_csv", script_args.metadata_csv,
+            "--image_root", script_args.image_root,
+            "--output_base_dir", script_args.output_base_dir,
+        ]
+
+        env = os.environ.copy()
+        if script_args.gpus is not None:
+            env["CUDA_VISIBLE_DEVICES"] = ",".join(str(g) for g in script_args.gpus)
+
+        status = "SUCCESS"
+        error_msg = ""
+
+        try:
+            with open(log_file, "w", encoding="utf-8") as lf:
+                lf.write(f"=== Execution Command: {' '.join(cmd)} ===\n")
+                lf.write(f"=== Started: {datetime.now().isoformat()} on {device_desc} ===\n\n")
+                lf.flush()
+
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    env=env,
+                    cwd=str(current_script_dir),
+                    text=True,
+                    bufsize=1,
+                )
+
+                # Stream stdout live to console and log file
+                for line in iter(process.stdout.readline, ''):
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
+                    lf.write(line)
+                    lf.flush()
+
+                process.wait()
+
+                if process.returncode != 0:
+                    status = f"FAILED (code {process.returncode})"
+                    error_msg = f"Check log: {log_file}"
+
+        except Exception as e:
+            status = "ERROR"
+            error_msg = str(e)
+
+        elapsed_sec = time.time() - start_time
+        elapsed_min = elapsed_sec / 60.0
+        end_dt = datetime.now().strftime("%H:%M:%S")
+
+        status_tag = f"[✓ {status}]" if "SUCCESS" in status else f"[✗ {status}]"
+        safe_print(f"\n[{end_dt}] {status_tag} COMPLETED: {method} in {elapsed_min:.1f} mins. {error_msg}\n")
+
+        results_list.append({
+            "task_name": task_name,
+            "method": method,
+            "backbone": backbone,
+            "gpu": device_desc,
+            "duration_min": round(elapsed_min, 2),
+            "status": status,
+            "log_file": str(log_file),
+        })
+
+    return results_list
+
+
 def worker_loop(
     gpu_id: Optional[int],
     task_queue: Queue,
@@ -74,7 +191,7 @@ def worker_loop(
     script_args: argparse.Namespace,
     log_dir: Path,
 ):
-    """Worker thread that executes queued tasks on a pinned GPU."""
+    """Worker thread that executes queued tasks on a pinned single GPU (Task-Parallel)."""
     while True:
         task = task_queue.get()
         if task is None:
@@ -94,11 +211,9 @@ def worker_loop(
         start_dt = datetime.now().strftime("%H:%M:%S")
         safe_print(f"[{start_dt}] [{gpu_str}] >>> LAUNCHING: {method} ({backbone}) -> Log: {log_file.name}")
 
-        # Ensure execution points directly to train.py in framework directory
         current_script_dir = Path(__file__).resolve().parent
         train_script = current_script_dir / "train.py"
 
-        # Build execution command
         cmd = [
             sys.executable,
             str(train_script),
@@ -112,12 +227,9 @@ def worker_loop(
             "--image_root", script_args.image_root,
             "--output_base_dir", script_args.output_base_dir,
         ]
-        # When CUDA_VISIBLE_DEVICES isolates a process to 1 physical GPU,
-        # PyTorch always exposes it as cuda:0 inside that child environment.
         if gpu_id is not None:
             cmd.extend(["--gpu", "0"])
 
-        # Set environment with pinned GPU
         env = os.environ.copy()
         if gpu_id is not None:
             env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
@@ -182,9 +294,11 @@ def worker_loop(
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Multi-GPU Parallel Training Dispatcher")
+    parser = argparse.ArgumentParser(description="Multi-GPU Training Dispatcher & Runner")
+    parser.add_argument("--strategy", type=str, default="data_parallel", choices=["data_parallel", "task_parallel"],
+                        help="Execution strategy: 'data_parallel' (default) uses all visible GPUs simultaneously for each model; 'task_parallel' trains different models concurrently (1 model per GPU).")
     parser.add_argument("--mode", type=str, default="baselines", choices=["baselines", "backbones", "custom"],
-                        help="Mode: 'baselines' runs 13 methods; 'backbones' runs 4 architectures; 'custom' uses --methods")
+                        help="Mode: 'baselines' runs 5 core methods; 'backbones' runs 4 architectures; 'custom' uses --methods")
     parser.add_argument("--methods", nargs="+", type=str, default=None,
                         help="Custom list of methods to run (when --mode custom)")
     parser.add_argument("--backbone", type=str, default="convnext_tiny", help="Default backbone")
@@ -217,67 +331,68 @@ def main():
             for i in gpu_ids:
                 print(f"    - GPU {i}: {torch.cuda.get_device_name(i)}")
         else:
-            gpu_ids = [None]  # Fallback to single CPU worker
-            print("[!] No CUDA GPUs detected. Falling back to single CPU process execution.")
-
-    num_workers = len(gpu_ids)
+            gpu_ids = [None]  # Fallback to CPU execution
+            print("[!] No CUDA GPUs detected. Falling back to CPU execution.")
 
     # 2. Build Task List
-    task_queue = Queue()
+    tasks = []
     if args.mode == "baselines":
-        task_methods = BASELINES
-        for m in task_methods:
-            task_queue.put({"method": m, "backbone": args.backbone, "fold": args.fold, "seed": args.seed})
+        for m in BASELINES:
+            tasks.append({"method": m, "backbone": args.backbone, "fold": args.fold, "seed": args.seed})
     elif args.mode == "backbones":
         for b in BACKBONES:
-            task_queue.put({"method": "conditional_grl", "backbone": b, "fold": args.fold, "seed": args.seed})
+            tasks.append({"method": "conditional_grl", "backbone": b, "fold": args.fold, "seed": args.seed})
     elif args.mode == "custom":
         if not args.methods:
             raise ValueError("When using --mode custom, please specify --methods <m1> <m2> ...")
         for m in args.methods:
-            task_queue.put({"method": m, "backbone": args.backbone, "fold": args.fold, "seed": args.seed})
+            tasks.append({"method": m, "backbone": args.backbone, "fold": args.fold, "seed": args.seed})
 
-    total_tasks = task_queue.qsize()
-    print(f"\n[+] Total queued tasks: {total_tasks} | Worker concurrency: {num_workers} parallel workers")
-    print(f"[+] Detailed output logs will be stored in: {log_dir.resolve()}\n")
-
-    # 3. Spawn Parallel Workers
-    results_list: List[Dict[str, Any]] = []
-    threads = []
     t_start = time.time()
 
-    for worker_idx in range(num_workers):
-        assigned_gpu = gpu_ids[worker_idx]
-        t = Thread(
-            target=worker_loop,
-            args=(assigned_gpu, task_queue, results_list, args, log_dir),
-            daemon=True,
-        )
-        t.start()
-        threads.append(t)
+    # 3. Execute according to Strategy
+    if args.strategy == "data_parallel":
+        results_list = run_data_parallel_sequential(tasks, args, log_dir, gpu_ids)
+    else:
+        # Task-parallel concurrent mode
+        num_workers = len(gpu_ids)
+        print(f"\n[+] Task-Parallel Mode: {len(tasks)} tasks | Worker concurrency: {num_workers} parallel workers\n")
+        task_queue = Queue()
+        for t in tasks:
+            task_queue.put(t)
 
-    # Wait for queue to be empty
-    task_queue.join()
+        results_list: List[Dict[str, Any]] = []
+        threads = []
 
-    # Stop workers
-    for _ in range(num_workers):
-        task_queue.put(None)
-    for t in threads:
-        t.join()
+        for worker_idx in range(num_workers):
+            assigned_gpu = gpu_ids[worker_idx]
+            t = Thread(
+                target=worker_loop,
+                args=(assigned_gpu, task_queue, results_list, args, log_dir),
+                daemon=True,
+            )
+            t.start()
+            threads.append(t)
+
+        task_queue.join()
+        for _ in range(num_workers):
+            task_queue.put(None)
+        for t in threads:
+            t.join()
 
     total_duration_min = (time.time() - t_start) / 60.0
 
     # 4. Executive Summary Report
     print("\n" + "=" * 90)
-    print("                    MULTI-GPU PARALLEL DISPATCHER SUMMARY REPORT                    ")
+    print("                    MULTI-GPU TRAINING DISPATCHER SUMMARY REPORT                    ")
     print("=" * 90)
-    print(f"{'Method':<20} | {'Backbone':<18} | {'Device':<8} | {'Duration (m)':<12} | {'Status':<15}")
+    print(f"{'Method':<20} | {'Backbone':<18} | {'Device':<24} | {'Duration (m)':<12} | {'Status':<15}")
     print("-" * 90)
     for r in results_list:
-        print(f"{r['method']:<20} | {r['backbone']:<18} | {r['gpu']:<8} | {r['duration_min']:<12.2f} | {r['status']:<15}")
+        print(f"{r['method']:<20} | {r['backbone']:<18} | {r['gpu']:<24} | {r['duration_min']:<12.2f} | {r['status']:<15}")
     print("=" * 90)
-    print(f"[+] Total execution time: {total_duration_min:.2f} minutes across {num_workers} parallel GPU worker(s).")
-    print(f"[+] Check individual model checkpoints in '{args.output_base_dir}' for evaluations.")
+    print(f"[+] Total execution time: {total_duration_min:.2f} minutes.")
+    print(f"[+] Model checkpoints and summaries saved in: '{args.output_base_dir}'")
 
 
 if __name__ == "__main__":

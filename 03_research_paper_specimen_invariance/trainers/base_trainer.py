@@ -155,9 +155,10 @@ class BaseTrainer:
                 cfg_payload = asdict(self.config) if is_dataclass(self.config) else (
                     self.config.__dict__ if hasattr(self.config, "__dict__") else self.config
                 )
+                raw_model = self.model.module if hasattr(self.model, "module") else self.model
                 torch.save({
                     "epoch": epoch,
-                    "model_state_dict": self.model.state_dict(),
+                    "model_state_dict": raw_model.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
                     "val_metrics": val_metrics,
                     "config": cfg_payload,
@@ -182,7 +183,8 @@ class BaseTrainer:
         # Load best checkpoint for final held-out test evaluation
         if best_ckpt_path.exists():
             checkpoint = safe_load_checkpoint(best_ckpt_path, map_location=self.device)
-            self.model.load_state_dict(checkpoint["model_state_dict"])
+            raw_model = self.model.module if hasattr(self.model, "module") else self.model
+            raw_model.load_state_dict(checkpoint["model_state_dict"])
             print(f"[+] Loaded best checkpoint from Epoch {self.best_epoch} (Val Macro-F1: {self.best_val_metric:.2f}%)")
             
         test_metrics = self.evaluate(self.test_loader)

@@ -202,7 +202,12 @@ def main():
         num_total_specimens=mappings["num_total_specimens"]
     )
     checkpoint = safe_load_checkpoint(ckpt_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    raw_state_dict = checkpoint["model_state_dict"]
+    cleaned_state_dict = {
+        (k[7:] if k.startswith("module.") else k): v
+        for k, v in raw_state_dict.items()
+    }
+    model.load_state_dict(cleaned_state_dict)
     model.to(device)
     model.eval()
     print("[+] Model loaded successfully from checkpoint.")
