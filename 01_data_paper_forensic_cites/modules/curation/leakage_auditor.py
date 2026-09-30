@@ -353,6 +353,10 @@ def audit_perceptual_and_embeddings(
     return audit_report
 
 
+# Bí danh tương thích ngược cho module curation
+run_leakage_audit = audit_perceptual_and_embeddings
+
+
 def print_audit_comparison_table(report_can: Dict[str, Any], report_dis: Optional[Dict[str, Any]] = None):
     """In bảng đối chiếu báo cáo kiểm định tri giác và đặc trưng chuẩn Elsevier."""
     print("\n" + "=" * 94)

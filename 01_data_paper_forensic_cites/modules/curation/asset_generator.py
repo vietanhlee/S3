@@ -49,18 +49,32 @@ try:
 except ImportError:
     HAS_OPENCV = False
 
-import torch
-import torchvision.transforms as transforms
-import timm
+try:
+    import torch
+    import torchvision.transforms as transforms
+    import timm
+    HAS_TORCH_TIMM = True
+except ImportError:
+    HAS_TORCH_TIMM = False
 
-from split_methods import SPLIT_METHODS, validate_split
-from audit_perceptual_and_embedding_similarity import (
-    compute_dhash_hex,
-    compute_phash_hex,
-    hex_to_bool_array,
-    compute_pairwise_hamming_stats,
-    compute_cross_split_embedding_similarity
-)
+try:
+    from .split_methods import SPLIT_METHODS, validate_split
+    from .leakage_auditor import (
+        compute_dhash_hex,
+        compute_phash_hex,
+        hex_to_bool_array,
+        compute_pairwise_hamming_stats,
+        compute_cross_split_embedding_similarity
+    )
+except (ImportError, ValueError):
+    from modules.curation.split_methods import SPLIT_METHODS, validate_split
+    from modules.curation.leakage_auditor import (
+        compute_dhash_hex,
+        compute_phash_hex,
+        hex_to_bool_array,
+        compute_pairwise_hamming_stats,
+        compute_cross_split_embedding_similarity
+    )
 
 # -----------------------------------------------------------------------------
 # Cấu hình tối ưu phân vùng dữ liệu cho từng loài (End Version Split / CEGS-Split)
@@ -587,18 +601,14 @@ def extract_convnext_embeddings(
     print(f"[+] Đã lưu ConvNeXt-Tiny embeddings: {output_path} (Shape: {all_embeddings.shape}, Dung lượng: {output_path.stat().st_size / 1e6:.1f} MB)")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Tạo lập toàn bộ tài nguyên dataset chuẩn Elsevier Data in Brief")
-    parser.add_argument("--data-dir", type=str, default="/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3",
-                        help="Đường dẫn đến thư mục chứa 19 lớp ảnh gốc")
-    parser.add_argument("--output-dir", type=str, default="paper_data_assets",
-                        help="Thư mục xuất toàn bộ tài nguyên (metadata, splits, manifests)")
-    parser.add_argument("--extract-embeddings", action="store_true",
-                        help="Kích hoạt cờ này để trích xuất file convnext_tiny.npy")
-    parser.add_argument("--seed", type=int, default=42, help="Hạt giống ngẫu nhiên")
-    args = parser.parse_args()
-
-    data_dir = Path(args.data_dir)
+def generate_assets(
+    data_dir: Any = "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3",
+    output_dir: Any = "paper_data_assets",
+    extract_embeddings: bool = False,
+    seed: int = 42
+) -> Dict[str, Any]:
+    """Tạo lập toàn bộ tài nguyên dataset chuẩn Elsevier Data in Brief."""
+    data_dir = Path(data_dir)
     if not data_dir.exists():
         candidate_dirs = [
             Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"),
@@ -619,7 +629,7 @@ def main():
                     print(f"[*] Tự động phát hiện thư mục ảnh thực tế tại: {data_dir}")
                     break
 
-    out_dir = Path(args.output_dir)
+    out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     (out_dir / "metadata").mkdir(exist_ok=True)
@@ -837,11 +847,36 @@ def main():
     print("=" * 94)
 
     # 9. Trích xuất Embeddings nếu được yêu cầu
-    if args.extract_embeddings and data_dir.exists():
+    if extract_embeddings and data_dir.exists():
         emb_path = out_dir / "embeddings" / "convnext_tiny.npy"
         extract_convnext_embeddings(df, emb_path)
 
     print("\n[+] HOÀN THÀNH TẤT CẢ TÀI NGUYÊN BENCHMARK! Sẵn sàng tích hợp bài báo Elsevier.")
+    return {
+        "df": df,
+        "audit_canonical": audit_canonical,
+        "audit_disjoint": audit_disjoint,
+        "output_dir": str(out_dir)
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Tạo lập toàn bộ tài nguyên dataset chuẩn Elsevier Data in Brief")
+    parser.add_argument("--data-dir", type=str, default="/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3",
+                        help="Đường dẫn đến thư mục chứa 19 lớp ảnh gốc")
+    parser.add_argument("--output-dir", type=str, default="paper_data_assets",
+                        help="Thư mục xuất toàn bộ tài nguyên (metadata, splits, manifests)")
+    parser.add_argument("--extract-embeddings", action="store_true",
+                        help="Kích hoạt cờ này để trích xuất file convnext_tiny.npy")
+    parser.add_argument("--seed", type=int, default=42, help="Hạt giống ngẫu nhiên")
+    args = parser.parse_args()
+
+    return generate_assets(
+        data_dir=args.data_dir,
+        output_dir=args.output_dir,
+        extract_embeddings=args.extract_embeddings,
+        seed=args.seed
+    )
 
 
 if __name__ == "__main__":
