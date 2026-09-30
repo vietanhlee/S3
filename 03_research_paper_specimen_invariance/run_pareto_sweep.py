@@ -61,20 +61,39 @@ def resolve_metadata_path(given_path: str) -> Path:
     candidates = [
         Path(given_path),
         Path("..") / given_path,
+        REPO_ROOT / "01_data_paper_forensic_cites" / "out" / "metadata" / "metadata.csv",
+        Path("/kaggle/working/S3/01_data_paper_forensic_cites/out/metadata/metadata.csv"),
+        REPO_ROOT / "out" / "metadata" / "metadata.csv",
+        Path("/kaggle/working/S3/out/metadata/metadata.csv"),
         Path("../out/metadata/metadata.csv"),
         Path("out/metadata/metadata.csv"),
         Path("metadata.csv"),
         Path("../metadata.csv"),
-        Path("/kaggle/working/S3/out/metadata/metadata.csv"),
-        REPO_ROOT / "out" / "metadata" / "metadata.csv",
     ]
-    kaggle_input = Path("/kaggle/input")
-    if kaggle_input.exists():
-        for csv_cand in kaggle_input.glob("**/metadata.csv"):
-            candidates.append(csv_cand)
+    # 1. Check known candidates
     for cand in candidates:
         if cand.exists() and cand.is_file():
             return cand.resolve()
+
+    # 2. Check Kaggle input folders if available
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.exists():
+        for csv_cand in kaggle_input.glob("**/metadata.csv"):
+            if csv_cand.is_file():
+                return csv_cand.resolve()
+            
+    # 3. Recursive search in REPO_ROOT
+    for csv_cand in REPO_ROOT.glob("**/metadata.csv"):
+        if csv_cand.is_file():
+            return csv_cand.resolve()
+
+    # 4. Recursive search in /kaggle working directory
+    kaggle_root = Path("/kaggle")
+    if kaggle_root.exists():
+        for csv_cand in kaggle_root.glob("**/metadata.csv"):
+            if csv_cand.is_file():
+                return csv_cand.resolve()
+
     raise FileNotFoundError(f"Could not locate metadata CSV. Looked at: {[str(c) for c in candidates]}")
 
 
@@ -84,19 +103,8 @@ def resolve_image_root(given_root: str, sample_image_relpath: str) -> Path:
         return p.resolve()
     if (p / "images" / sample_image_relpath).exists():
         return (p / "images").resolve()
-    candidates = [
-        Path(given_root),
-        Path("..") / given_root,
-        REPO_ROOT / given_root,
-        Path("../out"),
-        Path("../out/images"),
-        Path("out"),
-        Path("out/images"),
-        REPO_ROOT / "out",
-        REPO_ROOT / "out" / "images",
-        Path("/kaggle/working/S3/out"),
-        Path("/kaggle/working/S3/out/images"),
-    ]
+        
+    # 1. Search in /kaggle/input (highest priority on Kaggle where image datasets are mounted)
     kaggle_input = Path("/kaggle/input")
     if kaggle_input.exists():
         for root_cand in kaggle_input.glob("**"):
@@ -105,12 +113,35 @@ def resolve_image_root(given_root: str, sample_image_relpath: str) -> Path:
                     return root_cand.resolve()
                 if (root_cand / "images" / sample_image_relpath).exists():
                     return (root_cand / "images").resolve()
+                if (root_cand / "out" / "images" / sample_image_relpath).exists():
+                    return (root_cand / "out" / "images").resolve()
+                if (root_cand / "out" / sample_image_relpath).exists():
+                    return (root_cand / "out").resolve()
+
+    candidates = [
+        Path(given_root),
+        Path("..") / given_root,
+        REPO_ROOT / given_root,
+        REPO_ROOT / "01_data_paper_forensic_cites" / "out",
+        REPO_ROOT / "01_data_paper_forensic_cites" / "out" / "images",
+        Path("/kaggle/working/S3/01_data_paper_forensic_cites/out"),
+        Path("/kaggle/working/S3/01_data_paper_forensic_cites/out/images"),
+        REPO_ROOT / "out",
+        REPO_ROOT / "out" / "images",
+        Path("/kaggle/working/S3/out"),
+        Path("/kaggle/working/S3/out/images"),
+        Path("../out"),
+        Path("../out/images"),
+        Path("out"),
+        Path("out/images"),
+    ]
     for cand in candidates:
         if (cand / sample_image_relpath).exists():
             return cand.resolve()
         if (cand / "images" / sample_image_relpath).exists():
             return (cand / "images").resolve()
-    fallback = (REPO_ROOT / "out").resolve() if (REPO_ROOT / "out").exists() else p.resolve()
+            
+    fallback = (REPO_ROOT / "01_data_paper_forensic_cites" / "out").resolve() if (REPO_ROOT / "01_data_paper_forensic_cites" / "out").exists() else p.resolve()
     return fallback
 
 
