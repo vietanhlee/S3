@@ -559,7 +559,7 @@ def main():
         run_assets_step(python_bin, args.data_dir, assets_dir)
 
     # BƯỚC 1b: KIỂM ĐỊNH ĐỘC LẬP 2 CẤP ĐỘ (SHA-256 & dHash/pHash)
-    if args.step in ["audit"]:
+    if args.step in ["all", "audit"]:
         run_audit_step(python_bin, assets_dir)
 
     # BƯỚC 2: HUẤN LUYỆN CLASSIFICATION BASELINE (CONVNEXT-TINY / RESNET50)
