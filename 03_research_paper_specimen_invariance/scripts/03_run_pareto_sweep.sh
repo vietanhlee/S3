@@ -11,7 +11,7 @@ set -e
 
 BACKBONE="convnext_tiny"
 FOLD=0
-EPOCHS=20
+EPOCHS=25
 BATCH_SIZE=64
 METADATA="out/metadata/metadata.csv"
 IMG_ROOT="out"

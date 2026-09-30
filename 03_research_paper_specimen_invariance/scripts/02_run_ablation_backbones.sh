@@ -13,7 +13,7 @@
 set -e
 
 FOLD=0
-EPOCHS=20
+EPOCHS=25
 BATCH_SIZE=64
 METADATA="out/metadata/metadata.csv"
 IMG_ROOT="out"
@@ -25,8 +25,9 @@ echo " Fold: ${FOLD} | Epochs: ${EPOCHS}                                "
 echo " Output Dir: ${OUTPUT_DIR}                                        "
 echo "=================================================================="
 
-# Invoke the multi-GPU parallel dispatcher for backbones
+# Invoke the multi-GPU parallel dispatcher for backbones with DataParallel
 python run_parallel_dispatcher.py \
+    --strategy data_parallel \
     --mode backbones \
     --fold "${FOLD}" \
     --epochs "${EPOCHS}" \

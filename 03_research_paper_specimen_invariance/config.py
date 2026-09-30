@@ -81,7 +81,7 @@ class TrainingConfig:
     # 5. Mutual information: 'club'
     # 6. Strong-simple: 'frozen_linear'
     
-    epochs: int = 17
+    epochs: int = 25
     batch_size: int = 64
     num_workers: int = 4
     seed: int = 42
