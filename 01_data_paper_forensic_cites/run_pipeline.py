@@ -236,13 +236,13 @@ def run_classify_multi_seed(
             rep_seed = cm_stats.get("representative_seed", seeds[0])
 
             # 1. Vẽ ma trận trung bình chuẩn hóa qua các seeds
-            plot_averaged_confusion_matrix(avg_cm, c_names, fig_dir / "confusion_matrix_focal_test_averaged", num_seeds=len(seed_payloads))
-            plot_averaged_confusion_matrix(avg_cm, c_names, fig_dir / "confusion_matrix_focal_test", num_seeds=len(seed_payloads))
+            plot_averaged_confusion_matrix(avg_cm, c_names, fig_dir / "confusion_matrix_focal_test_averaged", num_seeds=len(seed_payloads), model_name=model_name)
+            plot_averaged_confusion_matrix(avg_cm, c_names, fig_dir / "confusion_matrix_focal_test", num_seeds=len(seed_payloads), model_name=model_name)
 
             # Đồng bộ sang paper_data/fig nếu có
             paper_fig_dir = Path("paper_data/fig")
             if paper_fig_dir.exists():
-                plot_averaged_confusion_matrix(avg_cm, c_names, paper_fig_dir / "confusion_matrix_focal_test", num_seeds=len(seed_payloads))
+                plot_averaged_confusion_matrix(avg_cm, c_names, paper_fig_dir / "confusion_matrix_focal_test", num_seeds=len(seed_payloads), model_name=model_name)
 
             # 2. Đồng bộ ma trận của Representative Seed để người dùng có cả 2 lựa chọn
             rep_fig_dir = fig_dir / f"seed_{rep_seed}"

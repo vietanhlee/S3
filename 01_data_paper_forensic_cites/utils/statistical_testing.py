@@ -179,7 +179,8 @@ def plot_averaged_confusion_matrix(
     cm_mean: Any,
     class_names: List[str],
     save_path: Path,
-    num_seeds: int = 5
+    num_seeds: int = 3,
+    model_name: Optional[str] = None
 ) -> None:
     """
     Vẽ ma trận nhầm lẫn trung bình qua nhiều hạt giống (Averaged Confusion Matrix) chuẩn Elsevier.
@@ -199,7 +200,9 @@ def plot_averaged_confusion_matrix(
     im = plt.imshow(cm_norm, interpolation='nearest', cmap=plt.cm.Blues)
     im.set_clim(0, 1.0)
     total_n = int(round(cm.sum()))
-    plt.title(f"ConvNeXt-Tiny Baseline — Averaged Confusion Matrix ({num_seeds} Seeds, Test N={total_n:,})", fontsize=13, fontweight="bold", pad=15)
+    
+    display_title = (model_name or "Baseline").replace("_", " ").title()
+    plt.title(f"{display_title} — Averaged Confusion Matrix ({num_seeds} Seeds, Test N={total_n:,})", fontsize=13, fontweight="bold", pad=15)
     cbar = plt.colorbar(im, fraction=0.046, pad=0.04)
     cbar.set_label("Mean Normalized Ratio (Recall)", fontsize=10)
 
