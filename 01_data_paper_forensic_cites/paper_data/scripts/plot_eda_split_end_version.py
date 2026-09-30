@@ -12,40 +12,84 @@ Sử dụng:
     python plot_eda_split_end_version.py
 """
 
+import os
+import sys
+
+# Đảm bảo in tiếng Việt có dấu an toàn trên Windows terminal (cmd/powershell)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from pathlib import Path
+from typing import Optional, List, Tuple
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-def plot_eda_distribution():
-    fig_dir = Path(__file__).parent / "fig"
+def plot_eda_distribution(split_csv_path: Optional[Path] = None, output_dir: Optional[Path] = None):
+    # Xác định thư mục lưu ảnh đích (mặc định paper_data/fig)
+    if output_dir:
+        fig_dir = Path(output_dir)
+    else:
+        fig_dir = Path(__file__).resolve().parent.parent / "fig"
     fig_dir.mkdir(parents=True, exist_ok=True)
 
-    # Dữ liệu phân vùng 19 loài chuẩn xác 100% (Tổng 6,414 ảnh: Train 3,959 / Val 1,265 / Test 1,190)
-    data = [
-        # (Tên đầy đủ, Tên viết tắt, train, val, test)
-        ("Afzelia africana", "A. africana", 129, 54, 58),
-        ("Afzelia bella", "A. bella", 240, 80, 80),
-        ("Afzelia pachyloba", "A. pachyloba", 43, 33, 40),
-        ("Afzelia quanzensis", "A. quanzensis", 232, 81, 56),
-        ("Dalbergia cochinchinensis", "D. cochinchinensis", 212, 71, 71),
-        ("Dalbergia melanoxylon", "D. melanoxylon", 171, 60, 60),
-        ("Dalbergia oliveri", "D. oliveri", 190, 63, 63),
-        ("Dalbergia rimosa", "D. rimosa", 180, 60, 60),
-        ("Dalbergia tonkinensis", "D. tonkinensis", 195, 63, 67),
-        ("Guibourtia arnoldiana", "G. arnoldiana", 188, 64, 71),
-        ("Guibourtia coleosperma", "G. coleosperma", 216, 72, 72),
-        ("Guibourtia ehie", "G. ehie", 320, 40, 40),
-        ("Peltogyne pubescens", "P. pubescens", 220, 75, 76),
-        ("Pterocarpus erinaceus", "P. erinaceus", 203, 64, 69),
-        ("Pterocarpus indicus", "P. indicus", 163, 92, 57),
-        ("Pterocarpus macrocarpus", "P. macrocarpus", 330, 54, 47),
-        ("Pterocarpus soyauxii", "P. soyauxii", 350, 68, 68),
-        ("Sindora cochinchinensis", "S. cochinchinensis", 181, 104, 67),
-        ("Sindora tonkinensis", "S. tonkinensis", 196, 67, 68)
+    # 1. Thử nạp trực tiếp từ file CSV phân vùng chính thức (out/splits/split_canonical.csv)
+    candidate_csvs = [
+        split_csv_path,
+        Path("out/splits/split_canonical.csv"),
+        Path(__file__).resolve().parent.parent.parent / "out" / "splits" / "split_canonical.csv",
+        Path("paper_data_assets/splits/split_canonical.csv")
     ]
+    
+    csv_file = None
+    for cand in candidate_csvs:
+        if cand and Path(cand).exists():
+            csv_file = Path(cand)
+            break
+
+    data = []
+    if csv_file:
+        print(f"[*] Đang đọc dữ liệu phân vùng trực tiếp từ: {csv_file}")
+        df = pd.read_csv(csv_file)
+        c_counts = df.groupby(["class_name", "split"]).size().unstack(fill_value=0)
+        
+        for full_name in sorted(df["class_name"].unique()):
+            genus, spec = full_name.split(" ", 1)
+            short_name = f"{genus[0]}. {spec}"
+            t_cnt = int(c_counts.loc[full_name, "train"]) if "train" in c_counts.columns else 0
+            v_cnt = int(c_counts.loc[full_name, "val"]) if "val" in c_counts.columns else 0
+            te_cnt = int(c_counts.loc[full_name, "test"]) if "test" in c_counts.columns else 0
+            data.append((full_name, short_name, t_cnt, v_cnt, te_cnt))
+    else:
+        print("[!] Không tìm thấy file split CSV, sử dụng dữ liệu tĩnh chuẩn 6,414 ảnh...")
+        # Dữ liệu phân vùng 19 loài chuẩn xác 100% sau khi lọc ảnh mờ (Tổng 6,414 ảnh: Train 3,959 / Val 1,265 / Test 1,190)
+        data = [
+            ("Afzelia africana", "A. africana", 129, 54, 58),
+            ("Afzelia bella", "A. bella", 240, 80, 80),
+            ("Afzelia pachyloba", "A. pachyloba", 44, 32, 40),
+            ("Afzelia quanzensis", "A. quanzensis", 232, 81, 56),
+            ("Dalbergia cochinchinensis", "D. cochinchinensis", 212, 71, 71),
+            ("Dalbergia melanoxylon", "D. melanoxylon", 172, 59, 60),
+            ("Dalbergia oliveri", "D. oliveri", 190, 63, 63),
+            ("Dalbergia rimosa", "D. rimosa", 180, 60, 60),
+            ("Dalbergia tonkinensis", "D. tonkinensis", 195, 63, 67),
+            ("Guibourtia arnoldiana", "G. arnoldiana", 188, 64, 71),
+            ("Guibourtia coleosperma", "G. coleosperma", 216, 72, 72),
+            ("Guibourtia ehie", "G. ehie", 320, 40, 40),
+            ("Peltogyne pubescens", "P. pubescens", 220, 75, 76),
+            ("Pterocarpus erinaceus", "P. erinaceus", 203, 64, 69),
+            ("Pterocarpus indicus", "P. indicus", 163, 92, 57),
+            ("Pterocarpus macrocarpus", "P. macrocarpus", 331, 54, 47),
+            ("Pterocarpus soyauxii", "P. soyauxii", 350, 68, 68),
+            ("Sindora cochinchinensis", "S. cochinchinensis", 182, 105, 67),
+            ("Sindora tonkinensis", "S. tonkinensis", 192, 68, 68)
+        ]
 
     short_names = [d[1] for d in data]
     train_counts = [d[2] for d in data]

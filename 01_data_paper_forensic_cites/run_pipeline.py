@@ -108,6 +108,7 @@ def run_assets_step(python_bin: str, data_dir: str, assets_dir: Path) -> None:
         "--output-dir", str(assets_dir)
     ]
     run_command(cmd)
+    ensure_partition_distribution_figure(assets_dir)
 
 
 def run_audit_step(python_bin: str, assets_dir: Path) -> None:
@@ -273,6 +274,21 @@ def ensure_disjoint_split_exists(assets_dir: Path) -> Path:
         except Exception as e:
             print(f"[!] Lỗi khi tự động sinh split_specimen_disjoint.csv: {e}")
     return disjoint_path
+
+
+def ensure_partition_distribution_figure(assets_dir: Path, fig_dir: Optional[Path] = None) -> None:
+    """Tự động kiểm tra và sinh biểu đồ phân bố phân vùng (Figure 1: eda_split_end_version) chuẩn Elsevier."""
+    canonical_split = assets_dir / "splits" / "split_canonical.csv"
+    if not canonical_split.exists() and (Path("out") / "splits" / "split_canonical.csv").exists():
+        canonical_split = Path("out") / "splits" / "split_canonical.csv"
+
+    if canonical_split.exists():
+        try:
+            from paper_data.scripts.plot_eda_split_end_version import plot_eda_distribution
+            out_fig = fig_dir or Path("paper_data/fig")
+            plot_eda_distribution(split_csv_path=canonical_split, output_dir=out_fig)
+        except Exception as e:
+            print(f"[!] Warning: Không thể sinh tự động biểu đồ phân bố Figure 1: {e}")
 
 
 def run_split_comparison_summary(
@@ -566,6 +582,7 @@ def main():
     if args.step in ["all", "classify"]:
         metadata_csv = assets_dir / "metadata" / "metadata.csv"
         ensure_disjoint_split_exists(assets_dir)
+        ensure_partition_distribution_figure(assets_dir)
 
         for model_idx, model_name in enumerate(active_models, 1):
             print(f"\n{'#' * 90}")
