@@ -141,7 +141,7 @@ def standardize_artifacts(out_dir: Path):
     # 4. Kiểm tra cấu trúc thư mục tổng thể cho Zenodo
     # -------------------------------------------------------------------------
     print("\n[*] TỔNG KẾT TÀI NGUYÊN ZENODO SẴN SÀNG:")
-    for sub in ["metadata", "splits", "leakage_audit", "classification_output", "metric_learning_output", "embeddings", "code"]:
+    for sub in ["metadata", "splits", "leakage_audit", "classification_output", "code"]:
         p = out_dir / sub
         if p.exists():
             n_files = len(list(p.glob("*")))

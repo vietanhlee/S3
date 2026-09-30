@@ -3,17 +3,17 @@
 run_pipeline.py
 ===============
 Script điều phối (Master Orchestrator) tinh gọn cho ForensicMacroWood-CITES
-(Elsevier Data in Brief), hỗ trợ kiểm định thống kê đa hạt giống (5 Random Seeds).
+(Elsevier Data in Brief), hỗ trợ kiểm định thống kê đa hạt giống (3 Random Seeds).
 
 Quy trình tinh gọn (2 bước chính):
   1. 'assets': Sinh metadata, tính độ nét Laplacian (sigma^2 >= 100), mã băm
      mật mã SHA-256 và mã băm tri giác dHash/pHash (khử trùng lặp 2 cấp độ).
-  2. 'classify': Huấn luyện baseline phân loại ConvNeXt-Tiny qua 5 random seeds
-     (42, 123, 456, 789, 2024) và tự động tính toán kiểm định thống kê (Mean +- Std, 95% CI).
+  2. 'classify': Huấn luyện baseline phân loại ConvNeXt-Tiny qua 3 random seeds
+     (42, 123, 456) và tự động tính toán kiểm định thống kê (Mean +- Std, 95% CI).
   - 'all': Tự động chạy tuần tự Bước 1 -> Bước 2.
 
 Cách dùng cơ bản:
-  # Chạy toàn bộ quy trình với kiểm định thống kê 5 seeds (chuẩn bài báo):
+  # Chạy toàn bộ quy trình với kiểm định thống kê 3 seeds (chuẩn bài báo):
   python run_pipeline.py --all --data-dir <đường_dẫn_ảnh>
 
   # Chỉ chạy thử nghiệm nhanh với 1 seed:
@@ -405,8 +405,8 @@ def main():
                         help="Hàm mất mát phân loại: 'focal', 'cross_entropy', hoặc 'both'")
     parser.add_argument("--classify-lr", "--lr", type=float, default=5e-4, dest="classify_lr",
                         help="Tốc độ học cho phân loại (mặc định 5e-4)")
-    parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456, 789, 2024],
-                        help="Danh sách các random seeds để chạy kiểm định thống kê (mặc định 5 seeds)")
+    parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456],
+                        help="Danh sách các random seeds để chạy kiểm định thống kê (mặc định 3 seeds: 42, 123, 456)")
     parser.add_argument("--single-seed", action="store_true",
                         help="Chỉ chạy duy nhất seed đầu tiên nếu muốn thực nghiệm nhanh")
     args = parser.parse_args()

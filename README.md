@@ -25,7 +25,7 @@ graph TD
 
 | Thư mục Dự án | Tên Công trình Học thuật | Tạp chí Mục tiêu | Vai trò & Đóng góp Cốt lõi |
 | :--- | :--- | :--- | :--- |
-| [`01_data_paper_forensic_cites/`](file:///g:/S3_paper/01_data_paper_forensic_cites/) | **ForensicMacroWood-CITES Data Paper** | *Elsevier Data in Brief* | Xuất bản tập dữ liệu chuẩn hóa 18 loài Fabaceae, 6,410 ảnh vĩ mô độ nét cao, 116 phôi gỗ tiêu bản, lọc Laplacian, SHA-256, dHash/pHash và baseline ConvNeXt-Tiny 5 seeds. |
+| [`01_data_paper_forensic_cites/`](file:///g:/S3_paper/01_data_paper_forensic_cites/) | **ForensicMacroWood-CITES Data Paper** | *Elsevier Data in Brief* | Xuất bản tập dữ liệu chuẩn hóa 19 loài Fabaceae, 6,414 ảnh vĩ mô độ nét cao, 147 phôi gỗ tiêu bản, lọc Laplacian, SHA-256, dHash/pHash và baseline ConvNeXt-Tiny 3 seeds. |
 | [`02_research_paper_specimen_leakage/`](file:///g:/S3_paper/02_research_paper_specimen_leakage/) | **Specimen Leakage Governance Paper** | *Computers and Electronics in Agriculture* | Data-Centric Governance: Khủng hoảng tái lập, định lượng rủi ro rò rỉ phôi gỗ ($\mathrm{SLR}$, $\mathrm{CCR}$), chứng minh Lemma 1 và đề xuất giải thuật tổ hợp CEGS-Split ($11^{18}$). |
 | [`03_research_paper_specimen_invariance/`](file:///g:/S3_paper/03_research_paper_specimen_invariance/) | **Specimen Invariance Learning Paper** | *Computers and Electronics in Agriculture* / *Pattern Recognition* | Model-Centric Invariance: Triệt tiêu shortcut học vẹt cơ học qua Species-Conditioned Masked Softmax GRL và variational CLUB mutual information bottleneck, kiểm chứng giải phẫu IAWA. |
 
@@ -75,7 +75,7 @@ python run_pipeline.py --step assets --data-dir "g:/S3_paper/S3"
 # 2. Huấn luyện baseline nhanh (1 seed):
 python run_pipeline.py --step classify --single-seed
 
-# 3. Huấn luyện đa hạt giống 5 seeds (42, 123, 456, 789, 2024) xuất bảng thống kê:
+# 3. Huấn luyện đa hạt giống 3 seeds (42, 123, 456) xuất bảng thống kê:
 python run_pipeline.py --step classify
 ```
 

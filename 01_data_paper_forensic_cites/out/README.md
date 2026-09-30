@@ -18,7 +18,7 @@ The dataset was curated and validated by the **Intelligent Computing for Sustain
 - **Physical Entity Provenance**: All captures are traceable to **147 verified physical wood blocks** ($|\mathcal{G}_c|$), verified by two independent certified wood anatomists ($\kappa = 0.985$, observed agreement $P_o = 98.65\%$).
 - **Optical Standardization**: Prepared via orthogonal slicing, progressive silicon-carbide polishing (P120--P600), de-dusting with dry air jets ($6\,\text{bar}$), and imaged under calibrated daylight-balanced ($5600\,\text{K}$) diffuse circular LED lighting ($4500\,\text{lux}$, $f/8.0$, working distance $15\,\text{cm}$).
 - **Two-Tier Benchmark Partitioning**: Offers both the **Canonical Split** ($N_{\text{train}}=3,959$, $N_{\text{val}}=1,265$, $N_{\text{test}}=1,190$) and the **Strict Specimen-Disjoint Split** (Zero Leakage for all 17 multi-specimen taxa, $\text{SLR}=0.0\%$), maintaining **$100\%$ Class Coverage Rate** ($\text{CCR} = 100.0\%$) and **zero cross-split duplicate captures** verified via bitwise 256-bit SHA-256 cryptographic hashing ($\text{SHA-256 Overlap} = 0$).
-- **Turnkey Machine Learning Reproducibility**: Includes pre-extracted 768-dimensional deep feature embeddings, trained classification/metric learning baseline checkpoints, and an end-to-end walkthrough demonstration code suite.
+- **Turnkey Machine Learning Reproducibility**: Includes trained ConvNeXt-Tiny classification baseline checkpoints, evaluation metrics, and an end-to-end walkthrough demonstration code suite.
 
 ---
 
@@ -31,11 +31,9 @@ out/
 │   ├── convnext_tiny_focal_best.pth        # Best ConvNeXt-Tiny model weights under Focal Loss (111 MB)
 │   └── raw_predictions_focal.json          # Per-sample test predictions, ground-truth & probabilities
 ├── code/                        # Reproducible scripts, demonstration notebook & runtime environment
-│   ├── quickstart_demo.py                  # Standalone 8-step verification and baseline benchmark script
+│   ├── quickstart_demo.py                  # Standalone verification and baseline evaluation script
 │   ├── quickstart_demo.ipynb               # Interactive Jupyter notebook for rapid data exploration
 │   └── requirements.txt                    # Minimal Python package dependencies
-├── embeddings/                  # Metric learning checkpoint weights & pre-computed representations
-│   └── semihard_triplet_best.pth           # Best metric projection head weights (114 MB)
 ├── images.zip                   # Compressed archive containing 6,414 standardized macroscopic RGB images
 ├── leakage_audit/               # Cross-split specimen overlap and cryptographic hash audit summary
 │   └── audit_summary.json                  # Audit record confirming CCR = 100.0% & SLR = 30.6%
@@ -44,9 +42,6 @@ out/
 │   ├── label_map.json                      # Mapping between class IDs, scientific names & vernaculars
 │   ├── metadata.csv                        # Master metadata (image paths, labels, specimens, QC scores)
 │   └── release_manifest.csv                # Release manifest with SHA-256 checksums and file sizes
-├── metric_learning_output/      # Deep metric representation learning outputs
-│   ├── semihard_triplet_best.pth           # Semi-Hard Triplet loss model checkpoint
-│   └── semihard_triplet_results.json       # Quantitative embedding space geometry metrics (DBI, Silhouette)
 ├── splits/                      # Governed benchmark partitioning manifests
 │   └── split_canonical.csv                 # Canonical partition assignment manifest (Train/Val/Test)
 ├── LICENSE                      # Creative Commons Attribution 4.0 International (CC BY 4.0)
@@ -137,21 +132,6 @@ Trained using **ConvNeXt-Tiny** with Multiclass Focal Loss ($\alpha=0.25, \gamma
 - **Weighted-Averaged F1-Score**: **$88.82\%$**
 - Residual confusion is strictly confined to congeneric sister species (e.g., *Dalbergia*, *Pterocarpus*). Detailed logs and per-class metrics are cataloged in `classification_output/classification_results_focal.json`.
 
-### Baseline 2: Deep Metric Representation Learning
-
-Evaluated using **Semi-Hard Triplet Loss** on projected unit hypersphere $\mathcal{S}^{255}$ ($d=256$, margin $\alpha=0.50$):
-
-| Validation Metric | Optimization Target | Pre-trained Baseline | Semi-Hard Triplet | Relative Gain |
-| :--- | :---: | :---: | :---: | :---: |
-| **Nearest Neighbor Recall@1 (%)** | $\uparrow$ | 98.74% | **99.92%** | **$+1.18\%$** |
-| **Silhouette Score** | $\uparrow$ | 0.1584 | **0.7538** | **$+375.9\%$** |
-| **Davies-Bouldin Index (DBI)** | $\downarrow$ | 2.2250 | **0.5671** | **$+74.5\%$** |
-| **Intra/Inter Distance Ratio** | $\downarrow$ | 0.7136 | **0.1931** | **$+72.9\%$** |
-
-> **Clarification on Embedding Dimensionality**:
-> - **768-d Distributed Features (`convnext_tiny.npy`)**: Pooled representations extracted directly from the frozen ConvNeXt-Tiny backbone for lightweight downstream classification/clustering.
-> - **256-d Metric Learning Head**: A dedicated linear projection head ($768 \to 256$, with batch normalization) optimized under Semi-Hard Triplet Loss to evaluate geometric cluster compaction.
-
 ---
 
 ## 6. Quick Start & Reproducibility Guide
@@ -172,15 +152,13 @@ Execute the standalone demonstration script:
 python code/quickstart_demo.py
 ```
 
-The script runs an 8-step verification pipeline in seconds:
+The script runs a verification pipeline in seconds:
 1. Validates repository directory structure and file integrity.
 2. Checks master metadata schema (`metadata.csv`) and label mappings (`label_map.json`).
 3. Audits governed partition integrity ($\text{CCR} = 100.0\%$, $\text{SHA-256 Overlap} = 0$).
-4. Loads or generates calibrated ConvNeXt-Tiny deep feature representations.
-5. Runs an instant zero-training $k$-Nearest Neighbor ($k=1$) classifier baseline.
-6. Evaluates geometric embedding metrics (Silhouette Score, Davies-Bouldin Index).
-7. Simulates open-set specimen verification and top-$k$ forensic timber retrieval.
-8. Generates a reproducible benchmark verification summary.
+4. Evaluates ConvNeXt-Tiny classification baseline predictions and per-class metrics.
+5. Simulates open-set specimen verification and top-$k$ forensic timber retrieval.
+6. Generates a reproducible benchmark verification summary.
 
 ### Interactive Jupyter Notebook
 

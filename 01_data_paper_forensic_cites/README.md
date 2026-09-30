@@ -50,7 +50,7 @@ Bộ dữ liệu cung cấp **6,410 ảnh chụp mặt cắt ngang vĩ mô (tran
 
 Quy trình xử lý dữ liệu được chia làm 2 giai đoạn độc lập:
 1. **Bước 1 (`assets`)**: Kiểm soát chất lượng hình ảnh, lọc mờ bằng biến sai toán tử Laplacian ($\sigma^2 \ge 100$), tính mã băm mật mã SHA-256 (khử trùng lặp tuyệt đối) và mã băm tri giác dHash/pHash với khoảng cách Hamming $\le 3$ (khử trùng lặp tương đối).
-2. **Bước 2 (`classify`)**: Huấn luyện mô hình ConvNeXt-Tiny qua **5 random seeds** (42, 123, 456, 789, 2024), tự động tổng hợp kết quả thống kê (Mean $\pm$ Std, khoảng tin cậy 95\% CI) và vẽ ma trận nhầm lẫn chuẩn publication.
+2. **Bước 2 (`classify`)**: Huấn luyện mô hình ConvNeXt-Tiny qua **3 random seeds** (42, 123, 456), tự động tổng hợp kết quả thống kê (Mean $\pm$ Std, khoảng tin cậy 95\% CI) và vẽ ma trận nhầm lẫn chuẩn publication.
 
 ---
 
@@ -62,7 +62,7 @@ cd g:/S3_paper/01_data_paper_forensic_cites
 ```
 
 ### Lệnh 1: Chạy Toàn Bộ Pipeline Tự Động (Chuẩn bài báo)
-Chạy lần lượt từ xử lý dữ liệu, trích xuất metadata đến huấn luyện kiểm định 5 seeds:
+Chạy lần lượt từ xử lý dữ liệu, trích xuất metadata đến huấn luyện kiểm định 3 seeds:
 ```powershell
 python run_pipeline.py --all --data-dir "g:/S3_paper/S3"
 ```
@@ -72,8 +72,8 @@ python run_pipeline.py --all --data-dir "g:/S3_paper/S3"
 python run_pipeline.py --step assets --data-dir "g:/S3_paper/S3"
 ```
 
-### Lệnh 3: Chỉ chạy Bước 2 (Huấn luyện Baseline Đa Hạt Giống 5 Seeds)
-Tự động chạy qua 5 seeds, lưu checkpoint và vẽ ma trận nhầm lẫn trung bình:
+### Lệnh 3: Chỉ chạy Bước 2 (Huấn luyện Baseline Đa Hạt Giống 3 Seeds)
+Tự động chạy qua 3 seeds (42, 123, 456), lưu checkpoint và vẽ ma trận nhầm lẫn trung bình:
 ```powershell
 python run_pipeline.py --step classify
 ```
@@ -101,10 +101,10 @@ python train_classification_pipeline.py --run-both --epochs 22
 
 ## 📊 5. Kết quả Kiểm định Kỹ thuật (Technical Validation Results)
 
-Kết quả kiểm định trên tập Test độc lập qua 5 random seeds (Mean $\pm$ Std):
-* **Top-1 Accuracy**: $98.62\% \pm 0.35\%$ (Khoảng tin cậy 95\% CI: $[98.28\%, 98.96\%]$)
-* **Macro-Averaged Precision**: $98.45\% \pm 0.40\%$
-* **Macro-Averaged Recall**: $98.38\% \pm 0.38\%$
-* **Macro-Averaged F1-Score**: $98.41\% \pm 0.39\%$
+Kết quả kiểm định trên tập Test độc lập qua 3 random seeds (Mean $\pm$ Std):
+* **Top-1 Accuracy**: $90.42\% \pm 0.38\%$ (Khoảng tin cậy 95\% CI: $[89.48\%, 91.36\%]$)
+* **Macro-Averaged Precision**: $91.67\% \pm 0.42\%$
+* **Macro-Averaged Recall**: $88.18\% \pm 0.51\%$
+* **Macro-Averaged F1-Score**: $86.80\% \pm 0.45\%$ (Khoảng tin cậy 95\% CI: $[85.68\%, 87.92\%]$)
 
 Mọi biểu đồ ma trận nhầm lẫn và bảng biểu LaTeX được tự động kết xuất vào thư mục `paper_data/fig/` để nhúng trực tiếp vào file bài báo `paper_data/main.tex`.

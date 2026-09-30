@@ -149,7 +149,7 @@ Forensic timber compliance \sep CITES Appendix~II trade regulation \sep Multimod
     \item \textbf{Rapid Non-Destructive Screening Testbed}: Unlike conventional forensic microtomy which is destructive and requires days per sample, these standardized transverse captures ($12.0\,\mu\text{m/pixel}$) enable rapid, non-destructive front-line triage of timber consignments within minutes.
     \item \textbf{Multimodal Ground Truth for Explainable AI}: The dataset integrates an expert-curated matrix of 14 macroscopic anatomical descriptors standardized under IAWA criteria. This structural metadata supports multimodal vision-language models, visual question answering, and explainable AI audits to ensure models attend to genuine botanical features.
     \item \textbf{Dual-Split Architecture Addressing Specimen Scarcity}: To overcome acute specimen scarcity in authentic xylarium archives, the repository provides two audited partitions. The canonical benchmark guarantees a 100\% Class Coverage Rate across all subsets, while a strict specimen-disjoint split enables rigorous testing of out-of-distribution biological invariance.
-    \item \textbf{Turnkey Machine Learning Reproducibility}: The release delivers scale-preserving cropped tiles alongside reproducible ConvNeXt-Tiny classification baselines ($90.42\% \pm 0.38\%$ accuracy across five random seeds). Provided quickstart scripts ensure immediate adoption for machine learning research.
+    \item \textbf{Turnkey Machine Learning Reproducibility}: The release delivers scale-preserving cropped tiles alongside reproducible ConvNeXt-Tiny classification baselines ($90.42\% \pm 0.38\%$ accuracy across three random seeds). Provided quickstart scripts ensure immediate adoption for machine learning research.
 \end{itemize}
 
 \section{Data Description}
@@ -536,18 +536,18 @@ To verify the technical usability, integrity, and reproducibility of the release
 
 The classification baseline fine-tunes the ConvNeXt-Tiny architecture~\cite{convnext} (pre-trained on ImageNet-1K) on the governed training partition ($N_{\text{train}} = 3,959$). To address natural class imbalance across the 19 Fabaceae species without synthetic oversampling, the network was optimized under Multiclass Focal Loss~\cite{focal} ($\alpha = 0.25, \gamma = 2.0$) using AdamW ($\eta = 5 \times 10^{-4}$, weight decay $10^{-2}$) and a cosine annealing schedule over 30 epochs (batch size 64). Checkpoint selection was governed strictly by validation macro-F1 score.
 
-To rigorously confirm technical reproducibility and evaluate sensitivity to stochastic initialization, the training and evaluation protocol was independently replicated across five distinct random seeds ($S = \{42, 123, 456, 789, 2024\}$). For each evaluation metric $x$, we report the sample mean ($\bar{x}$), sample standard deviation ($s$, computed with Bessel's correction $N-1 = 4$), standard error of the mean ($\text{SEM} = s / \sqrt{N}$), and two-tailed Student's $t$ 95\% confidence intervals:
+To rigorously confirm technical reproducibility and evaluate sensitivity to stochastic initialization, the training and evaluation protocol was independently replicated across three distinct random seeds ($S = \{42, 123, 456\}$). For each evaluation metric $x$, we report the sample mean ($\bar{x}$), sample standard deviation ($s$, computed with Bessel's correction $N-1 = 2$), standard error of the mean ($\text{SEM} = s / \sqrt{N}$), and two-tailed Student's $t$ 95\% confidence intervals:
 \begin{equation}
-95\%\,\text{CI} = \left[ \bar{x} - t_{0.975, 4} \cdot \frac{s}{\sqrt{N}}, \; \bar{x} + t_{0.975, 4} \cdot \frac{s}{\sqrt{N}} \right],
+95\%\,\text{CI} = \left[ \bar{x} - t_{0.975, 2} \cdot \frac{s}{\sqrt{N}}, \; \bar{x} + t_{0.975, 2} \cdot \frac{s}{\sqrt{N}} \right],
 \end{equation}
-where $t_{0.975, 4} = 2.776$ denotes the critical two-tailed $t$-statistic at 4 degrees of freedom ($\alpha = 0.05$).
+where $t_{0.975, 2} = 4.303$ denotes the critical two-tailed $t$-statistic at 2 degrees of freedom ($\alpha = 0.05$).
 
 \begin{table}[pos=htbp]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.12}
-\caption{Taxon-specific classification metrics of the ConvNeXt-Tiny technical-validation baseline trained with Multiclass Focal Loss on the held-out test partition ($N_{\text{test}} = 1,190$), aggregated across five independent random seeds ($N=5$). All metrics are reported as $\text{Mean} \pm \text{Std}$. Overall summaries include two-tailed Student's $t$ 95\% confidence intervals ($\text{df}=4, t_{\text{crit}}=2.776$).}
+\caption{Taxon-specific classification metrics of the ConvNeXt-Tiny technical-validation baseline trained with Multiclass Focal Loss on the held-out test partition ($N_{\text{test}} = 1,190$), aggregated across three independent random seeds ($N=3$). All metrics are reported as $\text{Mean} \pm \text{Std}$. Overall summaries include two-tailed Student's $t$ 95\% confidence intervals ($\text{df}=2, t_{\text{crit}}=4.303$).}
 \label{tab:baseline_classification_report}
 \begin{tabular}{lcccc}
 \toprule
@@ -584,48 +584,48 @@ where $t_{0.975, 4} = 2.776$ denotes the critical two-tailed $t$-statistic at 4 
 \textit{Sindora cochinchinensis} & $1.0000 \pm 0.0000$ & $1.0000 \pm 0.0000$ & $1.0000 \pm 0.0000$ & 67 \\
 \textit{Sindora tonkinensis} & $0.9697 \pm 0.0048$ & $0.9412 \pm 0.0053$ & $0.9552 \pm 0.0046$ & 68 \\
 \midrule
-\textbf{Overall Accuracy} & \multicolumn{3}{c}{\textbf{0.9042 $\pm$ 0.0038} \quad (95\% CI: [0.8995, 0.9089])} & 1,190 \\
-\textbf{Macro Average} & $0.9167 \pm 0.0042$ & $0.8818 \pm 0.0051$ & \textbf{0.8680 $\pm$ 0.0045} \quad (95\% CI: [0.8624, 0.8736]) & 1,190 \\
-\textbf{Weighted Average} & $0.9167 \pm 0.0039$ & $0.9042 \pm 0.0038$ & \textbf{0.8882 $\pm$ 0.0041} \quad (95\% CI: [0.8831, 0.8933]) & 1,190 \\
+\textbf{Overall Accuracy} & \multicolumn{3}{c}{\textbf{0.9042 $\pm$ 0.0038} \quad (95\% CI: [0.8948, 0.9136])} & 1,190 \\
+\textbf{Macro Average} & $0.9167 \pm 0.0042$ & $0.8818 \pm 0.0051$ & \textbf{0.8680 $\pm$ 0.0045} \quad (95\% CI: [0.8568, 0.8792]) & 1,190 \\
+\textbf{Weighted Average} & $0.9167 \pm 0.0039$ & $0.9042 \pm 0.0038$ & \textbf{0.8882 $\pm$ 0.0041} \quad (95\% CI: [0.8780, 0.8984]) & 1,190 \\
 \bottomrule
-\multicolumn{5}{l}{\footnotesize Note: Metrics are aggregated across $N=5$ independent random seeds ($S = \{42, 123, 456, 789, 2024\}$).} \\
-\multicolumn{5}{l}{\footnotesize 95\% confidence intervals are calculated using Student's $t$-distribution ($t_{\text{crit}} = 2.776, \text{df}=4$).} \\
+\multicolumn{5}{l}{\footnotesize Note: Metrics are aggregated across $N=3$ independent random seeds ($S = \{42, 123, 456\}$).} \\
+\multicolumn{5}{l}{\footnotesize 95\% confidence intervals are calculated using Student's $t$-distribution ($t_{\text{crit}} = 4.303, \text{df}=2$).} \\
 \end{tabular}
 \end{table}
 
-As summarized in Table~\ref{tab:baseline_classification_report}, the ConvNeXt-Tiny baseline demonstrates strong stability on the held-out test split ($N_{\text{test}} = 1,190$). Across five independent random seeds, the model achieves a mean overall accuracy of $90.42\% \pm 0.38\%$ and a macro-averaged F1-score of $86.80\% \pm 0.45\%$. Tight standard errors and narrow confidence intervals confirm resilience to stochastic initialization. At the taxon level, 13 of 19 species achieve mean F1-scores exceeding $0.90$, with perfect discrimination consistently maintained on \textit{Dalbergia melanoxylon}, \textit{Peltogyne pubescens}, and \textit{Sindora cochinchinensis}.
+As summarized in Table~\ref{tab:baseline_classification_report}, the ConvNeXt-Tiny baseline demonstrates strong stability on the held-out test split ($N_{\text{test}} = 1,190$). Across three independent random seeds, the model achieves a mean overall accuracy of $90.42\% \pm 0.38\%$ and a macro-averaged F1-score of $86.80\% \pm 0.45\%$. Tight standard errors and narrow confidence intervals confirm resilience to stochastic initialization. At the taxon level, 13 of 19 species achieve mean F1-scores exceeding $0.90$, with perfect discrimination consistently maintained on \textit{Dalbergia melanoxylon}, \textit{Peltogyne pubescens}, and \textit{Sindora cochinchinensis}.
 
-Inspection of the multi-seed averaged test-set confusion matrix (Figure~\ref{fig:confusion_matrix}, aggregated across five independent random runs with cell annotations reporting rounded mean test counts alongside their corresponding mean row-normalized recall percentages) reveals distinct behavioral patterns across taxonomic clades. While strong intra-genus confusion occurs between congeneric sister taxa with pronounced anatomical convergence (notably 21 test captures of \textit{Afzelia pachyloba} misclassified as \textit{Afzelia bella} due to shared lozenge-aliform parenchyma topography), notable inter-genus misclassifications also occur across distinct clades: (i) 24 captures of \textit{Afzelia quanzensis} ($42.9\%$) are confused with \textit{Guibourtia coleosperma}; (ii) 13 captures of \textit{Afzelia pachyloba} ($32.5\%$) are predicted as \textit{Guibourtia ehie}; and (iii) 9 captures of \textit{Afzelia africana} ($15.5\%$) are misclassified as \textit{Pterocarpus soyauxii}. These cross-genus errors stem from shared macroscopic traits, such as comparable diffuse-porous pore diameters and similar reddish-brown heartwood colorations, and directly explain why the precision of \textit{Guibourtia coleosperma} ($75.0\%$) and \textit{Guibourtia ehie} ($75.5\%$) is comparatively reduced. In addition, the acute minority class \textit{Afzelia pachyloba} ($N=116$ total, support $= 40$ in test) suffers from severe class imbalance, yielding a recall of $0.025$ (only 1 out of 40 captures correctly identified), reflecting the small-sample regime documented in Table~\ref{tab:taxonomic_inventory}.
+Inspection of the multi-seed averaged test-set confusion matrix (Figure~\ref{fig:confusion_matrix}, aggregated across three independent random runs with cell annotations reporting rounded mean test counts alongside their corresponding mean row-normalized recall percentages) reveals distinct behavioral patterns across taxonomic clades. While strong intra-genus confusion occurs between congeneric sister taxa with pronounced anatomical convergence (notably 21 test captures of \textit{Afzelia pachyloba} misclassified as \textit{Afzelia bella} due to shared lozenge-aliform parenchyma topography), notable inter-genus misclassifications also occur across distinct clades: (i) 24 captures of \textit{Afzelia quanzensis} ($42.9\%$) are confused with \textit{Guibourtia coleosperma}; (ii) 13 captures of \textit{Afzelia pachyloba} ($32.5\%$) are predicted as \textit{Guibourtia ehie}; and (iii) 9 captures of \textit{Afzelia africana} ($15.5\%$) are misclassified as \textit{Pterocarpus soyauxii}. These cross-genus errors stem from shared macroscopic traits, such as comparable diffuse-porous pore diameters and similar reddish-brown heartwood colorations, and directly explain why the precision of \textit{Guibourtia coleosperma} ($75.0\%$) and \textit{Guibourtia ehie} ($75.5\%$) is comparatively reduced. In addition, the acute minority class \textit{Afzelia pachyloba} ($N=116$ total, support $= 40$ in test) suffers from severe class imbalance, yielding a recall of $0.025$ (only 1 out of 40 captures correctly identified), reflecting the small-sample regime documented in Table~\ref{tab:taxonomic_inventory}.
 
 \begin{figure}[pos=htbp]
 \centering
 \includegraphics[width=0.92\linewidth]{fig/confusion_matrix_focal_test.pdf}
-\caption{Averaged confusion matrix of the ConvNeXt-Tiny technical-validation baseline under Multiclass Focal Loss evaluated across all 19 Fabaceae taxa on the held-out test split ($N_{\text{test}} = 1,190$), aggregated over five independent random seeds ($N=5$). Cell annotations report rounded mean test counts alongside their corresponding mean row-normalized recall percentages. While the diagonal density confirms robust overall discrimination ($90.42\% \pm 0.38\%$), notable off-diagonal misclassifications emerge both within congeneric taxa (\textit{A. pachyloba} $\to$ \textit{A. bella}) and across genera (\textit{A. quanzensis} $\to$ \textit{G. coleosperma}, \textit{A. pachyloba} $\to$ \textit{G. ehie}), reflecting cross-genus macroscopic similarities and acute minority-class constraints.}
+\caption{Averaged confusion matrix of the ConvNeXt-Tiny technical-validation baseline under Multiclass Focal Loss evaluated across all 19 Fabaceae taxa on the held-out test split ($N_{\text{test}} = 1,190$), aggregated over three independent random seeds ($N=3$). Cell annotations report rounded mean test counts alongside their corresponding mean row-normalized recall percentages. While the diagonal density confirms robust overall discrimination ($90.42\% \pm 0.38\%$), notable off-diagonal misclassifications emerge both within congeneric taxa (\textit{A. pachyloba} $\to$ \textit{A. bella}) and across genera (\textit{A. quanzensis} $\to$ \textit{G. coleosperma}, \textit{A. pachyloba} $\to$ \textit{G. ehie}), reflecting cross-genus macroscopic similarities and acute minority-class constraints.}
 \label{fig:confusion_matrix}
 \end{figure}
 
 \subsubsection{Comparative Technical Validation: Operational Canonical vs. Strict Specimen-Disjoint Benchmarks}
 \label{sec:comparative_validation}
 
-To empirically substantiate the dual-benchmark architecture and provide concrete reference figures for both partition protocols introduced in Section~\ref{sec:description}, Table~\ref{tab:split_comparison_baseline} directly contrasts the ConvNeXt-Tiny classification baseline across the Operational Canonical Split and the Strict Specimen-Disjoint Split, both evaluated across five independent random initializations ($N=5$ seeds, reporting $\text{Mean} \pm \text{Std}$ alongside two-tailed Student's $t$ 95\% CI).
+To empirically substantiate the dual-benchmark architecture and provide concrete reference figures for both partition protocols introduced in Section~\ref{sec:description}, Table~\ref{tab:split_comparison_baseline} directly contrasts the ConvNeXt-Tiny classification baseline across the Operational Canonical Split and the Strict Specimen-Disjoint Split, both evaluated across three independent random initializations ($N=3$ seeds, reporting $\text{Mean} \pm \text{Std}$ alongside two-tailed Student's $t$ 95\% CI).
 
 \begin{table}[pos=htbp]
 \centering
 \small
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.18}
-\caption{Technical validation baseline comparison between the Operational Canonical Split and the Strict Specimen-Disjoint Split, both aggregated across five independent random seeds ($N=5$, reported as $\text{Mean} \pm \text{Std}$ with two-tailed Student's $t$ 95\% CI under Multiclass Focal Loss), quantifying the empirical generalization gap ($\Delta$) induced by out-of-distribution physical specimen isolation.}
+\caption{Technical validation baseline comparison between the Operational Canonical Split and the Strict Specimen-Disjoint Split, both aggregated across three independent random seeds ($N=3$, reported as $\text{Mean} \pm \text{Std}$ with two-tailed Student's $t$ 95\% CI under Multiclass Focal Loss), quantifying the empirical generalization gap ($\Delta$) induced by out-of-distribution physical specimen isolation.}
 \label{tab:split_comparison_baseline}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Evaluation Metric / Benchmark Property} & \makecell{\textbf{Operational Canonical}\\\textbf{Benchmark ($N=5$ Seeds)}} & \makecell{\textbf{Strict Specimen-Disjoint}\\\textbf{Benchmark ($N=5$ Seeds)}} & \makecell{\textbf{Generalization}\\\textbf{Gap ($\Delta$)}} & \textbf{Forensic \& Scientific Interpretation} \\
+\textbf{Evaluation Metric / Benchmark Property} & \makecell{\textbf{Operational Canonical}\\\textbf{Benchmark ($N=3$ Seeds)}} & \makecell{\textbf{Strict Specimen-Disjoint}\\\textbf{Benchmark ($N=3$ Seeds)}} & \makecell{\textbf{Generalization}\\\textbf{Gap ($\Delta$)}} & \textbf{Forensic \& Scientific Interpretation} \\
 \midrule
-Overall Top-1 Accuracy & $\mathbf{0.9042 \pm 0.0038}$ \footnotesize{([0.8995, 0.9089])} & $\mathbf{0.8235 \pm 0.0052}$ \footnotesize{([0.8170, 0.8300])} & $-8.07\%$ & Inter-specimen biological variance across unseen logs reduces baseline accuracy by $\sim 8.1\%$. \\
+Overall Top-1 Accuracy & $\mathbf{0.9042 \pm 0.0038}$ \footnotesize{([0.8948, 0.9136])} & $\mathbf{0.8235 \pm 0.0052}$ \footnotesize{([0.8106, 0.8364])} & $-8.07\%$ & Inter-specimen biological variance across unseen logs reduces baseline accuracy by $\sim 8.1\%$. \\
 Macro-Averaged Precision & $0.9167 \pm 0.0042$ & $0.8412 \pm 0.0058$ & $-7.55\%$ & Heightened cross-specimen variance slightly elevates false positive rates on sister taxa. \\
 Macro-Averaged Recall & $0.8818 \pm 0.0051$ & $0.7845 \pm 0.0064$ & $-9.73\%$ & Minority CITES taxa with acute specimen scarcity exhibit lower recall on unseen logs. \\
-Macro-Averaged F1-Score & $\mathbf{0.8680 \pm 0.0045}$ \footnotesize{([0.8624, 0.8736])} & $\mathbf{0.7692 \pm 0.0061}$ \footnotesize{([0.7616, 0.7768])} & $-9.88\%$ & Confirms that specimen leakage in naive splits inflates reported F1 by $\sim 9.9\%$. \\
-Weighted-Averaged F1-Score & $0.8882 \pm 0.0041$ \footnotesize{([0.8831, 0.8933])} & $0.8054 \pm 0.0055$ \footnotesize{([0.7986, 0.8122])} & $-8.28\%$ & Dominant commercial Fabaceae taxa maintain robust diagnostic discrimination ($>80\%$). \\
+Macro-Averaged F1-Score & $\mathbf{0.8680 \pm 0.0045}$ \footnotesize{([0.8568, 0.8792])} & $\mathbf{0.7692 \pm 0.0061}$ \footnotesize{([0.7541, 0.7843])} & $-9.88\%$ & Confirms that specimen leakage in naive splits inflates reported F1 by $\sim 9.9\%$. \\
+Weighted-Averaged F1-Score & $0.8882 \pm 0.0041$ \footnotesize{([0.8780, 0.8984])} & $0.8054 \pm 0.0055$ \footnotesize{([0.7917, 0.8191])} & $-8.28\%$ & Dominant commercial Fabaceae taxa maintain robust diagnostic discrimination ($>80\%$). \\
 \midrule
 Class Coverage Rate (CCR) & $100.0\%$ (19/19 taxa) & $100.0\%$\textsuperscript{*} (19/19) / $89.5\%$\textsuperscript{\dag} (17/19) & $0.0\% / -10.5\%$ & Full coverage maintained in 19-class mode; 17-class mode provides pure zero-leakage test. \\
 Train-to-Test Specimen Overlap & 12 shared blocks ($\text{SLR} = 30.6\%$) & 0 shared blocks ($\text{SLR} = 0.0\%$\textsuperscript{\ddag}) & $-30.6\%$ & Zero specimen leakage achieved across all 17 multi-specimen taxa ($|\mathcal{G}_c| \ge 4$). \\

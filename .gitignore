@@ -15,3 +15,13 @@ specimen_invariance_outputs/
 outputs_final/
 outputs1/
 outputs2/
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.abs
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
