@@ -12,23 +12,29 @@
 
 ---
 
-## 2. Công Cụ Benchmark Đa Seed Chuẩn Production: `run_multiseed_baselines.py`
-- Tệp thực thi: [run_multiseed_baselines.py](file:///g:/S3_paper/run_multiseed_baselines.py)
-- Hỗ trợ chạy **5 seeds** (`[42, 123, 456, 789, 1024]`), mỗi seed **17 epochs**, phân tách learning rate (`1e-4` backbone, `5e-4` head).
-- Đánh giá song song 3 phương pháp:
-  1. `linear_probe`: Đánh giá vector đặc trưng 768-d của ConvNeXt-Tiny (ImageNet-1K).
-  2. `cross_entropy`: Standard Cross-Entropy Baseline.
-  3. `focal`: Multiclass Focal Loss ($\gamma = 2.0$, scalar $\alpha = 0.25$).
-- Tự động tính toán: Giá trị trung bình ($\mu$), độ lệch chuẩn ($\sigma$), khoảng tin cậy 95% CI (Student's $t$, $df=4$), kiểm định Paired $t$-test, $p$-value và Cohen's $d$.
-- Báo cáo chi tiết đã lưu tại: [docs/multiseed_baseline_benchmark_report.md](file:///g:/S3_paper/docs/multiseed_baseline_benchmark_report.md).
+## 2. Công Cụ Pipeline Tinh Gọn Chuẩn Production: `run_pipeline.py`
+- Tệp điều phối chính: [run_pipeline.py](file:///g:/S3_paper/01_data_paper_forensic_cites/run_pipeline.py)
+- Hỗ trợ chạy **3 seeds** (`[42, 123, 456]`), mỗi seed cấu hình linh hoạt (mặc định 22-25 epochs), tối ưu bằng AdamW + Cosine Annealing.
+- Hỗ trợ đa kiến trúc backbone (`--models`):
+  1. `convnext_tiny`: Kiến trúc CNN hiện đại 28.6M params (ImageNet-1K).
+  2. `resnet50`: Kiến trúc residual cổ điển 25.6M params làm tham chiếu chuẩn.
+  3. `efficientnet_b0`: Kiến trúc compound scaling 5.3M params tối ưu tài nguyên.
+- Mục tiêu tối ưu hóa: Multiclass Focal Loss ($\gamma = 2.0$, scalar $\alpha = 0.25$) hoặc Cross-Entropy.
+- Tự động tính toán: Giá trị trung bình ($\mu$), độ lệch chuẩn ($s$), khoảng tin cậy 95% CI (Student's $t$, $df=2$, $t_{\text{crit}}=4.303$).
+- Hỗ trợ so sánh trực tiếp 2 phân vùng (`--compare-splits`):
+  - Operational Canonical Split ($100\%$ CCR, $\text{SLR}=30.6\%$)
+  - Strict Specimen-Disjoint Split ($\text{SLR}=0.0\%$ trên 17 loài multi-specimen).
 
 ---
 
-## 3. Lệnh Thực Thi Cho Bạn Trên Terminal / CMD
+## 3. Lệnh Thực Thi Chuẩn Cho Pipeline Trên Terminal / Kaggle
 ```powershell
-# Chạy benchmark 5 seeds x 17 epochs:
-python run_multiseed_baselines.py --epochs 17 --seeds 42 123 456 789 1024 --gpu 0
+# 1. Chạy đối chiếu cả 2 split với ConvNeXt-Tiny (3 seeds):
+python run_pipeline.py --step classify --compare-splits --epochs 25 --classify-loss focal
 
-# Hoặc chạy thử nhanh 1 seed:
-python run_multiseed_baselines.py --epochs 3 --seeds 42 --gpu 0
+# 2. Chạy đối chiếu cả 3 mô hình (ConvNeXt-Tiny, ResNet-50, EfficientNet-B0):
+python run_pipeline.py --step classify --models convnext_tiny resnet50 efficientnet_b0 --compare-splits --epochs 25
+
+# 3. Chạy thử nhanh 1 seed duy nhất:
+python run_pipeline.py --step classify --single-seed --epochs 3
 ```

@@ -78,6 +78,12 @@ Tự động chạy qua 3 seeds (42, 123, 456), lưu checkpoint và vẽ ma tr�
 python run_pipeline.py --step classify
 ```
 
+### Lệnh 3b: Huấn luyện Đối chiếu Đa Mô hình & Đa Phân vùng (Chuẩn Thực nghiệm Bài báo)
+Chạy đối chiếu 3 kiến trúc (ConvNeXt-Tiny, ResNet-50, EfficientNet-B0) trên cả Canonical Split và Specimen-Disjoint Split:
+```powershell
+python run_pipeline.py --step classify --models convnext_tiny resnet50 efficientnet_b0 --compare-splits --epochs 25 --classify-loss focal
+```
+
 ### Lệnh 4: Chạy Thử Nhanh (Single-Seed Test)
 Chỉ chạy 1 seed (seed 42) để kiểm tra luồng huấn luyện nhanh:
 ```powershell

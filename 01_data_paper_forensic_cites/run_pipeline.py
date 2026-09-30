@@ -8,13 +8,17 @@ Script điều phối (Master Orchestrator) tinh gọn cho ForensicMacroWood-CIT
 Quy trình tinh gọn (2 bước chính):
   1. 'assets': Sinh metadata, tính độ nét Laplacian (sigma^2 >= 100), mã băm
      mật mã SHA-256 và mã băm tri giác dHash/pHash (khử trùng lặp 2 cấp độ).
-  2. 'classify': Huấn luyện baseline phân loại ConvNeXt-Tiny qua 3 random seeds
+  2. 'classify': Huấn luyện baseline phân loại (ConvNeXt-Tiny, ResNet-50, EfficientNet-B0)
+     qua 3 random seeds
      (42, 123, 456) và tự động tính toán kiểm định thống kê (Mean +- Std, 95% CI).
   - 'all': Tự động chạy tuần tự Bước 1 -> Bước 2.
 
 Cách dùng cơ bản:
   # Chạy toàn bộ quy trình với kiểm định thống kê 3 seeds (chuẩn bài báo):
   python run_pipeline.py --all --data-dir <đường_dẫn_ảnh>
+
+  # Chạy 3 baselines (ConvNeXt-Tiny + ResNet-50 + EfficientNet-B0):
+  python run_pipeline.py --step classify --models convnext_tiny resnet50 efficientnet_b0 --compare-splits --epochs 25
 
   # Chỉ chạy thử nghiệm nhanh với 1 seed:
   python run_pipeline.py --step classify --single-seed
@@ -376,6 +380,120 @@ def run_split_comparison_summary(
     return comparison
 
 
+def run_multi_model_comparison(
+    model_names: List[str],
+    base_output_dir: Path,
+    loss_tag: str = "focal",
+    compare_splits: bool = True
+) -> Dict[str, Any]:
+    """Tổng hợp bảng đối chiếu kết quả giữa nhiều kiến trúc backbone."""
+    print("\n" + "=" * 100)
+    print("      BẢNG ĐỐI CHIẾU ĐA KIẾN TRÚC (MULTI-MODEL COMPARISON SUMMARY)       ")
+    print("=" * 100)
+
+    def load_model_metrics(model_name: str, split_type: str) -> Dict[str, float]:
+        """Nạp metrics từ multi_seed_statistical_summary.json hoặc classification_results."""
+        model_dir = base_output_dir / model_name / split_type
+        multi_p = model_dir / "multi_seed_statistical_summary.json"
+        if multi_p.exists():
+            try:
+                with open(multi_p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    agg = data.get("overall_statistics") or data.get("aggregate_metrics") or {}
+                    return {
+                        "accuracy": agg.get("overall_accuracy", {}).get("mean", 0.0),
+                        "accuracy_std": agg.get("overall_accuracy", {}).get("std", 0.0),
+                        "macro_f1": agg.get("macro_f1", {}).get("mean", 0.0),
+                        "macro_f1_std": agg.get("macro_f1", {}).get("std", 0.0),
+                        "macro_precision": agg.get("macro_precision", {}).get("mean", 0.0),
+                        "macro_recall": agg.get("macro_recall", {}).get("mean", 0.0),
+                        "weighted_f1": agg.get("weighted_f1", {}).get("mean", 0.0),
+                    }
+            except Exception as e:
+                print(f"[!] Warning: Lỗi khi đọc {multi_p}: {e}")
+
+        # Fallback: single seed result
+        single_p = model_dir / f"classification_results_{loss_tag}.json"
+        if not single_p.exists():
+            for sub in model_dir.glob("seed_*"):
+                cand = sub / f"classification_results_{loss_tag}.json"
+                if cand.exists():
+                    single_p = cand
+                    break
+        if single_p.exists():
+            try:
+                with open(single_p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    sm = data.get("summary_metrics", data)
+                    return {
+                        "accuracy": sm.get("overall_accuracy", 0.0),
+                        "accuracy_std": 0.0,
+                        "macro_f1": sm.get("macro_f1", 0.0),
+                        "macro_f1_std": 0.0,
+                        "macro_precision": sm.get("macro_precision", 0.0),
+                        "macro_recall": sm.get("macro_recall", 0.0),
+                        "weighted_f1": sm.get("weighted_f1", 0.0),
+                    }
+            except Exception:
+                pass
+        return {"accuracy": 0.0, "accuracy_std": 0.0, "macro_f1": 0.0, "macro_f1_std": 0.0,
+                "macro_precision": 0.0, "macro_recall": 0.0, "weighted_f1": 0.0}
+
+    # Friendly display names
+    display_names = {
+        "convnext_tiny": "ConvNeXt-Tiny",
+        "resnet50": "ResNet-50",
+        "efficientnet_b0": "EfficientNet-B0",
+    }
+
+    results = {}
+    splits_to_compare = ["canonical", "specimen_disjoint"] if compare_splits else ["canonical"]
+
+    for split_type in splits_to_compare:
+        split_label = "Canonical" if split_type == "canonical" else "Specimen-Disjoint"
+        print(f"\n--- {split_label} Split ---")
+        print(f"{'Model':<25} | {'Accuracy (Mean±Std)':<25} | {'Macro F1 (Mean±Std)':<25} | {'Weighted F1':<15}")
+        print("-" * 95)
+        for model_name in model_names:
+            m = load_model_metrics(model_name, split_type)
+            dname = display_names.get(model_name, model_name)
+            acc_str = f"{m['accuracy']*100:.2f}% ± {m['accuracy_std']*100:.2f}%"
+            f1_str = f"{m['macro_f1']*100:.2f}% ± {m['macro_f1_std']*100:.2f}%"
+            wf1_str = f"{m['weighted_f1']*100:.2f}%"
+            print(f"{dname:<25} | {acc_str:<25} | {f1_str:<25} | {wf1_str:<15}")
+            results.setdefault(split_type, {})[model_name] = m
+
+    print("=" * 100)
+
+    # Save JSON
+    out_json = base_output_dir / "multi_model_comparison.json"
+    with open(out_json, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+    print(f"[+] Đã lưu báo cáo đối chiếu đa kiến trúc: {out_json}")
+
+    # Save Markdown
+    out_md = base_output_dir / "multi_model_comparison.md"
+    md_lines = ["# Báo cáo Đối chiếu Đa Kiến trúc (Multi-Model Comparison)\n"]
+    for split_type in splits_to_compare:
+        split_label = "Canonical Governed Split" if split_type == "canonical" else "Strict Specimen-Disjoint Split"
+        md_lines.append(f"\n## {split_label}\n")
+        md_lines.append("| Model | Accuracy (Mean±Std) | Macro F1 (Mean±Std) | Weighted F1 |")
+        md_lines.append("| :--- | :---: | :---: | :---: |")
+        for model_name in model_names:
+            m = results.get(split_type, {}).get(model_name, {})
+            dname = display_names.get(model_name, model_name)
+            acc_str = f"{m.get('accuracy',0)*100:.2f}% ± {m.get('accuracy_std',0)*100:.2f}%"
+            f1_str = f"{m.get('macro_f1',0)*100:.2f}% ± {m.get('macro_f1_std',0)*100:.2f}%"
+            wf1_str = f"{m.get('weighted_f1',0)*100:.2f}%"
+            md_lines.append(f"| **{dname}** | {acc_str} | {f1_str} | {wf1_str} |")
+
+    with open(out_md, "w", encoding="utf-8") as f:
+        f.write("\n".join(md_lines) + "\n")
+    print(f"[+] Đã lưu báo cáo Markdown: {out_md}")
+
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Master Orchestrator Pipeline tinh gọn cho ForensicMacroWood-CITES (Elsevier Data in Brief)"
@@ -394,8 +512,11 @@ def main():
                         help="Đường dẫn đến thư mục chứa 19 lớp ảnh macroscopic wood")
     parser.add_argument("--assets-dir", type=str, default="paper_data_assets",
                         help="Thư mục chứa các tệp metadata, splits và leakage audit")
-    parser.add_argument("--model-name", type=str, default="convnext_tiny",
-                        help="Tên kiến trúc backbone từ timm (mặc định 'convnext_tiny', hỗ trợ 'resnet50', 'swin_tiny_patch4_window7_224', v.v.)")
+    parser.add_argument("--models", type=str, nargs="+", default=["convnext_tiny"],
+                        help="Danh sách các kiến trúc backbone từ timm để chạy benchmark đối chiếu "
+                             "(mặc định ['convnext_tiny']; ví dụ: --models convnext_tiny resnet50 efficientnet_b0)")
+    parser.add_argument("--model-name", type=str, default=None,
+                        help="(Tương thích ngược) Tên kiến trúc backbone đơn từ timm. Ưu tiên --models nếu cả hai được chỉ định.")
     parser.add_argument("--batch-size", type=int, default=64,
                         help="Kích thước batch size cho huấn luyện phân loại (mặc định 64)")
     parser.add_argument("--classify-epochs", "--epochs", type=int, default=22, dest="classify_epochs",
@@ -415,6 +536,12 @@ def main():
         args.step = "all"
 
     active_seeds = [args.seeds[0]] if args.single_seed else args.seeds
+
+    # Resolve model list (backward compat)
+    if args.model_name and not any('--models' in a for a in sys.argv):
+        active_models = [args.model_name]
+    else:
+        active_models = args.models
 
     # Tự động dò tìm thư mục dữ liệu thật trên Kaggle/Colab/Local
     detected_data_dir = find_data_directory(args.data_dir)
@@ -440,75 +567,101 @@ def main():
         metadata_csv = assets_dir / "metadata" / "metadata.csv"
         ensure_disjoint_split_exists(assets_dir)
 
-        if args.compare_splits:
-            print("\n" + "=" * 80)
-            print(" [CHẾ ĐỘ ĐỐI CHIẾU PHÂN VÙNG] HUẤN LUYỆN CANONICAL & SPECIMEN-DISJOINT ")
-            print("=" * 80)
-            # 1. Chạy trên Canonical Split
-            can_split_csv = assets_dir / "splits" / "split_canonical.csv"
-            can_out = Path("baseline_outputs") / "canonical"
-            can_fig = Path("paper_data/fig") / "canonical"
-            print("\n>>> (A) HUẤN LUYỆN TRÊN CANONICAL SPLIT <<<")
-            run_classify_multi_seed(
-                python_bin=python_bin,
-                split_csv=can_split_csv,
-                metadata_csv=metadata_csv,
-                output_dir=can_out,
-                fig_dir=can_fig,
-                epochs=args.classify_epochs,
-                loss_mode=args.classify_loss,
-                seeds=active_seeds,
-                data_dir=args.data_dir,
-                batch_size=args.batch_size,
-                lr=args.classify_lr,
-                model_name=args.model_name
-            )
+        for model_idx, model_name in enumerate(active_models, 1):
+            print(f"\n{'#' * 90}")
+            print(f" MODEL [{model_idx}/{len(active_models)}]: {model_name.upper()}")
+            print(f"{'#' * 90}")
 
-            # 2. Chạy trên Specimen-Disjoint Split (chạy đầy đủ các seeds như Canonical)
-            dis_split_csv = assets_dir / "splits" / "split_specimen_disjoint.csv"
-            dis_out = Path("baseline_outputs") / "specimen_disjoint"
-            dis_fig = Path("paper_data/fig") / "specimen_disjoint"
-            dis_seeds = active_seeds
-            print(f"\n>>> (B) HUẤN LUYỆN TRÊN SPECIMEN-DISJOINT SPLIT (Seeds: {dis_seeds}) <<<")
-            run_classify_multi_seed(
-                python_bin=python_bin,
-                split_csv=dis_split_csv,
-                metadata_csv=metadata_csv,
-                output_dir=dis_out,
-                fig_dir=dis_fig,
-                epochs=args.classify_epochs,
-                loss_mode=args.classify_loss,
-                seeds=dis_seeds,
-                data_dir=args.data_dir,
-                batch_size=args.batch_size,
-                lr=args.classify_lr,
-                model_name=args.model_name
-            )
+            if args.compare_splits:
+                print("\n" + "=" * 80)
+                print(f" [CHẾ ĐỘ ĐỐI CHIẾU PHÂN VÙNG] HUẤN LUYỆN CANONICAL & SPECIMEN-DISJOINT ({model_name.upper()}) ")
+                print("=" * 80)
+                # 1. Chạy trên Canonical Split
+                can_split_csv = assets_dir / "splits" / "split_canonical.csv"
+                can_out = Path("baseline_outputs") / model_name / "canonical"
+                can_fig = Path("paper_data/fig") / model_name / "canonical"
+                print("\n>>> (A) HUẤN LUYỆN TRÊN CANONICAL SPLIT <<<")
+                run_classify_multi_seed(
+                    python_bin=python_bin,
+                    split_csv=can_split_csv,
+                    metadata_csv=metadata_csv,
+                    output_dir=can_out,
+                    fig_dir=can_fig,
+                    epochs=args.classify_epochs,
+                    loss_mode=args.classify_loss,
+                    seeds=active_seeds,
+                    data_dir=args.data_dir,
+                    batch_size=args.batch_size,
+                    lr=args.classify_lr,
+                    model_name=model_name
+                )
 
-            # 3. Tổng hợp bảng so sánh đối chiếu
-            run_split_comparison_summary(can_out, dis_out, Path("baseline_outputs"), loss_tag=args.classify_loss)
+                # 2. Chạy trên Specimen-Disjoint Split (chạy đầy đủ các seeds như Canonical)
+                dis_split_csv = assets_dir / "splits" / "split_specimen_disjoint.csv"
+                dis_out = Path("baseline_outputs") / model_name / "specimen_disjoint"
+                dis_fig = Path("paper_data/fig") / model_name / "specimen_disjoint"
+                dis_seeds = active_seeds
+                print(f"\n>>> (B) HUẤN LUYỆN TRÊN SPECIMEN-DISJOINT SPLIT (Seeds: {dis_seeds}) <<<")
+                run_classify_multi_seed(
+                    python_bin=python_bin,
+                    split_csv=dis_split_csv,
+                    metadata_csv=metadata_csv,
+                    output_dir=dis_out,
+                    fig_dir=dis_fig,
+                    epochs=args.classify_epochs,
+                    loss_mode=args.classify_loss,
+                    seeds=dis_seeds,
+                    data_dir=args.data_dir,
+                    batch_size=args.batch_size,
+                    lr=args.classify_lr,
+                    model_name=model_name
+                )
 
-        else:
-            split_file = "split_canonical.csv" if args.split_type == "canonical" else "split_specimen_disjoint.csv"
-            split_csv = assets_dir / "splits" / split_file
-            out_p = Path("baseline_outputs") / args.split_type
-            fig_p = Path("paper_data/fig") / args.split_type
+                # 3. Tổng hợp bảng so sánh đối chiếu
+                run_split_comparison_summary(can_out, dis_out, Path("baseline_outputs") / model_name, loss_tag=args.classify_loss)
 
-            print(f"\n[*] Đang thực thi phân loại [{args.model_name}] trên split [{args.split_type}] với {len(active_seeds)} seeds -> {out_p}...")
-            run_classify_multi_seed(
-                python_bin=python_bin,
-                split_csv=split_csv,
-                metadata_csv=metadata_csv,
-                output_dir=out_p,
-                fig_dir=fig_p,
-                epochs=args.classify_epochs,
-                loss_mode=args.classify_loss,
-                seeds=active_seeds,
-                data_dir=args.data_dir,
-                batch_size=args.batch_size,
-                lr=args.classify_lr,
-                model_name=args.model_name
-            )
+                # Tương thích ngược cho ConvNeXt-Tiny
+                if model_name == "convnext_tiny":
+                    try:
+                        shutil.copytree(can_out, Path("baseline_outputs/canonical"), dirs_exist_ok=True)
+                        shutil.copytree(dis_out, Path("baseline_outputs/specimen_disjoint"), dirs_exist_ok=True)
+                        shutil.copytree(can_fig, Path("paper_data/fig/canonical"), dirs_exist_ok=True)
+                        shutil.copytree(dis_fig, Path("paper_data/fig/specimen_disjoint"), dirs_exist_ok=True)
+                    except Exception as e:
+                        print(f"[!] Lỗi khi sao chép thư mục tương thích ngược: {e}")
+
+            else:
+                split_file = "split_canonical.csv" if args.split_type == "canonical" else "split_specimen_disjoint.csv"
+                split_csv = assets_dir / "splits" / split_file
+                out_p = Path("baseline_outputs") / model_name / args.split_type
+                fig_p = Path("paper_data/fig") / model_name / args.split_type
+
+                print(f"\n[*] Đang thực thi phân loại [{model_name}] trên split [{args.split_type}] với {len(active_seeds)} seeds -> {out_p}...")
+                run_classify_multi_seed(
+                    python_bin=python_bin,
+                    split_csv=split_csv,
+                    metadata_csv=metadata_csv,
+                    output_dir=out_p,
+                    fig_dir=fig_p,
+                    epochs=args.classify_epochs,
+                    loss_mode=args.classify_loss,
+                    seeds=active_seeds,
+                    data_dir=args.data_dir,
+                    batch_size=args.batch_size,
+                    lr=args.classify_lr,
+                    model_name=model_name
+                )
+                
+                if model_name == "convnext_tiny":
+                    try:
+                        shutil.copytree(out_p, Path("baseline_outputs") / args.split_type, dirs_exist_ok=True)
+                        shutil.copytree(fig_p, Path("paper_data/fig") / args.split_type, dirs_exist_ok=True)
+                    except Exception as e:
+                        pass
+
+        # After all models, generate cross-model comparison if len(active_models) > 1
+        if len(active_models) > 1:
+            run_multi_model_comparison(active_models, Path("baseline_outputs"), args.classify_loss, args.compare_splits)
 
     print("\n" + "=" * 78)
     print(" [✓] HOÀN TẤT QUY TRÌNH THỰC NGHIỆM! DỮ LIỆU ĐÃ ĐỒNG BỘ CHUẨN PUBLICATION.")

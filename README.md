@@ -77,6 +77,9 @@ python run_pipeline.py --step classify --single-seed
 
 # 3. Huấn luyện đa hạt giống 3 seeds (42, 123, 456) xuất bảng thống kê:
 python run_pipeline.py --step classify
+
+# 4. Huấn luyện đối chiếu 3 kiến trúc (ConvNeXt-Tiny, ResNet-50, EfficientNet-B0) trên cả 2 split:
+python run_pipeline.py --step classify --models convnext_tiny resnet50 efficientnet_b0 --compare-splits --epochs 25 --classify-loss focal
 ```
 
 ---

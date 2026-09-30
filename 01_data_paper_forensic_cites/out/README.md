@@ -107,15 +107,14 @@ $$\mathcal{D} = \mathcal{D}_{\text{train}} \cup \mathcal{D}_{\text{val}} \cup \m
 
 In authentic reference xylaria, physical specimens for rare and protected taxa are strictly scarce ($|\mathcal{G}_c| \le 10$, with single-specimen bottlenecks such as 1 block for *Dalbergia cochinchinensis*, 2 for *Guibourtia coleosperma*, and 4 for *Afzelia africana*). Under such constraints, dogmatic three-way whole-block isolation mathematically results in minority-class starvation ($\text{CCR} < 100\%$), preventing forensic validation on critical CITES species. 
 
-To resolve this challenge rigorously, IC4SDMacroWood releases a **two-tier partition architecture** evaluated through a **Three-Tier Contamination Audit**:
+To resolve this challenge rigorously, IC4SDMacroWood releases a **two-tier partition architecture** evaluated through a **Two-Tier Contamination Audit**:
 1. **$100.0\%$ Class Coverage Rate ($\text{CCR}$)**: Exactly 19/19 species are guaranteed across all three splits.
 2. **Two-Tier Split Architecture**:
    - **Canonical Partition (Governed Legacy Split)**: Maintains 100% CCR while bounding specimen sharing ($\text{SLR} = 30.6\%$).
    - **Strict Specimen-Disjoint Benchmark**: Enforces 100% zero-specimen leakage ($\text{SLR} = 0.0\%$) across all 17 multi-specimen taxa.
-3. **Three-Tier Cross-Split Contamination Audit**:
+3. **Two-Tier Cross-Split Contamination Audit**:
    - **Tier 1: Bitwise Cryptographic Auditing (SHA-256)**: Zero bitwise exact duplicates between any partitions ($\text{SHA-256 Overlap} = 0$).
    - **Tier 2: Perceptual Near-Duplicate Auditing (dHash & pHash)**: 64-bit Difference Hash (dHash) and DCT-based Perceptual Hash (pHash) screen for overlapping spatial crops and adjacent cuts. While the canonical split exhibits perceptual proximity due to block sharing, the Specimen-Disjoint split drives cross-specimen near-duplicates ($H \le 4$) to strictly 0.
-   - **Tier 3: Deep Feature Representation Audit (ConvNeXt-Tiny Cosine Similarity)**: Audits the maximum cosine similarity distribution on $L_2$-normalized representations to flag potential semantic shortcuts ($\cos \theta \ge 0.95$).
 
 ---
 
@@ -157,7 +156,7 @@ The script runs a verification pipeline in seconds:
 2. Checks master metadata schema (`metadata.csv`) and label mappings (`label_map.json`).
 3. Audits governed partition integrity ($\text{CCR} = 100.0\%$, $\text{SHA-256 Overlap} = 0$).
 4. Evaluates ConvNeXt-Tiny classification baseline predictions and per-class metrics.
-5. Simulates open-set specimen verification and top-$k$ forensic timber retrieval.
+5. Simulates a forensic border-control wood identification query.
 6. Generates a reproducible benchmark verification summary.
 
 ### Interactive Jupyter Notebook

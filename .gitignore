@@ -25,3 +25,4 @@ outputs2/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+main.pdf
