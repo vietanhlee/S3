@@ -10,6 +10,8 @@ Visualization utilities:
 import inspect
 from typing import List, Dict, Any, Optional
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from scipy.stats import pearsonr
@@ -141,11 +143,15 @@ def plot_correlation_sri_vs_ggsl(
         )
 
     # Fit linear regression line safely
-    if len(sri_vals) >= 2 and float(np.std(sri_vals)) > 1e-7 and float(np.std(ggsl_vals)) > 1e-7:
+    if len(sri_vals) >= 3 and float(np.std(sri_vals)) > 1e-7 and float(np.std(ggsl_vals)) > 1e-7:
         m, b = np.polyfit(sri_vals, ggsl_vals, 1)
         ax.plot(sri_vals, m * sri_vals + b, "-", color="#4d9221", label=f"Fit (Slope: {m:.2f})")
         r, p = pearsonr(sri_vals, ggsl_vals)
         ax.set_title(f"Correlation: SRI vs. GGSL (Pearson r = {r:.3f}, p = {p:.3e})", fontsize=12, fontweight="bold")
+    elif len(sri_vals) == 2 and float(np.std(sri_vals)) > 1e-7 and float(np.std(ggsl_vals)) > 1e-7:
+        m, b = np.polyfit(sri_vals, ggsl_vals, 1)
+        ax.plot(sri_vals, m * sri_vals + b, "-", color="#4d9221", label=f"Fit (Slope: {m:.2f})")
+        ax.set_title(f"Correlation: SRI vs. GGSL (N = 2 points)", fontsize=12, fontweight="bold")
     else:
         ax.set_title("Correlation: SRI vs. GGSL", fontsize=12, fontweight="bold")
     ax.set_xlabel("Specimen Recoverability Index (SRI)", fontsize=11)

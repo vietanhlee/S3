@@ -15,12 +15,18 @@ import os
 import sys
 from pathlib import Path
 
-# Suppress multiple OpenMP runtime initialization errors
+# Suppress multiple OpenMP runtime initialization errors and Hugging Face Hub unauthenticated warnings
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_VERBOSITY"] = "error"
+
+import logging
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 # Ensure framework directory and root repository are always in sys.path
@@ -162,7 +168,21 @@ def parse_args():
 
 def main():
     args = parse_args()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        num_devices = torch.cuda.device_count()
+        if num_devices > 1:
+            device = torch.device("cuda")
+            use_data_parallel = True
+            print(f"[+] Multi-GPU DataParallel Activated across all {num_devices} GPUs!")
+        else:
+            device = torch.device("cuda:0")
+            use_data_parallel = False
+            print(f"[*] Executing on single device: {device}")
+    else:
+        device = torch.device("cpu")
+        use_data_parallel = False
+        print("[*] Executing on device: cpu")
+
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     
@@ -190,15 +210,18 @@ def main():
     ds_test_loso = TimberDataset(loso_fold["test"], str(image_root), mappings, transform=val_transform)
     ds_test_leaky = TimberDataset(leaky_fold["test"], str(image_root), mappings, transform=val_transform)
     
+    num_workers = 2 if os.name != 'nt' else 0
+    pin_mem = torch.cuda.is_available()
     loader_train = DataLoader(
         ds_train,
         batch_sampler=SpecimenBalancedBatchSampler(loso_fold["train"], batch_size=args.batch_size, samples_per_specimen=4, seed=args.seed),
-        num_workers=2,
-        pin_memory=True
+        num_workers=num_workers,
+        pin_memory=pin_mem,
+        persistent_workers=(num_workers > 0),
     )
-    loader_val = DataLoader(ds_val, batch_size=args.batch_size, shuffle=False, num_workers=2)
-    loader_test_loso = DataLoader(ds_test_loso, batch_size=args.batch_size, shuffle=False, num_workers=2)
-    loader_test_leaky = DataLoader(ds_test_leaky, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    loader_val = DataLoader(ds_val, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem, persistent_workers=(num_workers > 0))
+    loader_test_loso = DataLoader(ds_test_loso, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem, persistent_workers=(num_workers > 0))
+    loader_test_leaky = DataLoader(ds_test_leaky, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem, persistent_workers=(num_workers > 0))
     
     sweep_results = []
     
@@ -223,6 +246,8 @@ def main():
             specimen_counts=mappings["specimen_counts"],
             num_total_specimens=mappings["num_total_specimens"]
         )
+        if use_data_parallel:
+            model = nn.DataParallel(model)
         
         trainer = InvarianceTrainer(
             model=model,
@@ -241,7 +266,13 @@ def main():
         best_ckpt = run_dir / "best_model.pth"
         if best_ckpt.exists():
             ckpt = safe_load_checkpoint(best_ckpt, map_location=device)
-            model.load_state_dict(ckpt["model_state_dict"])
+            raw_model = model.module if hasattr(model, "module") else model
+            raw_state_dict = ckpt["model_state_dict"]
+            cleaned_state_dict = {
+                (k[7:] if k.startswith("module.") else k): v
+                for k, v in raw_state_dict.items()
+            }
+            raw_model.load_state_dict(cleaned_state_dict)
             
         # Evaluate LOSO vs Leaky
         test_loso_metrics = trainer.evaluate(loader_test_loso)
@@ -270,6 +301,13 @@ def main():
         }
         sweep_results.append(record)
         print(f"[Result λ={lam:.2f}] Strict Acc: {record['val_acc']:.2f}% | SRI: {record['sri']:.4f} | GGSL Acc: {record['ggsl_acc']:+.2f} pp")
+        
+        # Free memory and clear cache before next lambda iteration to prevent OOM
+        del model, trainer, train_out, embs_train, probe_res
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        import gc
+        gc.collect()
         
     # Save sweep json
     with open(out_dir / "pareto_sweep_results.json", "w", encoding="utf-8") as f:

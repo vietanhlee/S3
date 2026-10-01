@@ -48,6 +48,30 @@ for METHOD in "${METHODS[@]}"; do
     fi
 done
 
+# Evaluate Additional Backbone Ablations (resnet50, tf_efficientnetv2_s, swin_t)
+EXTRA_BACKBONES=(
+    "resnet50"
+    "tf_efficientnetv2_s"
+    "swin_t"
+)
+
+for BB in "${EXTRA_BACKBONES[@]}"; do
+    RUN_DIR="${BASE_DIR}/conditional_grl_${BB}_fold${FOLD}_seed42"
+    CKPT="${RUN_DIR}/best_model.pth"
+    
+    if [ -f "${CKPT}" ]; then
+        echo ""
+        echo ">>> Evaluating Backbone Ablation: ${BB} (${CKPT}) <<<"
+        python evaluate.py \
+            --checkpoint "${CKPT}" \
+            --backbone "${BB}" \
+            --fold "${FOLD}" \
+            --metadata_csv "${METADATA}" \
+            --image_root "${IMG_ROOT}" \
+            --output_dir "${RUN_DIR}/eval_results"
+    fi
+done
+
 echo ""
 echo "=================================================================="
 echo " Evaluation completed for all available checkpoints!              "

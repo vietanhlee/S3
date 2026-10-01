@@ -34,13 +34,16 @@ def extract_all_embeddings(model: nn.Module, loader: DataLoader, device: torch.d
     all_specimens = []
     all_image_ids = []
     
+    # Safely handle models wrapped in DataParallel
+    feature_extractor = model.module if hasattr(model, "module") else model
+    
     for batch in loader:
         images = batch["image"].to(device)
         species_idx = batch["species_idx"].cpu().numpy()
         local_spec_idx = batch["local_specimen_idx"].cpu().numpy()
         image_ids = batch["image_id"]
         
-        embs = model.extract_features(images).cpu().numpy()
+        embs = feature_extractor.extract_features(images).cpu().numpy()
         all_embs.append(embs)
         all_species.append(species_idx)
         all_specimens.append(local_spec_idx)

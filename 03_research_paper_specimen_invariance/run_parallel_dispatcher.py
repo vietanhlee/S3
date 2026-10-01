@@ -127,6 +127,11 @@ def run_data_parallel_sequential(
         ]
 
         env = os.environ.copy()
+        env["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+        env["HF_HUB_VERBOSITY"] = "error"
+        env["TRANSFORMERS_VERBOSITY"] = "error"
+        env["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+        env["PYTHONUNBUFFERED"] = "1"
         if script_args.gpus is not None:
             env["CUDA_VISIBLE_DEVICES"] = ",".join(str(g) for g in script_args.gpus)
 
@@ -233,6 +238,11 @@ def worker_loop(
             cmd.extend(["--gpu", "0"])
 
         env = os.environ.copy()
+        env["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+        env["HF_HUB_VERBOSITY"] = "error"
+        env["TRANSFORMERS_VERBOSITY"] = "error"
+        env["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+        env["PYTHONUNBUFFERED"] = "1"
         if gpu_id is not None:
             env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
