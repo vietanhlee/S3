@@ -114,6 +114,7 @@ def run_data_parallel_sequential(
 
         cmd = [
             sys.executable,
+            "-u",
             str(train_script),
             "--method", method,
             "--backbone", backbone,
@@ -223,6 +224,7 @@ def worker_loop(
 
         cmd = [
             sys.executable,
+            "-u",
             str(train_script),
             "--method", method,
             "--backbone", backbone,
@@ -257,12 +259,19 @@ def worker_loop(
 
                 process = subprocess.Popen(
                     cmd,
-                    stdout=lf,
+                    stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     env=env,
                     cwd=str(current_script_dir),
                     text=True,
+                    bufsize=1,
                 )
+
+                for line in iter(process.stdout.readline, ''):
+                    safe_print(f"[{gpu_str}][{method}] " + line.rstrip())
+                    lf.write(line)
+                    lf.flush()
+
                 process.wait()
 
                 if process.returncode != 0:

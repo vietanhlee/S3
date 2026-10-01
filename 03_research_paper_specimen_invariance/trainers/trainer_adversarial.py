@@ -12,6 +12,7 @@ and all 6 groups of specimen-invariance baselines:
 """
 
 from typing import Dict, Any, Optional
+import time
 import logging
 import numpy as np
 import torch
@@ -64,7 +65,10 @@ class InvarianceTrainer(BaseTrainer):
         self.model.train()
         total_loss = 0.0
         n_batches = 0
-        total_steps = self.config.epochs * len(self.train_loader)
+        total_batches = len(self.train_loader)
+        total_steps = self.config.epochs * total_batches
+        log_interval = max(1, total_batches // 5)
+        t_epoch_start = time.time()
         
         for batch_idx, batch in enumerate(self.train_loader):
             self.optimizer.zero_grad(set_to_none=True)
@@ -78,10 +82,8 @@ class InvarianceTrainer(BaseTrainer):
                 images = self.fourier_mixer(images)
                 
             # Current global training progress p in [0, 1]
-            current_step = (epoch - 1) * len(self.train_loader) + batch_idx
+            current_step = (epoch - 1) * total_batches + batch_idx
             progress = current_step / max(1, total_steps)
-            
-            self.optimizer.zero_grad()
             
             # =========================================================================
             # METHOD DISPATCH
@@ -207,6 +209,19 @@ class InvarianceTrainer(BaseTrainer):
             
             total_loss += loss.item()
             n_batches += 1
+            
+            if (batch_idx + 1) % log_interval == 0 or (batch_idx + 1) == total_batches:
+                elapsed_b = time.time() - t_epoch_start
+                running_loss = total_loss / max(1, n_batches)
+                cur_loss = loss.item()
+                print(
+                    f"  [Epoch {epoch:02d}/{self.config.epochs:02d}] "
+                    f"Step [{batch_idx + 1:02d}/{total_batches:02d}] "
+                    f"| Batch Loss: {cur_loss:.4f} "
+                    f"| Running Avg: {running_loss:.4f} "
+                    f"| Elapsed: {elapsed_b:.1f}s",
+                    flush=True
+                )
             
             del images, species_targets, local_specimen_targets, global_specimen_targets, out, loss
 

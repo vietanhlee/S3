@@ -200,27 +200,27 @@ def main():
             torch.cuda.set_device(device)
             use_data_parallel = (device_count > 1)
             if use_data_parallel:
-                print(f"[+] Multi-GPU DataParallel Activated: Concurrently training 1 model across all {device_count} GPUs! | Method: {args.method}")
+                print(f"[+] Multi-GPU DataParallel Activated: Concurrently training 1 model across all {device_count} GPUs! | Method: {args.method}", flush=True)
             else:
-                print(f"[*] Executing on single device: {device} | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}")
+                print(f"[*] Executing on single device: {device} | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}", flush=True)
     else:
         device = torch.device("cpu")
         use_data_parallel = False
-        print(f"[*] Executing on device: cpu | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}")
+        print(f"[*] Executing on device: cpu | Seed: {args.seed} | Method: {args.method} | Backbone: {args.backbone}", flush=True)
     
     # 1. Load metadata
     meta_path = resolve_metadata_path(args.metadata_csv)
-    print(f"[+] Ingesting metadata from: {meta_path}")
+    print(f"[+] Ingesting metadata from: {meta_path}", flush=True)
     meta_df = pd.read_csv(meta_path)
     
     # Resolve valid image_root
     sample_img_rel = meta_df["image_path"].iloc[0] if "image_path" in meta_df.columns else ""
     image_root = resolve_image_root(args.image_root, sample_img_rel)
-    print(f"[+] Ingesting image directory from: {image_root}")
+    print(f"[+] Ingesting image directory from: {image_root}", flush=True)
     
     # 2. Build taxonomy and specimen mappings
     mappings = build_taxonomy_mappings(meta_df)
-    print(f"[+] Total species: {mappings['num_species']} | Total physical specimens: {mappings['num_total_specimens']}")
+    print(f"[+] Total species: {mappings['num_species']} | Total physical specimens: {mappings['num_total_specimens']}", flush=True)
     
     # 3. Generate Round-Robin LOSO splits
     loso_folds = generate_round_robin_loso_splits(meta_df, num_folds=args.num_folds, seed=args.seed)
@@ -229,7 +229,7 @@ def main():
     df_val = selected_fold["val"]
     df_test = selected_fold["test"]
     
-    print(f"[+] Fold {args.fold}: Train={len(df_train):,} | Val (Strict)={len(df_val):,} | Test (Strict)={len(df_test):,}")
+    print(f"[+] Fold {args.fold}: Train={len(df_train):,} | Val (Strict)={len(df_val):,} | Test (Strict)={len(df_test):,}", flush=True)
     
     # 4. Datasets and Transforms
     train_transform = build_train_transform(image_size=224)
@@ -297,7 +297,7 @@ def main():
     )
     if use_data_parallel:
         model = nn.DataParallel(model)
-        print(f"[+] Model wrapped in torch.nn.DataParallel across all visible GPUs.")
+        print(f"[+] Model wrapped in torch.nn.DataParallel across all visible GPUs.", flush=True)
     
     # 8. Training loop
     run_dir = Path(args.output_base_dir) / f"{args.method}_{args.backbone}_fold{args.fold}_seed{args.seed}"
@@ -327,7 +327,7 @@ def main():
             "test_metrics": results["test_metrics"],
         }, f, indent=2)
         
-    print(f"\n[SUCCESS] Completed run for {args.method}. Artifacts saved in: {run_dir}")
+    print(f"\n[SUCCESS] Completed run for {args.method}. Artifacts saved in: {run_dir}", flush=True)
 
 
 if __name__ == "__main__":

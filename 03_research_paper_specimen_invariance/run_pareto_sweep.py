@@ -226,9 +226,9 @@ def main():
     sweep_results = []
     
     for lam in args.lambdas:
-        print(f"\n" + "=" * 60)
-        print(f"  TRAINING WITH lambda_adv = {lam:.2f}")
-        print("=" * 60)
+        print(f"\n" + "=" * 60, flush=True)
+        print(f"  TRAINING WITH lambda_adv = {lam:.2f}", flush=True)
+        print("=" * 60, flush=True)
         
         run_name = f"pareto_lambda_{lam:.2f}"
         run_dir = out_dir / run_name
@@ -300,7 +300,7 @@ def main():
             "method_name": f"λ={lam:.2f}",
         }
         sweep_results.append(record)
-        print(f"[Result λ={lam:.2f}] Strict Acc: {record['val_acc']:.2f}% | SRI: {record['sri']:.4f} | GGSL Acc: {record['ggsl_acc']:+.2f} pp")
+        print(f"[Result λ={lam:.2f}] Strict Acc: {record['val_acc']:.2f}% | SRI: {record['sri']:.4f} | GGSL Acc: {record['ggsl_acc']:+.2f} pp", flush=True)
         
         # Free memory and clear cache before next lambda iteration to prevent OOM
         del model, trainer, train_out, embs_train, probe_res
@@ -316,14 +316,14 @@ def main():
     # Plot Pareto Curve
     pareto_plot_path = out_dir / "pareto_frontier_accuracy_vs_sri.png"
     plot_pareto_curve(sweep_results, str(pareto_plot_path))
-    print(f"[+] Saved Pareto Curve to: {pareto_plot_path}")
+    print(f"[+] Saved Pareto Curve to: {pareto_plot_path}", flush=True)
     
     # Plot Correlation
     corr_plot_path = out_dir / "correlation_sri_vs_ggsl.png"
     plot_correlation_sri_vs_ggsl(sweep_results, str(corr_plot_path))
-    print(f"[+] Saved Correlation Plot to: {corr_plot_path}")
+    print(f"[+] Saved Correlation Plot to: {corr_plot_path}", flush=True)
     
-    print("\n[SUCCESS] Completed Pareto sweep and correlation analyses!")
+    print("\n[SUCCESS] Completed Pareto sweep and correlation analyses!", flush=True)
 
 
 if __name__ == "__main__":

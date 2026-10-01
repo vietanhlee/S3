@@ -136,12 +136,15 @@ class BaseTrainer:
         Checkpointing strictly adheres to specimen-disjoint validation metrics.
         """
         best_ckpt_path = self.output_dir / "best_model.pth"
-        print(f"[*] Starting training ({self.config.method}) for {self.config.epochs} epochs...")
-        print(f"[*] Strict checkpoint selection on specimen-disjoint validation set.")
+        print(f"[*] Starting training ({self.config.method}) for {self.config.epochs} epochs...", flush=True)
+        print(f"[*] Strict checkpoint selection on specimen-disjoint validation set.", flush=True)
         
         for epoch in range(1, self.config.epochs + 1):
+            lr_current = self.optimizer.param_groups[0]["lr"]
+            print(f"\n>>> Epoch [{epoch:02d}/{self.config.epochs:02d}] (Current LR: {lr_current:.2e})", flush=True)
             t0 = time.time()
             train_metrics = self.train_epoch(epoch)
+            print(f"  [*] Validating on strict specimen-disjoint set...", flush=True)
             val_metrics = self.evaluate(self.val_loader)
             self.scheduler.step()
             elapsed = time.time() - t0
@@ -174,11 +177,11 @@ class BaseTrainer:
             }
             self.history.append(log_entry)
             
-            print(f"Epoch [{epoch:02d}/{self.config.epochs:02d}] "
+            print(f"  [=] Epoch [{epoch:02d}/{self.config.epochs:02d}] Summary | "
                   f"Train Loss: {train_metrics.get('loss', 0.0):.4f} | "
                   f"Val Acc: {val_metrics['accuracy']:.2f}% | "
                   f"Val Macro-F1: {val_metrics['macro_f1']:.2f}% "
-                  f"{'(*) NEW BEST' if is_best else ''} ({elapsed:.1f}s)")
+                  f"{'(*) NEW BEST' if is_best else ''} ({elapsed:.1f}s)", flush=True)
             
             # Periodic memory garbage collection to avoid accumulation
             if torch.cuda.is_available():
@@ -191,10 +194,11 @@ class BaseTrainer:
             checkpoint = safe_load_checkpoint(best_ckpt_path, map_location=self.device)
             raw_model = self.model.module if hasattr(self.model, "module") else self.model
             raw_model.load_state_dict(checkpoint["model_state_dict"])
-            print(f"[+] Loaded best checkpoint from Epoch {self.best_epoch} (Val Macro-F1: {self.best_val_metric:.2f}%)")
+            print(f"\n[+] Loaded best checkpoint from Epoch {self.best_epoch} (Val Macro-F1: {self.best_val_metric:.2f}%)", flush=True)
             
+        print(f"[*] Evaluating on strictly held-out test set...", flush=True)
         test_metrics = self.evaluate(self.test_loader)
-        print(f"[=] Held-Out Strict Evaluation Test Acc: {test_metrics['accuracy']:.2f}% | Macro-F1: {test_metrics['macro_f1']:.2f}%")
+        print(f"[SUCCESS] Held-Out Strict Evaluation Test Acc: {test_metrics['accuracy']:.2f}% | Macro-F1: {test_metrics['macro_f1']:.2f}%\n", flush=True)
         
         return {
             "best_epoch": self.best_epoch,
