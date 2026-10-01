@@ -14,8 +14,13 @@ import random
 import sys
 from pathlib import Path
 
-# Suppress multiple OpenMP runtime initialization errors
+# Suppress multiple OpenMP runtime initialization errors and Hugging Face Hub unauthenticated warnings
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_VERBOSITY"] = "error"
+
+import logging
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 import numpy as np
 import pandas as pd
@@ -244,9 +249,29 @@ def main():
     )
     
     num_workers = 2 if os.name != 'nt' else 0
-    train_loader = DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=num_workers, pin_memory=torch.cuda.is_available())
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+    train_loader = DataLoader(
+        train_dataset,
+        batch_sampler=train_sampler,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=(num_workers > 0),
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=(num_workers > 0),
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=(num_workers > 0),
+    )
     
     # 6. Configurations
     model_cfg = ModelConfig(

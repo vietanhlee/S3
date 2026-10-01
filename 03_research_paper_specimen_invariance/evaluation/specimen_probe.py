@@ -21,6 +21,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 @torch.no_grad()
@@ -109,8 +111,11 @@ def evaluate_specimen_recoverability(
         if len(np.unique(y_train)) < 2:
             continue
             
-        # Fit linear probe (max_iter=1000 to ensure full L-BFGS convergence without warning)
-        clf = LogisticRegression(max_iter=1000, C=1.0, random_state=seed)
+        # Standardize embeddings with StandardScaler and fit linear probe (solver=lbfgs, max_iter=2000)
+        clf = make_pipeline(
+            StandardScaler(),
+            LogisticRegression(max_iter=2000, C=1.0, random_state=seed, solver="lbfgs")
+        )
         clf.fit(X_train, y_train)
         probe_acc = float(clf.score(X_test, y_test))
         

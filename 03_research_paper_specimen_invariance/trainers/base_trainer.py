@@ -179,6 +179,12 @@ class BaseTrainer:
                   f"Val Acc: {val_metrics['accuracy']:.2f}% | "
                   f"Val Macro-F1: {val_metrics['macro_f1']:.2f}% "
                   f"{'(*) NEW BEST' if is_best else ''} ({elapsed:.1f}s)")
+            
+            # Periodic memory garbage collection to avoid accumulation
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            import gc
+            gc.collect()
                   
         # Load best checkpoint for final held-out test evaluation
         if best_ckpt_path.exists():

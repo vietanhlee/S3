@@ -29,8 +29,10 @@ import argparse
 import os
 import sys
 
-# Suppress multiple OpenMP runtime initialization errors
+# Suppress multiple OpenMP runtime initialization errors and Hugging Face Hub unauthenticated warnings
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_VERBOSITY"] = "error"
 
 import time
 import subprocess

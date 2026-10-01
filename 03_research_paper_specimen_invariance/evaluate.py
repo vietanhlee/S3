@@ -17,8 +17,13 @@ import os
 import sys
 from pathlib import Path
 
-# Suppress multiple OpenMP runtime initialization errors
+# Suppress multiple OpenMP runtime initialization errors and Hugging Face Hub unauthenticated warnings
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_VERBOSITY"] = "error"
+
+import logging
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 import numpy as np
 import pandas as pd
@@ -190,9 +195,30 @@ def main():
     train_loso_dataset = TimberDataset(loso_fold["train"], image_root=str(image_root), mappings=mappings, transform=val_transform)
     
     num_workers = 2 if os.name != 'nt' else 0
-    loader_loso = DataLoader(test_loso_dataset, batch_size=64, shuffle=False, num_workers=num_workers)
-    loader_leaky = DataLoader(test_leaky_dataset, batch_size=64, shuffle=False, num_workers=num_workers)
-    loader_train = DataLoader(train_loso_dataset, batch_size=64, shuffle=False, num_workers=num_workers)
+    loader_loso = DataLoader(
+        test_loso_dataset,
+        batch_size=64,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=(num_workers > 0),
+    )
+    loader_leaky = DataLoader(
+        test_leaky_dataset,
+        batch_size=64,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=(num_workers > 0),
+    )
+    loader_train = DataLoader(
+        train_loso_dataset,
+        batch_size=64,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=(num_workers > 0),
+    )
     
     # 3. Load Model
     model_cfg = ModelConfig(backbone_name=args.backbone)

@@ -12,10 +12,13 @@ and all 6 groups of specimen-invariance baselines:
 """
 
 from typing import Dict, Any, Optional
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 try:
     from trainers.base_trainer import BaseTrainer
@@ -64,6 +67,7 @@ class InvarianceTrainer(BaseTrainer):
         total_steps = self.config.epochs * len(self.train_loader)
         
         for batch_idx, batch in enumerate(self.train_loader):
+            self.optimizer.zero_grad(set_to_none=True)
             images = batch["image"].to(self.device)
             species_targets = batch["species_idx"].to(self.device)
             local_specimen_targets = batch["local_specimen_idx"].to(self.device)
@@ -203,6 +207,8 @@ class InvarianceTrainer(BaseTrainer):
             
             total_loss += loss.item()
             n_batches += 1
+            
+            del images, species_targets, local_specimen_targets, global_specimen_targets, out, loss
 
         avg_loss = total_loss / max(1, n_batches)
         return {"loss": avg_loss}

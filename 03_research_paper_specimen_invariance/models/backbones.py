@@ -11,6 +11,9 @@ Backbone feature extractors using timm:
 from typing import Tuple
 import torch
 import torch.nn as nn
+import logging
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+
 try:
     import timm
     HAS_TIMM = True

@@ -20,7 +20,6 @@ def build_train_transform(
 ):
     """Standard training transformations."""
     return transforms.Compose([
-        transforms.Resize((image_size, image_size)),
         transforms.RandomResizedCrop(image_size, scale=(0.8, 1.0)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),

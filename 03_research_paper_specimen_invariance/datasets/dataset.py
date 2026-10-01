@@ -100,48 +100,55 @@ class TimberDataset(Dataset):
         self.mappings = mappings
         self.transform = transform
         
+        # Pre-extract DataFrame columns to native Python lists for instant O(1) indexing
+        species_names = self.df["class_name"].tolist()
+        specimen_ids = self.df["specimen_id"].tolist()
+        self.image_ids = self.df["image_id"].tolist()
+        
+        # Precompute integer indices to eliminate dict lookups in worker processes
+        self.species_indices = [self.mappings["species_to_idx"][sp] for sp in species_names]
+        self.global_spec_indices = [self.mappings["specimen_to_global_idx"][spec] for spec in specimen_ids]
+        self.local_spec_indices = [
+            self.mappings["specimen_to_local_idx"][(sp_idx, spec)]
+            for sp_idx, spec in zip(self.species_indices, specimen_ids)
+        ]
+        self.is_singles = [
+            self.mappings["single_specimen_species_mask"][sp_idx].item()
+            for sp_idx in self.species_indices
+        ]
+        
         # Pre-resolve relative paths against image_root
         self.image_paths: List[Path] = []
         for p in self.df["image_path"]:
             candidate = self.image_root / p
             if not candidate.exists():
-                # Check alternative candidate (e.g. out/images/...)
                 candidate_alt = self.image_root / "images" / p
                 if candidate_alt.exists():
                     candidate = candidate_alt
             self.image_paths.append(candidate)
 
     def __len__(self) -> int:
-        return len(self.df)
+        return len(self.image_paths)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        row = self.df.iloc[idx]
         img_path = self.image_paths[idx]
         
-        # Load image safely
+        # Load image safely with immediate descriptor release
         try:
-            image = Image.open(img_path).convert("RGB")
+            with Image.open(img_path) as img:
+                image = img.convert("RGB")
         except Exception:
-            # Fallback to black square in edge case of corrupted download
             image = Image.new("RGB", (224, 224), (0, 0, 0))
             
         if self.transform is not None:
             image = self.transform(image)
             
-        species_name = row["class_name"]
-        specimen_id = row["specimen_id"]
-        
-        species_idx = self.mappings["species_to_idx"][species_name]
-        global_spec_idx = self.mappings["specimen_to_global_idx"][specimen_id]
-        local_spec_idx = self.mappings["specimen_to_local_idx"][(species_idx, specimen_id)]
-        is_single = self.mappings["single_specimen_species_mask"][species_idx].item()
-        
         return {
             "image": image,
-            "species_idx": torch.tensor(species_idx, dtype=torch.long),
-            "global_specimen_idx": torch.tensor(global_spec_idx, dtype=torch.long),
-            "local_specimen_idx": torch.tensor(local_spec_idx, dtype=torch.long),
-            "is_single_specimen": torch.tensor(is_single, dtype=torch.bool),
-            "image_id": row["image_id"],
+            "species_idx": torch.tensor(self.species_indices[idx], dtype=torch.long),
+            "global_specimen_idx": torch.tensor(self.global_spec_indices[idx], dtype=torch.long),
+            "local_specimen_idx": torch.tensor(self.local_spec_indices[idx], dtype=torch.long),
+            "is_single_specimen": torch.tensor(self.is_singles[idx], dtype=torch.bool),
+            "image_id": self.image_ids[idx],
             "image_path": str(img_path),
         }
