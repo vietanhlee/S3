@@ -114,10 +114,10 @@ def evaluate_specimen_recoverability(
         if len(np.unique(y_train)) < 2:
             continue
             
-        # Standardize embeddings with StandardScaler and fit linear probe (solver=lbfgs, max_iter=2000)
+        # Standardize embeddings with StandardScaler and fit linear probe (L2 regularized, solver=lbfgs, max_iter=5000, tol=1e-3)
         clf = make_pipeline(
             StandardScaler(),
-            LogisticRegression(max_iter=2000, C=1.0, random_state=seed, solver="lbfgs")
+            LogisticRegression(max_iter=5000, tol=1e-3, C=0.5, random_state=seed, solver="lbfgs")
         )
         clf.fit(X_train, y_train)
         probe_acc = float(clf.score(X_test, y_test))

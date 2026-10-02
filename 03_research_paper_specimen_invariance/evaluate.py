@@ -220,8 +220,8 @@ def main():
         persistent_workers=False,
     )
     
-    # 3. Load Model
-    model_cfg = ModelConfig(backbone_name=args.backbone)
+    # 3. Load Model (pretrained=False avoids redundant internet downloads since checkpoint overwrites weights)
+    model_cfg = ModelConfig(backbone_name=args.backbone, pretrained=False)
     model = SpecimenInvariantModel(
         config=model_cfg,
         specimen_counts=mappings["specimen_counts"],
