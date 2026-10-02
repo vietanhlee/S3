@@ -201,7 +201,7 @@ def main():
         shuffle=False,
         num_workers=num_workers,
         pin_memory=torch.cuda.is_available(),
-        persistent_workers=(num_workers > 0),
+        persistent_workers=False,
     )
     loader_leaky = DataLoader(
         test_leaky_dataset,
@@ -209,7 +209,7 @@ def main():
         shuffle=False,
         num_workers=num_workers,
         pin_memory=torch.cuda.is_available(),
-        persistent_workers=(num_workers > 0),
+        persistent_workers=False,
     )
     loader_train = DataLoader(
         train_loso_dataset,
@@ -217,7 +217,7 @@ def main():
         shuffle=False,
         num_workers=num_workers,
         pin_memory=torch.cuda.is_available(),
-        persistent_workers=(num_workers > 0),
+        persistent_workers=False,
     )
     
     # 3. Load Model

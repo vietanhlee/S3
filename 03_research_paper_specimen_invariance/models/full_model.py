@@ -110,6 +110,8 @@ class SpecimenInvariantModel(nn.Module):
         local_specimen_targets: Optional[torch.Tensor] = None,
         global_specimen_targets: Optional[torch.Tensor] = None,
         training_progress: float = 0.0,
+        return_projection: bool = False,
+        return_embedding: bool = False,
     ) -> Dict[str, Any]:
         """
         Forward pass.
@@ -120,6 +122,8 @@ class SpecimenInvariantModel(nn.Module):
             local_specimen_targets: Local specimen index within species (B,)
             global_specimen_targets: Global specimen index (B,)
             training_progress: Float p in [0, 1] for lambda_adv annealing
+            return_projection: Whether to compute and return normalized metric projection
+            return_embedding: Whether to return raw embedding z
         """
         # 1. Feature extraction
         z = self.extract_features(x)
@@ -127,15 +131,17 @@ class SpecimenInvariantModel(nn.Module):
         # 2. Species logits
         species_logits = self.species_head(z, species_targets)
         
-        # 3. Metric projection
-        proj = self.projection_head(z)
-        proj_normalized = F.normalize(proj, p=2, dim=-1)
-        
         out: Dict[str, Any] = {
-            "embedding": z,
-            "projected": proj_normalized,
             "species_logits": species_logits,
         }
+        
+        if return_embedding:
+            out["embedding"] = z
+            
+        if return_projection:
+            # 3. Metric projection (only calculated when needed, saving VRAM and compute)
+            proj = self.projection_head(z)
+            out["projected"] = F.normalize(proj, p=2, dim=-1)
         
         if self.training:
             # Update GRL lambda_adv

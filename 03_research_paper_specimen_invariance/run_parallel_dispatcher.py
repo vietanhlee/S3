@@ -102,6 +102,27 @@ def run_data_parallel_sequential(
 
         task_name = f"{method}_{backbone}_fold{fold}_seed{seed}"
         log_file = log_dir / f"{task_name}.log"
+        run_output_dir = Path(script_args.output_base_dir) / task_name
+        summary_file = run_output_dir / "train_summary.json"
+        best_ckpt = run_output_dir / "best_model.pth"
+
+        # Check for completed runs to avoid wasting hours of GPU time
+        if summary_file.exists() and best_ckpt.exists() and not getattr(script_args, "force", False):
+            safe_print("-" * 90)
+            safe_print(f"[{datetime.now().strftime('%H:%M:%S')}] >>> SKIPPING TASK [{idx}/{total_tasks}]: {method} ({backbone})")
+            safe_print(f"         Status: Already completed and verified at {summary_file}")
+            safe_print(f"         (To force re-training, use --force or remove {run_output_dir})")
+            safe_print("-" * 90)
+            results_list.append({
+                "task_name": task_name,
+                "method": method,
+                "backbone": backbone,
+                "gpu": device_desc,
+                "duration_min": 0.0,
+                "status": "SUCCESS (Cached)",
+                "log_file": str(log_file),
+            })
+            continue
 
         start_time = time.time()
         start_dt = datetime.now().strftime("%H:%M:%S")
@@ -214,6 +235,23 @@ def worker_loop(
         gpu_str = f"GPU {gpu_id}" if gpu_id is not None else "CPU"
         task_name = f"{method}_{backbone}_fold{fold}_seed{seed}"
         log_file = log_dir / f"{task_name}.log"
+        run_output_dir = Path(script_args.output_base_dir) / task_name
+        summary_file = run_output_dir / "train_summary.json"
+        best_ckpt = run_output_dir / "best_model.pth"
+
+        if summary_file.exists() and best_ckpt.exists() and not getattr(script_args, "force", False):
+            safe_print(f"[{datetime.now().strftime('%H:%M:%S')}] [{gpu_str}] >>> SKIPPING (Already completed): {method} ({backbone})")
+            results_list.append({
+                "task_name": task_name,
+                "method": method,
+                "backbone": backbone,
+                "gpu": gpu_str,
+                "duration_min": 0.0,
+                "status": "SUCCESS (Cached)",
+                "log_file": str(log_file),
+            })
+            task_queue.task_done()
+            continue
 
         start_time = time.time()
         start_dt = datetime.now().strftime("%H:%M:%S")
@@ -332,6 +370,7 @@ def parse_args():
     parser.add_argument("--metadata_csv", type=str, default="out/metadata/metadata.csv", help="Metadata CSV path")
     parser.add_argument("--image_root", type=str, default="out", help="Image directory root")
     parser.add_argument("--output_base_dir", type=str, default="specimen_invariance_outputs", help="Output base directory")
+    parser.add_argument("--force", action="store_true", help="Force re-training even if train_summary.json exists")
     return parser.parse_args()
 
 

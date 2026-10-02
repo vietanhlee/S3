@@ -186,14 +186,14 @@ class InvarianceTrainer(BaseTrainer):
 
             elif method == "supcon":
                 # BASELINE: Supervised Contrastive Loss
-                out = self.model(images)
+                out = self.model(images, return_projection=True)
                 loss_ce = F.cross_entropy(out["species_logits"], species_targets)
                 loss_sc = self.supcon_loss(out["projected"], species_targets)
                 loss = loss_ce + 0.5 * loss_sc
 
             elif method == "semihard_triplet":
                 # BASELINE: Semi-Hard Triplet Loss
-                out = self.model(images)
+                out = self.model(images, return_projection=True)
                 loss_ce = F.cross_entropy(out["species_logits"], species_targets)
                 loss_triplet = self.triplet_loss(out["projected"], species_targets)
                 loss = loss_ce + 0.5 * loss_triplet
@@ -222,6 +222,11 @@ class InvarianceTrainer(BaseTrainer):
                     f"| Elapsed: {elapsed_b:.1f}s",
                     flush=True
                 )
+                # Periodic active cleanup to prevent memory accumulation in long epochs
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                import gc
+                gc.collect()
             
             del images, species_targets, local_specimen_targets, global_specimen_targets, out, loss
 

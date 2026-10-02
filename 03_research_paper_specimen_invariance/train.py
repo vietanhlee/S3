@@ -155,8 +155,8 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        # Enable cuDNN benchmark for optimal memory-efficient conv algorithms
+        torch.backends.cudnn.benchmark = True
 
 
 def parse_args():
@@ -256,21 +256,20 @@ def main():
         pin_memory=torch.cuda.is_available(),
         persistent_workers=(num_workers > 0),
     )
+    # Val and test loaders do not need background persistent worker processes
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=num_workers,
+        num_workers=0,
         pin_memory=torch.cuda.is_available(),
-        persistent_workers=(num_workers > 0),
     )
     test_loader = DataLoader(
         test_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=num_workers,
+        num_workers=0,
         pin_memory=torch.cuda.is_available(),
-        persistent_workers=(num_workers > 0),
     )
     
     # 6. Configurations
