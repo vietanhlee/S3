@@ -14,7 +14,7 @@
 
 ```mermaid
 graph TD
-    Data["<b>01. ForensicMacroWood-CITES Dataset</b><br/><i>Elsevier Data in Brief</i><br/>Bộ dữ liệu 18 loài CITES, 6,410 ảnh, 116 phôi gỗ, khử trùng lặp 2 cấp độ"]
+    Data["<b>01. IC4SD-ForensicMacroWood-CITES Dataset</b><br/><i>Elsevier Data in Brief</i><br/>Bộ dữ liệu 19 loài Fabaceae, 6,414 ảnh, 147 phôi gỗ, khử trùng lặp 2 cấp độ"]
     Paper1["<b>02. Specimen Leakage Governance</b><br/><i>Elsevier COMPAG / Pattern Recognition</i><br/>Định lượng rủi ro rò rỉ (SLR, CCR, Lemma 1), CEGS-Split Simulated Annealing"]
     Paper2["<b>03. Specimen Invariance Framework</b><br/><i>Elsevier COMPAG / Pattern Recognition / Info Sci</i><br/>Triệt tiêu shortcut rò rỉ: Species-Conditioned Masked GRL + Variational CLUB"]
 
@@ -25,7 +25,7 @@ graph TD
 
 | Thư mục Dự án | Tên Công trình Học thuật | Tạp chí Mục tiêu | Vai trò & Đóng góp Cốt lõi |
 | :--- | :--- | :--- | :--- |
-| [`01_data_paper_forensic_cites/`](file:///g:/S3_paper/01_data_paper_forensic_cites/) | **ForensicMacroWood-CITES Data Paper** | *Elsevier Data in Brief* | Xuất bản tập dữ liệu chuẩn hóa 19 loài Fabaceae, 6,414 ảnh vĩ mô độ nét cao, 147 phôi gỗ tiêu bản, lọc Laplacian, SHA-256, dHash/pHash và baseline ConvNeXt-Tiny 3 seeds. |
+| [`01_data_paper_forensic_cites/`](file:///g:/S3_paper/01_data_paper_forensic_cites/) | **IC4SD-ForensicMacroWood-CITES Data Paper** | *Elsevier Data in Brief* | Xuất bản tập dữ liệu chuẩn hóa 19 loài Fabaceae, 6,414 ảnh vĩ mô độ nét cao, 147 phôi gỗ tiêu bản, lọc Laplacian, SHA-256, dHash/pHash và baseline ConvNeXt-Tiny 3 seeds. |
 | [`02_research_paper_specimen_leakage/`](file:///g:/S3_paper/02_research_paper_specimen_leakage/) | **Specimen Leakage Governance Paper** | *Computers and Electronics in Agriculture* | Data-Centric Governance: Khủng hoảng tái lập, định lượng rủi ro rò rỉ phôi gỗ ($\mathrm{SLR}$, $\mathrm{CCR}$), chứng minh Lemma 1 và đề xuất giải thuật tổ hợp CEGS-Split ($11^{18}$). |
 | [`03_research_paper_specimen_invariance/`](file:///g:/S3_paper/03_research_paper_specimen_invariance/) | **Specimen Invariance Learning Paper** | *Computers and Electronics in Agriculture* / *Pattern Recognition* | Model-Centric Invariance: Triệt tiêu shortcut học vẹt cơ học qua Species-Conditioned Masked Softmax GRL và variational CLUB mutual information bottleneck, kiểm chứng giải phẫu IAWA. |
 
@@ -169,7 +169,7 @@ Nếu bạn sử dụng dữ liệu, thuật toán phân hoạch CEGS-Split, ho�
 
 ```bibtex
 @article{le2026forensicmacrowood,
-  title={ForensicMacroWood-CITES: A Quality-Controlled, Provenance-Tagged Macroscopic Cross-Sectional Image Dataset of 18 High-Risk Tropical Timber Species for CITES Compliance},
+  title={IC4SD-ForensicMacroWood-CITES: A Quality-Controlled, Provenance-Tagged Macroscopic Cross-Sectional Image Dataset of 19 Tropical Hardwood Species for CITES Compliance},
   author={Le, Viet-Anh and Nguyen-Trong, Khanh},
   journal={Data in Brief},
   year={2026}

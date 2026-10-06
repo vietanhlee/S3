@@ -3,7 +3,7 @@
 train_classification_pipeline.py
 ================================
 CLI thực thi huấn luyện mô hình ConvNeXt-Tiny Baseline và đánh giá kỹ thuật (Technical Validation)
-cho bộ dữ liệu ForensicMacroWood-CITES (Elsevier Data in Brief).
+cho bộ dữ liệu IC4SD-ForensicMacroWood-CITES (Elsevier Data in Brief).
 
 Chức năng:
   - Huấn luyện Multiclass Focal Loss (alpha=0.25, gamma=2.0) hoặc Standard Cross-Entropy.
@@ -24,7 +24,7 @@ from modules.classification import (
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Huấn luyện ConvNeXt-Tiny Baseline cho ForensicMacroWood-CITES")
+    parser = argparse.ArgumentParser(description="Huấn luyện ConvNeXt-Tiny Baseline cho IC4SD-ForensicMacroWood-CITES")
     parser.add_argument("--split-csv", type=str, default="out/splits/split_canonical.csv",
                         help="Đường dẫn file phân vùng dữ liệu split_canonical.csv")
     parser.add_argument("--metadata-csv", type=str, default="out/metadata/metadata.csv",

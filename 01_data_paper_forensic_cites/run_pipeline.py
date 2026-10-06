@@ -2,7 +2,7 @@
 """
 run_pipeline.py
 ===============
-Script điều phối (Master Orchestrator) tinh gọn cho ForensicMacroWood-CITES
+Script điều phối (Master Orchestrator) tinh gọn cho IC4SD-ForensicMacroWood-CITES
 (Elsevier Data in Brief), hỗ trợ kiểm định thống kê đa hạt giống (3 Random Seeds).
 
 Quy trình tinh gọn (2 bước chính):
@@ -512,7 +512,7 @@ def run_multi_model_comparison(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Master Orchestrator Pipeline tinh gọn cho ForensicMacroWood-CITES (Elsevier Data in Brief)"
+        description="Master Orchestrator Pipeline tinh gọn cho IC4SD-ForensicMacroWood-CITES (Elsevier Data in Brief)"
     )
     parser.add_argument("--all", action="store_true",
                         help="Thực hiện toàn bộ quy trình thực nghiệm (Assets -> Multi-seed Classify)")

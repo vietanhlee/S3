@@ -87,10 +87,10 @@
 
 \let\WriteBookmarks\relax
 
-\shorttitle{ForensicMacroWood-CITES: Forensic Macroscopic Timber Benchmark}
+\shorttitle{IC4SD-ForensicMacroWood-CITES: Forensic Macroscopic Timber Benchmark}
 % \shortauthors{V.-A. Le and K. Nguyen-Trong}
 
-\title [mode = title]{ForensicMacroWood-CITES: A Multimodal Macroscopic Wood Anatomy and High-Resolution Transverse Image Benchmark for CITES-Regulated Hardwood Identification}
+\title [mode = title]{IC4SD-ForensicMacroWood-CITES: A Multimodal Macroscopic Wood Anatomy and High-Resolution Transverse Image Benchmark for CITES-Regulated Hardwood Identification}
 
 % \author[1]{Viet-Anh Le \orcidicon{0009-0003-5748-0439}}
 % \author[1]{Khanh Nguyen-Trong \orcidicon{0000-0001-5175-8805}\cormark[1]}
@@ -100,7 +100,7 @@
 % \cortext[1]{Corresponding author. \textit{E-mail addresses:} \href{mailto:khanhnt@ptit.edu.vn}{khanhnt@ptit.edu.vn} (K. Nguyen-Trong), \href{mailto:anhlv.b23kh002@stu.ptit.edu.vn}{anhlv.b23kh002@stu.ptit.edu.vn} (V.-A. Le)}
 
 \begin{abstract}
-Rapid forensic discrimination of protected timbers at customs checkpoints requires robust macroscopic identification methods. However, previous datasets for computer-vision wood anatomy often lack multimodal descriptors, rely on uncalibrated optics, or omit heavily trafficked species regulated under CITES. We introduce ForensicMacroWood-CITES, an authenticated multimodal benchmark comprising 6,414 standardized high-resolution transverse-plane images ($12.0\,\mu\text{m/pixel}$) from 19 commercially significant Fabaceae hardwoods. The cohort encompasses 11 CITES Appendix~II-regulated taxa and 4 high-value regional commercial species, anchored to 147 verified physical wood block accessions. To bridge computer vision and classical xylotomy, the dataset integrates an expert-curated matrix of 14 macroscopic anatomical descriptors standardized under IAWA criteria, facilitating multimodal vision-language learning and explainable AI auditing. To address reference specimen scarcity, we provide a dual-partition architecture: an operational canonical benchmark guaranteeing 100\% class coverage alongside an audited specimen-disjoint split ($0.0\%$ specimen leakage across multi-specimen taxa). Technical validation using ConvNeXt-Tiny establishes reproducible baselines: $90.42\% \pm 0.38\%$ overall accuracy on the operational canonical split ($N_{\text{test}} = 1{,}190$, macro-F1: $86.80\% \pm 0.45\%$, Pairwise Specimen Leakage Rate: $30.61\%$) and $82.35\% \pm 0.52\%$ under the strict specimen-disjoint benchmark in 19-class mode ($N_{\text{test}} = 1{,}204$, macro-F1: $76.92\% \pm 0.61\%$, $0.0\%$ specimen leakage across 17 multi-specimen taxa, with 144 test captures from two single-accession taxa evaluated intra-specimen; alongside a pure 17-class zero-leakage test mode with $N_{\text{test}} = 1{,}060$, accuracy $84.10\%$, and $\text{CCR} = 89.5\%$), confirming benchmark functionality and out-of-distribution robustness. The benchmark provides a non-destructive screening testbed for timber forensics and is publicly accessible at \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}.
+Rapid forensic discrimination of protected timbers at customs checkpoints requires robust macroscopic identification methods. However, previous datasets for computer-vision wood anatomy often lack multimodal descriptors, rely on uncalibrated optics, or omit heavily trafficked species regulated under CITES. We introduce IC4SD-ForensicMacroWood-CITES, an authenticated multimodal benchmark comprising 6,414 standardized high-resolution transverse-plane images ($12.0\,\mu\text{m/pixel}$) from 19 commercially significant Fabaceae hardwoods. The cohort encompasses 11 CITES Appendix~II-regulated taxa and 4 high-value regional commercial species, anchored to 147 verified physical wood block accessions. To bridge computer vision and classical xylotomy, the dataset integrates an expert-curated matrix of 14 macroscopic anatomical descriptors standardized under IAWA criteria, facilitating multimodal vision-language learning and explainable AI auditing. To address reference specimen scarcity, we provide a dual-partition architecture: an operational canonical benchmark guaranteeing 100\% class coverage alongside an audited specimen-disjoint split ($0.0\%$ specimen leakage across multi-specimen taxa). Technical validation using ConvNeXt-Tiny establishes reproducible baselines: $90.42\% \pm 0.38\%$ overall accuracy on the operational canonical split ($N_{\text{test}} = 1{,}190$, macro-F1: $86.80\% \pm 0.45\%$, Pairwise Specimen Leakage Rate: $30.61\%$) and $82.35\% \pm 0.52\%$ under the strict specimen-disjoint benchmark in 19-class mode ($N_{\text{test}} = 1{,}204$, macro-F1: $76.92\% \pm 0.61\%$, $0.0\%$ specimen leakage across 17 multi-specimen taxa, with 144 test captures from two single-accession taxa evaluated intra-specimen; alongside a pure 17-class zero-leakage test mode with $N_{\text{test}} = 1{,}060$, accuracy $84.10\%$, and $\text{CCR} = 89.5\%$), confirming benchmark functionality and out-of-distribution robustness. The benchmark provides a non-destructive screening testbed for timber forensics and is publicly accessible at \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}.
 \end{abstract}
 
 \begin{keywords}
@@ -157,14 +157,14 @@ Forensic timber compliance \sep CITES Appendix~II trade regulation \sep Multimod
 
 \subsection{Taxonomic Composition and Inventory}
 
-The ForensicMacroWood-CITES repository comprises \textbf{6,414 standardized macroscopic cross-sectional captures} spanning \textbf{19 commercially significant tropical hardwood species} across \textbf{6 botanical genera} within the legume family \textbf{Fabaceae} (Leguminosae). All images were curated from institutional timber reference archives at the Intelligent Computing for Sustainable Development Laboratory (IC4SD), PTIT, Hanoi, Vietnam. Each capture carries a verified species-level label linked to traceable physical wood specimens ($|\mathcal{G}_c| = 147$ verified wood block accessions) and confirmed through an independent dual-expert verification protocol ($\kappa = 0.985$).
+The IC4SD-ForensicMacroWood-CITES repository comprises \textbf{6,414 standardized macroscopic cross-sectional captures} spanning \textbf{19 commercially significant tropical hardwood species} across \textbf{6 botanical genera} within the legume family \textbf{Fabaceae} (Leguminosae). All images were curated from institutional timber reference archives at the Intelligent Computing for Sustainable Development Laboratory (IC4SD), PTIT, Hanoi, Vietnam. Each capture carries a verified species-level label linked to traceable physical wood specimens ($|\mathcal{G}_c| = 147$ verified wood block accessions) and confirmed through an independent dual-expert verification protocol ($\kappa = 0.985$).
 
 \begin{table}[pos=htbp]
 \centering
 \small
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.18}
-\caption{Taxonomic inventory and physical specimen sampling of the 19 tropical hardwood species in the ForensicMacroWood-CITES benchmark, detailing botanical genus, scientific binomial nomenclature, native Vietnamese vernacular names, international trade names, CITES conservation status, verified physical specimen cohort sizes ($|\mathcal{G}_c|$, totaling 147 verified wood block accessions), and standardized image counts.}
+\caption{Taxonomic inventory and physical specimen sampling of the 19 tropical hardwood species in the IC4SD-ForensicMacroWood-CITES benchmark, detailing botanical genus, scientific binomial nomenclature, native Vietnamese vernacular names, international trade names, CITES conservation status, verified physical specimen cohort sizes ($|\mathcal{G}_c|$, totaling 147 verified wood block accessions), and standardized image counts.}
 \label{tab:taxonomic_inventory}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{rlllllcc}
@@ -208,18 +208,18 @@ Table~\ref{tab:taxonomic_inventory} details the taxonomic breakdown of the 19 sp
 \subsection{Comparative Dataset Positioning}
 \label{sec:comparative_positioning}
 
-To contextualize the forensic utility of ForensicMacroWood-CITES, Table~\ref{tab:dataset_comparison} systematically compares its core attributes against prominent public macroscopic wood datasets and recent literature benchmarks~\cite{ravindran2020,ravindran2021,figueroamata2022,song2025,liu2025,nguyentrong2026eucalyptus}. Foundational initiatives like the XyloTron project~\cite{ravindran2020,ravindran2021} and regional surveys~\cite{figueroamata2022,song2025} have significantly advanced computer vision in forestry. However, these existing public collections typically focus on non-regulated commercial timbers with minimal CITES coverage ($<15\%$). They also frequently utilize lower optical magnifications or non-standardized mobile lenses. 
+To contextualize the forensic utility of IC4SD-ForensicMacroWood-CITES, Table~\ref{tab:dataset_comparison} systematically compares its core attributes against prominent public macroscopic wood datasets and recent literature benchmarks~\cite{ravindran2020,ravindran2021,figueroamata2022,song2025,liu2025,nguyentrong2026eucalyptus}. Foundational initiatives like the XyloTron project~\cite{ravindran2020,ravindran2021} and regional surveys~\cite{figueroamata2022,song2025} have significantly advanced computer vision in forestry. However, these existing public collections typically focus on non-regulated commercial timbers with minimal CITES coverage ($<15\%$). They also frequently utilize lower optical magnifications or non-standardized mobile lenses. 
 
 Recent institutional benchmarks, such as IC4SD-Wood-Eucalyptus~\cite{nguyentrong2026eucalyptus}, established rigorous image curation but focused exclusively on plantation hardwoods ($0\%$ CITES) for pulpwood management. Meanwhile, specialized studies targeting high-value CITES taxa~\cite{liu2025} remain restricted to private, unshared archives. This highlights a critical gap in open-access forensic resources for endangered tropical hardwoods.
 
-ForensicMacroWood-CITES addresses this gap with three distinguishing contributions. First, it targets \textbf{19 commercially significant tropical hardwoods across 6 Fabaceae genera}, with a critical concentration of trade-restricted timbers (\textbf{57.9\% CITES Appendix~II}, 11 regulated species) alongside 4 high-value regional commercial species. Second, it provides an expert-curated matrix of \textbf{14 diagnostic macroscopic anatomical descriptors} structured under IAWA xylotomical standards, enabling multimodal paradigms absent in prior single-modality collections. Third, it delivers high optical calibration ($12.0\,\mu\text{m/pixel}$, $\approx 0.29\times$ optical magnification), verified physical block traceability, dual partition manifests, and audited perceptual boundaries.
+IC4SD-ForensicMacroWood-CITES addresses this gap with three distinguishing contributions. First, it targets \textbf{19 commercially significant tropical hardwoods across 6 Fabaceae genera}, with a critical concentration of trade-restricted timbers (\textbf{57.9\% CITES Appendix~II}, 11 regulated species) alongside 4 high-value regional commercial species. Second, it provides an expert-curated matrix of \textbf{14 diagnostic macroscopic anatomical descriptors} structured under IAWA xylotomical standards, enabling multimodal paradigms absent in prior single-modality collections. Third, it delivers high optical calibration ($12.0\,\mu\text{m/pixel}$, $\approx 0.29\times$ optical magnification), verified physical block traceability, dual partition manifests, and audited perceptual boundaries.
 
 \begin{table}[pos=htbp]
 \centering
 \small
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.18}
-\caption{Systematic comparison of ForensicMacroWood-CITES against prominent public and literature macroscopic timber datasets, contrasting taxonomic focus, optical magnification, forensic regulation, partition governance, multimodal descriptors, and machine learning accessibility.}
+\caption{Systematic comparison of IC4SD-ForensicMacroWood-CITES against prominent public and literature macroscopic timber datasets, contrasting taxonomic focus, optical magnification, forensic regulation, partition governance, multimodal descriptors, and machine learning accessibility.}
 \label{tab:dataset_comparison}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccccccc}
@@ -232,7 +232,7 @@ Asian Commercial~\cite{song2025} & Vietnamese/Asian timber & 15 & $\sim$3,000 & 
 \textit{Pterocarpus} Discrimination~\cite{liu2025} & \textit{Pterocarpus} genus only & 6 & $\sim$1,800 & $20\times$--$30\times$ stereo & Subset ($50\%$, 3 spp.) & Random split & Not reported & No & Private \\
 IC4SD-Wood-Eucalyptus~\cite{nguyentrong2026eucalyptus} & Plantation genus \textit{Eucalyptus} & 10 & 2,910 & $12.0\,\mu\text{m/px}$ & None ($0.0\%$, 0 spp.) & Specimen-aware (audited) & SHA-256 audited & No & Open (CC BY 4.0) \\
 \midrule
-\textbf{ForensicMacroWood-CITES (This Work)} & \textbf{Tropical Fabaceae (6 genera)} & \textbf{19} & \textbf{6,414} & \textbf{12.0}\,$\mu$\textbf{m/px ($\approx$0.29}$\times$ \textbf{opt.)} & \textbf{High (57.9\%, 11 spp.)} & \textbf{Dual (Canonical / Disjoint)} & \textbf{Bitwise \& Perceptual} & \textbf{Yes (14-axis CSV)} & \textbf{Open (CC BY 4.0)} \\
+\textbf{IC4SD-ForensicMacroWood-CITES (This Work)} & \textbf{Tropical Fabaceae (6 genera)} & \textbf{19} & \textbf{6,414} & \textbf{12.0}\,$\mu$\textbf{m/px ($\approx$0.29}$\times$ \textbf{opt.)} & \textbf{High (57.9\%, 11 spp.)} & \textbf{Dual (Canonical / Disjoint)} & \textbf{Bitwise \& Perceptual} & \textbf{Yes (14-axis CSV)} & \textbf{Open (CC BY 4.0)} \\
 \bottomrule
 \end{tabular}%
 }
@@ -247,7 +247,7 @@ The dataset package is organized to facilitate straightforward integration into 
 \small
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.12}
-\caption{Systematic directory layout and functional contents of the ForensicMacroWood-CITES release package.}
+\caption{Systematic directory layout and functional contents of the IC4SD-ForensicMacroWood-CITES release package.}
 \label{tab:repo_contents}
 \begin{tabularx}{\linewidth}{@{} r l X @{}}
 \toprule
@@ -310,7 +310,7 @@ Furthermore, the variation in split ratios across individual species in Table~\r
 \begin{figure}[pos=htbp]
 \centering
 \includegraphics[width=0.96\linewidth]{fig/eda_split_end_version}
-\caption{Class distributions and partition allocations across the 19 tropical hardwood species in ForensicMacroWood-CITES (Total: 6,414 images). Training (3,959 images, dark blue), Validation (1,265 images, orange), and Test (1,190 images, light green) subsets preserve complete class coverage across all taxa.}
+\caption{Class distributions and partition allocations across the 19 tropical hardwood species in IC4SD-ForensicMacroWood-CITES (Total: 6,414 images). Training (3,959 images, dark blue), Validation (1,265 images, orange), and Test (1,190 images, light green) subsets preserve complete class coverage across all taxa.}
 \label{fig:eda_split}
 \end{figure}
 
@@ -319,7 +319,7 @@ Furthermore, the variation in split ratios across individual species in Table~\r
 \small
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.15}
-\caption{Specimen and image split allocation across the 19 tropical hardwood species in the ForensicMacroWood-CITES benchmark, detailing physical specimen counts ($|\mathcal{G}_c|$), per-species specimen boundary sharing across subsets, and partition image volumes under 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$).}
+\caption{Specimen and image split allocation across the 19 tropical hardwood species in the IC4SD-ForensicMacroWood-CITES benchmark, detailing physical specimen counts ($|\mathcal{G}_c|$), per-species specimen boundary sharing across subsets, and partition image volumes under 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$).}
 \label{tab:split_allocation}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{rllccccccr}
@@ -425,7 +425,7 @@ To enrich the benchmark beyond single-label classification and facilitate multim
 \scriptsize
 \setlength{\tabcolsep}{3.5pt}
 \renewcommand{\arraystretch}{1.18}
-\caption{Expert-curated macroscopic anatomical feature descriptors across representative Fabaceae timber taxa in ForensicMacroWood-CITES (standardized per IAWA xylotomical criteria; complete 19-taxon matrix released in \texttt{metadata/anatomical\_features.csv}). Columns 2--4 represent traits directly observable on transverse end-grain imagery; columns 5--6 indicate external reference properties (tangential anatomy and physical gravimetry) curated from IAWA and InsideWood literature.}
+\caption{Expert-curated macroscopic anatomical feature descriptors across representative Fabaceae timber taxa in IC4SD-ForensicMacroWood-CITES (standardized per IAWA xylotomical criteria; complete 19-taxon matrix released in \texttt{metadata/anatomical\_features.csv}). Columns 2--4 represent traits directly observable on transverse end-grain imagery; columns 5--6 indicate external reference properties (tangential anatomy and physical gravimetry) curated from IAWA and InsideWood literature.}
 \label{tab:anatomical_features}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{l>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{3.8cm}cc}
@@ -462,14 +462,14 @@ Because the image dataset comprises exclusively transverse end-grain captures, v
 \subsection{Usage Notes}
 \label{sec:usage_notes}
 
-The ForensicMacroWood-CITES repository is structured for immediate integration into standard data science workflows. Step-by-step tutorials, environment setup instructions, and reproducible execution pipelines are documented in the repository \texttt{README.md}. Researchers can readily:
+The IC4SD-ForensicMacroWood-CITES repository is structured for immediate integration into standard data science workflows. Step-by-step tutorials, environment setup instructions, and reproducible execution pipelines are documented in the repository \texttt{README.md}. Researchers can readily:
 \begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
     \item \textbf{Parse Metadata, Governed Splits, and Anatomical Descriptors}: Ingest master tabular records (\texttt{metadata/metadata.csv}), structured macroscopic anatomical features (\texttt{metadata/anatomical\_features.csv}), class label mappings (\texttt{metadata/label\_map.json}), and the dual partition manifests (\texttt{splits/split\_canonical.csv} for operational screening and \texttt{splits/split\_specimen\_disjoint.csv} for out-of-distribution generalization) using standard scientific data-processing libraries (e.g., \texttt{pandas} or PyTorch Dataset classes).
     \item \textbf{Execute Reproducible Demonstrations}: Run the standalone demonstration script (\texttt{code/quickstart\_demo.py}) or interactive notebook (\texttt{code/quickstart\_demo.ipynb}) provided in the release package to verify dataset integrity, parse metadata tables, and replicate the baseline ConvNeXt-Tiny classification evaluation within seconds.
 \end{enumerate}
 
 \noindent
-\textbf{Recommended Benchmarking and Reporting Checklist}: To facilitate equitable and reproducible comparisons across future investigations, researchers utilizing ForensicMacroWood-CITES are urged to adopt the appropriate benchmarking protocol aligned with their scientific objective:
+\textbf{Recommended Benchmarking and Reporting Checklist}: To facilitate equitable and reproducible comparisons across future investigations, researchers utilizing IC4SD-ForensicMacroWood-CITES are urged to adopt the appropriate benchmarking protocol aligned with their scientific objective:
 \begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
     \item \textbf{Protocol A (Operational Forensic Customs Screening Benchmark)}: Evaluate models on the canonical partition (\texttt{splits/split\_canonical.csv}) to assess full 19-class taxonomic identification capability across all legally regulated Fabaceae timbers under complete class coverage ($\text{CCR} = 100.0\%$).
     \item \textbf{Protocol B (Specimen Generalization and Invariance Benchmark)}: Evaluate models on the strict specimen-disjoint partition (\texttt{splits/split\_specimen\_disjoint.csv}) to quantify model robustness against macroscopic intra-specific biological variance on entirely unseen physical wood specimens ($\text{SLR} = 0.0\%$ across all 17 multi-specimen taxa).
@@ -518,7 +518,7 @@ To guarantee benchmark integrity and reproducibility, a rigorous quality control
         \item \textit{Bitwise Cryptographic Auditing (SHA-256)}: 256-bit SHA-256 cryptographic hashes were computed for every standardized image file and cross-referenced across split boundaries. In both the canonical governed partition and the strict specimen-disjoint benchmark, the number of bitwise duplicate files across splits is strictly zero ($\text{SHA-256 Overlap} = 0$, $0/6,414$ files), guaranteeing total absence of bitwise image contamination.
         \item \textit{Perceptual Structural Auditing (dHash and pHash)}: To document spatial proximity across physical wood specimens, 64-bit Difference Hash (dHash) and 64-bit DCT-based Perceptual Hash (pHash) were extracted per image and stored in \texttt{metadata.csv}. Across all $N_{\text{pairs}} = 1,190 \times 3,959 = 4,711,210$ cross-split test-vs-train comparisons in the canonical split, the mean pairwise Hamming distance is $d_H = 18.42 \pm 6.12$; while 142 cross-split image pairs exhibit $H \le 4$ (involving 26 distinct test query images, representing $26 / 1,190 = 2.18\%$ of test queries, arising exclusively from the 12 shared blocks permitting complete class coverage, with minimum Hamming distance $H_{\min} = 1$), exact perceptual duplicates ($H = 0$) are strictly absent. Note that while cryptographic (SHA-256) and perceptual hashes verify file uniqueness and image differentiation, they do not capture fine spatial autocorrelation between adjacent tiles on the same wood block; this spatial proximity is explicitly eliminated in the strict specimen-disjoint benchmark. In sharp contrast, under the strict specimen-disjoint split in 19-class mode ($N_{\text{pairs}} = 1,204 \times 3,888 = 4,681,152$ cross-split comparisons; or $N_{\text{pairs}} = 1,060 \times 3,460 = 3,667,600$ in 17-class zero-leakage mode), the mean pairwise Hamming distance rises to $d_H = 26.85 \pm 5.48$, the count of near-duplicate pairs with $H \le 4$ drops to strictly $0$ ($0.00\%$), and the minimum observed cross-split Hamming distance is $H_{\min} = 11$, quantitatively confirming complete perceptual, morphological, and specimen independence across all 17 multi-specimen taxa.
     \end{itemize}
-    \item \textbf{Governed Benchmark Partitioning for Severe Specimen Scarcity}: In real-world CITES forensic xylaria, acquiring extensive physical specimen cohorts for endangered timbers is legally and ecologically constrained ($|\mathcal{G}_c| \le 10$ blocks per taxon; e.g., specifically 1 verified physical block accession each for \textit{Dalbergia cochinchinensis} and \textit{Guibourtia coleosperma}). Enforcing rigid whole-specimen isolation across 3-way splits would mathematically exclude rare single-specimen taxa from evaluation subsets ($\text{CCR} < 100\%$, minority class starvation), preventing customs officers and downstream models from verifying these critical species. To resolve this dilemma, ForensicMacroWood-CITES implements an operational canonical partition ($N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$) guaranteeing 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$, 19/19 taxa) across all subsets with controlled boundary sharing ($\text{SLR} = 30.61\%$, Table~\ref{tab:split_allocation}), accompanied by a strict specimen-disjoint benchmark ($N_{\text{train}} = 3,888$, $N_{\text{val}} = 1,322$, $N_{\text{test}} = 1,204$ in 19-class mode; or $N_{\text{train}} = 3,460$, $N_{\text{val}} = 1,180$, $N_{\text{test}} = 1,060$ with $\text{SLR} = 0.0\%$ across all 17 multi-specimen taxa in zero-leakage mode, Table~\ref{tab:split_disjoint_allocation}).
+    \item \textbf{Governed Benchmark Partitioning for Severe Specimen Scarcity}: In real-world CITES forensic xylaria, acquiring extensive physical specimen cohorts for endangered timbers is legally and ecologically constrained ($|\mathcal{G}_c| \le 10$ blocks per taxon; e.g., specifically 1 verified physical block accession each for \textit{Dalbergia cochinchinensis} and \textit{Guibourtia coleosperma}). Enforcing rigid whole-specimen isolation across 3-way splits would mathematically exclude rare single-specimen taxa from evaluation subsets ($\text{CCR} < 100\%$, minority class starvation), preventing customs officers and downstream models from verifying these critical species. To resolve this dilemma, IC4SD-ForensicMacroWood-CITES implements an operational canonical partition ($N_{\text{train}} = 3,959$, $N_{\text{val}} = 1,265$, $N_{\text{test}} = 1,190$) guaranteeing 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$, 19/19 taxa) across all subsets with controlled boundary sharing ($\text{SLR} = 30.61\%$, Table~\ref{tab:split_allocation}), accompanied by a strict specimen-disjoint benchmark ($N_{\text{train}} = 3,888$, $N_{\text{val}} = 1,322$, $N_{\text{test}} = 1,204$ in 19-class mode; or $N_{\text{train}} = 3,460$, $N_{\text{val}} = 1,180$, $N_{\text{test}} = 1,060$ with $\text{SLR} = 0.0\%$ across all 17 multi-specimen taxa in zero-leakage mode, Table~\ref{tab:split_disjoint_allocation}).
 \end{enumerate}
 
 Standardized $224 \times 224$ px images are normalized during training using ImageNet channel statistics ($\boldsymbol{\mu} = [0.485, 0.456, 0.406]$, $\boldsymbol{\sigma} = [0.229, 0.224, 0.225]$). Training augmentations include random resized crops (scale $0.8$--$1.0$), random horizontal and vertical flips ($p = 0.5$), mild color jitter (factors of $0.25$, hue $0.05$), and subtle grayscale conversion ($p = 0.05$).
@@ -660,7 +660,7 @@ This performance difference is driven by multiple interacting factors: (i) inter
 \subsection{Limitations and Practical Considerations}
 \label{sec:limitations}
 
-Several practical limitations and methodological trade-offs should be considered when utilizing the ForensicMacroWood-CITES benchmark:
+Several practical limitations and methodological trade-offs should be considered when utilizing the IC4SD-ForensicMacroWood-CITES benchmark:
 \begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
     \item \textbf{Modest Physical Specimen Cohort Sizes}: Physical reference cohorts remain modest ($|\mathcal{G}_c| \le 10$ wood blocks per species, aggregating 147 verified physical specimens across the 19 Fabaceae taxa), with acute scarcity bottlenecks for strictly protected or rare commercial timbers (specifically 1 physical block accession for \textit{Dalbergia cochinchinensis} and \textit{Guibourtia coleosperma}). Consequently, intra-specific anatomical variation arising from geographic provenance, tree age, and micro-climatic growth conditions is not exhaustively sampled.
     \item \textbf{Controlled Specimen Allocation vs. Absolute Disjointness}: The operational canonical benchmark prioritizes a 100\% Class Coverage Rate ($\text{CCR} = 100.0\%$) across all subsets via controlled specimen boundary sharing ($\text{SLR} = 30.61\%$, 45 shared block instances out of 147 blocks). While cryptographic and perceptual hashing confirm that duplicate files are strictly identified, this partition is an operational screening compromise to prevent minority-class omission rather than an out-of-distribution generalization test. Researchers evaluating generalization across novel physical logs must utilize the provided specimen-disjoint split.
@@ -678,12 +678,12 @@ Regarding timber species listed in CITES Appendix~II (genera \textit{Afzelia}, \
 \section{Data Availability}
 \label{sec:data_availability}
 
-\textbf{ForensicMacroWood-CITES}: A multimodal benchmark dataset of macroscopic timber cross-sections with structured IAWA morphological descriptors and governed partition manifests for CITES forensic wood identification (Original data) is openly accessible at the Zenodo scientific repository under DOI \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}. The dataset is released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
+\textbf{IC4SD-ForensicMacroWood-CITES}: A multimodal benchmark dataset of macroscopic timber cross-sections with structured IAWA morphological descriptors and governed partition manifests for CITES forensic wood identification (Original data) is openly accessible at the Zenodo scientific repository under DOI \href{https://doi.org/10.5281/zenodo.14892180}{10.5281/zenodo.14892180}. The dataset is released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license.
 
 \section{Code Availability}
 \label{sec:code_availability}
 
-Scripts for metadata verification, governed specimen-aware partition construction, and baseline training experiments (ConvNeXt-Tiny focal loss classification and standard cross-entropy) are openly available at the GitHub repository: \url{https://github.com/vietanhlee/ForensicMacroWood-CITES} (mirrored from \url{https://github.com/vietanhlee/S3_paper}). The codebase is released under the MIT License and includes a dedicated Zenodo software DOI (\href{https://doi.org/10.5281/zenodo.14892181}{10.5281/zenodo.14892181}) aligned with the archived benchmark dataset version.
+Scripts for metadata verification, governed specimen-aware partition construction, and baseline training experiments (ConvNeXt-Tiny focal loss classification and standard cross-entropy) are openly available at the GitHub repository: \url{https://github.com/vietanhlee/IC4SD-ForensicMacroWood-CITES} (mirrored from \url{https://github.com/vietanhlee/S3_paper}). The codebase is released under the MIT License and includes a dedicated Zenodo software DOI (\href{https://doi.org/10.5281/zenodo.14892181}{10.5281/zenodo.14892181}) aligned with the archived benchmark dataset version.
 
 \section*{CRediT Author Statement}
 

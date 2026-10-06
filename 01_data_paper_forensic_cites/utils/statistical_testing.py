@@ -3,7 +3,7 @@
 utils/statistical_testing.py
 ============================
 Bộ công cụ phân tích và kiểm định thống kê đa hạt giống (Multi-Seed Statistical Analysis)
-cho mô hình phân loại gỗ ForensicMacroWood-CITES (Elsevier Data in Brief).
+cho mô hình phân loại gỗ IC4SD-ForensicMacroWood-CITES (Elsevier Data in Brief).
 
 Chức năng:
   1. Tính toán thống kê mô tả: Mean, Standard Deviation (ddof=1), Standard Error (SEM).

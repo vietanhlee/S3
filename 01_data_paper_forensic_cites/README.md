@@ -1,22 +1,23 @@
-# ForensicMacroWood-CITES: Dataset Paper & Technical Validation Pipeline
+# IC4SD-ForensicMacroWood-CITES: Dataset Paper & Technical Validation Pipeline
 ## Elsevier *Data in Brief* Dataset Publication
 
 [![Data Paper: Elsevier Data in Brief](https://img.shields.io/badge/Journal-Elsevier_Data_in_Brief-orange.svg)]()
 [![Dataset Status: Verified](https://img.shields.io/badge/Dataset-Verified-brightgreen.svg)]()
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-Thư mục này chứa toàn bộ quy trình tiền xử lý, kiểm soát chất lượng hình ảnh, sinh mã băm mật mã và băm tri giác khử trùng lặp 2 cấp độ, cùng pipeline huấn luyện mô hình kỹ thuật (Technical Validation) cho bộ dữ liệu **ForensicMacroWood-CITES** chuẩn bị xuất bản trên tạp chí **Elsevier *Data in Brief***.
+Thư mục này chứa toàn bộ quy trình tiền xử lý, kiểm soát chất lượng hình ảnh, sinh mã băm mật mã và băm tri giác khử trùng lặp 2 cấp độ, cùng pipeline huấn luyện mô hình kỹ thuật (Technical Validation) cho bộ dữ liệu **IC4SD-ForensicMacroWood-CITES** chuẩn bị xuất bản trên tạp chí **Elsevier *Data in Brief***.
 
 ---
 
 ## 📌 1. Giới thiệu Bộ Dữ liệu
 
-Bộ dữ liệu cung cấp **6,410 ảnh chụp mặt cắt ngang vĩ mô (transverse cross-section)** độ phân giải cao ($512 \times 512$ pixels, phóng đại quang học $20\times$), thu thập từ **116 phôi gỗ tiêu bản vật lý** thuộc **18 loài thực vật nguy cấp và thương mại** (Họ Đậu - Fabaceae) thuộc 5 chi:
-* ***Afzelia*** (4 loài): *A. africana*, *A. bipindensis*, *A. pachyloba*, *A. xylocarpa* (Toàn bộ CITES Phụ lục II).
-* ***Dalbergia*** (4 loài): *D. cochinchinensis*, *D. latifolia*, *D. oliveri*, *D. tonkinensis* (Toàn bộ CITES Phụ lục II).
-* ***Guibourtia*** (3 loài): *G. demeusei*, *G. pellegriniana*, *G. tessmannii* (Gỗ Bubinga thương mại đối chiếu).
-* ***Pterocarpus*** (4 loài): *P. angolensis*, *P. erinaceus* (CITES App. II), *P. macrocarpus*, *P. soyauxii*.
-* ***Sindora*** (3 loài): *S. cochinchinensis*, *S. siamensis*, *S. velutina* (Gỗ Gõ Mật đối chiếu).
+Bộ dữ liệu **IC4SD-ForensicMacroWood-CITES** cung cấp **6,414 ảnh chụp mặt cắt ngang vĩ mô (transverse cross-section)** độ phân giải cao ($12.0\,\mu\text{m/pixel}$), thu thập từ **147 phôi gỗ tiêu bản vật lý** thuộc **19 loài thực vật nguy cấp và thương mại** (Họ Đậu - Fabaceae) thuộc 6 chi:
+* ***Afzelia*** (4 loài): *A. africana*, *A. bella*, *A. pachyloba*, *A. quanzensis* (Toàn bộ CITES Phụ lục II).
+* ***Dalbergia*** (5 loài): *D. cochinchinensis*, *D. melanoxylon*, *D. oliveri*, *D. rimosa*, *D. tonkinensis* (Toàn bộ CITES Phụ lục II).
+* ***Guibourtia*** (3 loài): *G. arnoldiana*, *G. coleosperma*, *G. ehie* (Gỗ Bubinga / Ovengkol thương mại đối chiếu).
+* ***Peltogyne*** (1 loài): *P. pubescens* (Gỗ Purpleheart thương mại đối chiếu).
+* ***Pterocarpus*** (4 loài): *P. erinaceus* (CITES App. II), *P. indicus*, *P. macrocarpus*, *P. soyauxii* (CITES App. II).
+* ***Sindora*** (2 loài): *S. cochinchinensis*, *S. tonkinensis* (Gỗ Gõ Mật đối chiếu).
 
 ---
 

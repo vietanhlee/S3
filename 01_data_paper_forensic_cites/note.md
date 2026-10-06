@@ -1,4 +1,4 @@
-# Ghi Chú Cập Nhật & Phản Biện Bài Báo IC4SDMacroWood
+# Ghi Chú Cập Nhật & Phản Biện Bài Báo IC4SD-ForensicMacroWood-CITES
 
 ## 1. Các Hiệu Chỉnh Đã Thực Hiện Trên `paper_data/main.tex` & `out/README.md`
 - **CITES Phụ lục II:** Đã cập nhật loài *Dalbergia rimosa* thuộc CITES Appendix II (theo quy định CoP17 bao quát toàn chi *Dalbergia*). Nâng tổng số loài CITES trong tập dữ liệu lên **10/19 loài** (tỷ lệ chuẩn xác: **52.6%**).
