@@ -162,7 +162,7 @@ def set_seed(seed: int):
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Specimen-Invariant Wood ID Models")
     parser.add_argument("--method", type=str, default="conditional_grl",
-                        choices=["conditional_grl", "dann_unconditional", "club", "group_dro",
+                        choices=["conditional_grl", "conditional_grl_club", "dann_unconditional", "club", "group_dro",
                                  "irm", "focal", "arcface", "strong_reg", "mixup", "supcon",
                                  "semihard_triplet", "frozen_linear", "ce"],
                         help="Training methodology or baseline")

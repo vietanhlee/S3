@@ -112,6 +112,8 @@ class SpecimenInvariantModel(nn.Module):
         training_progress: float = 0.0,
         return_projection: bool = False,
         return_embedding: bool = False,
+        compute_unconditional_dann: bool = False,
+        compute_club: bool = False,
     ) -> Dict[str, Any]:
         """
         Forward pass.
@@ -124,6 +126,8 @@ class SpecimenInvariantModel(nn.Module):
             training_progress: Float p in [0, 1] for lambda_adv annealing
             return_projection: Whether to compute and return normalized metric projection
             return_embedding: Whether to return raw embedding z
+            compute_unconditional_dann: Whether to compute unconditional DANN specimen discriminator
+            compute_club: Whether to compute variational CLUB mutual information bound
         """
         # 1. Feature extraction
         z = self.extract_features(x)
@@ -159,15 +163,15 @@ class SpecimenInvariantModel(nn.Module):
                 out["loss_adv_cond"] = adv_cond_loss.view(1) if adv_cond_loss.dim() == 0 else adv_cond_loss
                 out["n_valid_cond"] = torch.tensor([n_valid], dtype=torch.long, device=x.device)
                 
-            # Unconditional DANN discrimination loss
-            if global_specimen_targets is not None:
+            # Unconditional DANN discrimination loss (only when explicitly requested)
+            if compute_unconditional_dann and global_specimen_targets is not None:
                 uncond_loss = self.uncond_discriminator(
                     z_reversed, global_specimen_targets
                 )
                 out["loss_adv_uncond"] = uncond_loss.view(1) if uncond_loss.dim() == 0 else uncond_loss
                 
-            # CLUB upper bound
-            if global_specimen_targets is not None:
+            # CLUB upper bound (only when explicitly requested)
+            if compute_club and global_specimen_targets is not None:
                 club_mi = self.club(z, global_specimen_targets)
                 club_var = self.club.loglikeli(z, global_specimen_targets)
                 out["club_mi_bound"] = club_mi.view(1) if club_mi.dim() == 0 else club_mi

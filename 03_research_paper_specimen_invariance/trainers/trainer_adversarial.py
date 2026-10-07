@@ -117,6 +117,7 @@ class InvarianceTrainer(BaseTrainer):
                     images,
                     global_specimen_targets=global_specimen_targets,
                     training_progress=progress,
+                    compute_unconditional_dann=True,
                 )
                 logits = out["species_logits"]
                 loss_species = F.cross_entropy(logits, species_targets)
@@ -134,6 +135,7 @@ class InvarianceTrainer(BaseTrainer):
                     images,
                     global_specimen_targets=global_specimen_targets,
                     training_progress=progress,
+                    compute_club=True,
                 )
                 logits = out["species_logits"]
                 loss_species = F.cross_entropy(logits, species_targets)
@@ -146,6 +148,34 @@ class InvarianceTrainer(BaseTrainer):
                 
                 # Jointly minimize species loss, MI upper bound, and train variational net
                 loss = loss_species + 0.1 * mi_bound + var_loss
+
+            elif method in ("conditional_grl_club", "proposed_full"):
+                # PROPOSED FULL FRAMEWORK: Species-Conditioned GRL + Variational CLUB Bottleneck
+                out = self.model(
+                    images,
+                    species_targets=species_targets,
+                    local_specimen_targets=local_specimen_targets,
+                    global_specimen_targets=global_specimen_targets,
+                    training_progress=progress,
+                    compute_club=True,
+                )
+                logits = out["species_logits"]
+                loss_species = F.cross_entropy(logits, species_targets)
+                loss_adv = out.get("loss_adv_cond", torch.tensor(0.0, device=self.device))
+                if isinstance(loss_adv, torch.Tensor):
+                    loss_adv = loss_adv.mean()
+                lambda_adv = out.get("lambda_adv", 0.0)
+                if isinstance(lambda_adv, torch.Tensor):
+                    lambda_adv = lambda_adv.mean().item()
+                mi_bound = out.get("club_mi_bound", torch.tensor(0.0, device=self.device))
+                if isinstance(mi_bound, torch.Tensor):
+                    mi_bound = mi_bound.mean()
+                var_loss = out.get("club_var_loss", torch.tensor(0.0, device=self.device))
+                if isinstance(var_loss, torch.Tensor):
+                    var_loss = var_loss.mean()
+                
+                # Joint Loss: L_species + lambda_adv * L_adv_cond + 0.1 * MI_bound + L_var
+                loss = loss_species + lambda_adv * loss_adv + 0.1 * mi_bound + var_loss
 
             elif method == "group_dro":
                 # BASELINE: GroupDRO (groups = physical specimens)

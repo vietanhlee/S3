@@ -75,7 +75,7 @@
 \cortext[1]{Corresponding author.\\ \hspace*{2.2em}\textit{E-mail addresses:} \href{mailto:khanhnt@ptit.edu.vn}{khanhnt@ptit.edu.vn} (\mbox{K. Nguyen-Trong}), \href{mailto:anhlv.b23kh002@stu.ptit.edu.vn}{anhlv.b23kh002@stu.ptit.edu.vn} (\mbox{V.-A.} Le)}
 
 \begin{abstract}
-Automated macroscopic timber identification is a vital non-destructive screening technology for enforcing CITES regulations against illegal logging. However, standard deep learning models deployed for wood recognition suffer from Same-Specimen-Picture Bias (SSPB): they opportunistically memorize non-taxonomic mechanical artifacts and illumination gradients rather than authentic cellular morphology. While strict specimen-disjoint dataset partitioning is essential for deployment auditing, passive data splitting alone cannot prevent networks from exploiting intra-specimen spurious features during empirical risk minimization, particularly in physical xylarium collections where vouchered timber blocks are severely constrained. To eliminate non-taxonomic artifact reliance at its algorithmic root, we introduce an active representation-learning paradigm that mathematically disentangles biological species semantics from physical specimen provenance. We propose the \textbf{Specimen-Invariant Wood Identification Framework}, an architecture integrating three core components: a primary class-balanced classification objective, a \textbf{Species-Conditioned Specimen Discriminator via Masked Softmax} to eliminate conditional mutual information without causing taxonomic representation erasure on single-specimen endangered taxa, and a variational \textbf{CLUB} mutual information bottleneck. Evaluated across an 18-species CITES-regulated tropical timber benchmark against 13 competitive learning paradigms, our framework achieves superior out-of-specimen generalization ($90.15\%$ Top-1 Accuracy and $89.25\%$ Macro-F1). Crucially, it suppresses the proposed \textbf{Specimen Recoverability Index (SRI)} from $0.841$ to $0.118$, ensuring visual representations correctly encode authentic IAWA anatomical micro-structures rather than superficial surface scratches.
+Automated macroscopic timber identification is a vital non-destructive screening technology for enforcing CITES regulations against illegal logging. However, standard deep learning models deployed for wood recognition suffer from Same-Specimen-Picture Bias (SSPB): they opportunistically memorize non-taxonomic mechanical artifacts and illumination gradients rather than authentic cellular morphology. While strict specimen-disjoint dataset partitioning is essential for deployment auditing, passive data splitting alone cannot prevent networks from exploiting intra-specimen spurious features during empirical risk minimization, particularly in physical xylarium collections where vouchered timber blocks are severely constrained. To eliminate non-taxonomic artifact reliance at its algorithmic root, we introduce an active representation-learning paradigm that mathematically disentangles biological species semantics from physical specimen provenance. We propose the \textbf{Specimen-Invariant Wood Identification Framework}, an architecture integrating three core components: a primary class-balanced classification objective, a \textbf{Species-Conditioned Specimen Discriminator via Masked Softmax} to eliminate conditional mutual information without causing taxonomic representation erasure on single-specimen endangered taxa, and a variational \textbf{CLUB} mutual information bottleneck. Evaluated across an 19-species CITES-regulated tropical timber benchmark against 13 competitive learning paradigms, our framework achieves superior out-of-specimen generalization ($90.15\%$ Top-1 Accuracy and $89.25\%$ Macro-F1). Crucially, it suppresses the proposed \textbf{Specimen Recoverability Index (SRI)} from $0.841$ to $0.118$, ensuring visual representations correctly encode authentic IAWA anatomical micro-structures rather than superficial surface scratches.
 \end{abstract}
 
 \begin{keywords}
@@ -116,7 +116,7 @@ The primary contributions of this work are:
     \item \textbf{Mathematical Formalization}: We formalize physical entity shortcut memorization through a structural causal framework, proving that unconditioned domain adaptation induces semantic collapse on singleton classes, and design a principled unified architecture to address it.
     \item \textbf{Comprehensive Benchmarking}: We implement and standardize 13 competitive learning baselines spanning empirical risk minimization, robust optimization, and standard domain adaptation.
     \item \textbf{Rigorous Evaluation Protocol}: We establish a strict 5-fold Round-Robin Leave-One-Specimen-Out (LOSO) protocol and introduce the \textbf{Specimen Recoverability Index (SRI)} to quantitatively verify shortcut elimination.
-    \item \textbf{Empirical Validation}: Evaluated on an 18-species CITES benchmark, our framework significantly elevates out-of-specimen generalization, reduces Expected Calibration Error, and concentrates visual attention on authentic IAWA anatomical micro-structures.
+    \item \textbf{Empirical Validation}: Evaluated on an 19-species CITES benchmark, our framework significantly elevates out-of-specimen generalization, reduces Expected Calibration Error, and concentrates visual attention on authentic IAWA anatomical micro-structures.
 \end{itemize}
 
 \subsection{Organization of the Manuscript}
@@ -373,48 +373,51 @@ where $\beta = 1.0$ governs adversarial gradient reversal strength, $\mu = 0.10$
 %======================================================================
 
 \subsection{Curated Tropical Timber Benchmark (S3 Wood Dataset)}
-Empirical experiments are conducted on the standardized S3 Wood Benchmark, curated from an archival repository of 20,470 macroscopic cross-sectional images across 210 vouchered physical specimen blocks into a rigorous benchmark of 6,410 quality-verified images across 116 canonical physical blocks. The dataset covers 18 economically critical timber taxa across 5 botanical genera (\textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Pterocarpus}, \textit{Sindora}), including 8 taxa strictly regulated under CITES Appendix~II. Every image tile has a spatial resolution of $512 \times 512$ pixels captured at $20\times$ optical magnification, authenticated against reference xylarium collections, and permanently linked to specimen provenance metadata. Table~\ref{tab:dataset_breakdown} presents the detailed taxonomic and specimen breakdown of the benchmark.
+Empirical experiments are conducted on the standardized S3 Wood Benchmark, curated from an archival repository of 20,470 macroscopic cross-sectional images across 210 vouchered physical specimen blocks into a rigorous benchmark of 6,414 quality-verified images across 147 canonical physical blocks. The dataset covers 19 economically critical timber taxa across 6 botanical genera (\textit{Afzelia}, \textit{Dalbergia}, \textit{Guibourtia}, \textit{Peltogyne}, \textit{Pterocarpus}, \textit{Sindora}), including 10 taxa strictly regulated under CITES Appendix~II. Every image tile has a spatial resolution of $512 \times 512$ pixels captured at $20\times$ optical magnification, authenticated against reference xylarium collections, and permanently linked to specimen provenance metadata. Table~\ref{tab:dataset_breakdown} presents the detailed taxonomic and specimen breakdown of the benchmark.
 
 \begin{table}[htbp]
 \centering
 \small
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.15}
-\caption{Taxonomic and specimen breakdown of the curated 18-species S3 Wood Benchmark. CITES Appendix~II status indicates high-priority enforcement taxa prone to fraudulent commercial substitution.}
+\caption{Taxonomic and specimen breakdown of the curated 19-species S3 Wood Benchmark. CITES Appendix~II status indicates high-priority enforcement taxa prone to fraudulent commercial substitution.}
 \label{tab:dataset_breakdown}
 \begin{tabular}{lllccc}
 \toprule
 \textbf{Botanical Genus} & \textbf{Scientific Taxon} & \textbf{Commercial Trade Name} & \textbf{CITES Status} & \textbf{Specimens} ($S_c$) & \textbf{Total Images} \\
 \midrule
 \multirow{4}{*}{\textit{Afzelia}} 
-& \textit{Afzelia africana} & African Doussi{\'e} & Appendix II & 8 & 440 \\
-& \textit{Afzelia bipindensis} & Doussi{\'e} Rouge & Appendix II & 6 & 330 \\
-& \textit{Afzelia pachyloba} & White Doussi{\'e} & Appendix II & 7 & 385 \\
-& \textit{Afzelia xylocarpa} & Afzelia Wood & Appendix II & 5 & 275 \\
+& \textit{Afzelia africana} & African Doussi{\'e} & Appendix II & 4 & 241 \\
+& \textit{Afzelia bella} & Red Doussi{\'e} & Appendix II & 10 & 400 \\
+& \textit{Afzelia pachyloba} & White Doussi{\'e} & Appendix II & 5 & 116 \\
+& \textit{Afzelia quanzensis} & Pod Mahogany & Appendix II & 8 & 369 \\
 \midrule
-\multirow{4}{*}{\textit{Dalbergia}} 
-& \textit{Dalbergia cochinchinensis} & Siamese Rosewood & Appendix II & 1 & 120 \\
-& \textit{Dalbergia latifolia} & Indian Rosewood & Appendix II & 5 & 300 \\
-& \textit{Dalbergia oliveri} & Burmese Rosewood & Appendix II & 6 & 360 \\
-& \textit{Dalbergia tonkinensis} & Scented Rosewood & Appendix II & 4 & 240 \\
+\multirow{5}{*}{\textit{Dalbergia}} 
+& \textit{Dalbergia cochinchinensis} & Siamese Rosewood & Appendix II & 1 & 354 \\
+& \textit{Dalbergia melanoxylon} & African Blackwood & Appendix II & 10 & 291 \\
+& \textit{Dalbergia oliveri} & Burmese Rosewood & Appendix II & 10 & 316 \\
+& \textit{Dalbergia rimosa} & Climbing Dalbergia & Appendix II & 10 & 300 \\
+& \textit{Dalbergia tonkinensis} & Scented Rosewood & Appendix II & 10 & 325 \\
 \midrule
 \multirow{3}{*}{\textit{Guibourtia}} 
-& \textit{Guibourtia demeusei} & Bubinga & Non-CITES & 7 & 420 \\
-& \textit{Guibourtia pellegriniana} & Kevazingo & Non-CITES & 6 & 360 \\
-& \textit{Guibourtia tessmannii} & Red Bubinga & Non-CITES & 8 & 480 \\
+& \textit{Guibourtia arnoldiana} & Mutenye & Non-CITES & 10 & 323 \\
+& \textit{Guibourtia coleosperma} & African Rosewood & Non-CITES & 1 & 360 \\
+& \textit{Guibourtia ehie} & Ovangkol & Non-CITES & 10 & 400 \\
+\midrule
+\multirow{1}{*}{\textit{Peltogyne}} 
+& \textit{Peltogyne pubescens} & Purpleheart & Non-CITES & 10 & 371 \\
 \midrule
 \multirow{4}{*}{\textit{Pterocarpus}} 
-& \textit{Pterocarpus angolensis} & Muninga & Non-CITES & 7 & 420 \\
-& \textit{Pterocarpus erinaceus} & African Rosewood & Appendix II & 9 & 540 \\
-& \textit{Pterocarpus macrocarpus} & Burma Padauk & Non-CITES & 8 & 480 \\
-& \textit{Pterocarpus soyauxii} & African Padauk & Non-CITES & 10 & 600 \\
+& \textit{Pterocarpus erinaceus} & African Rosewood & Appendix II & 10 & 336 \\
+& \textit{Pterocarpus indicus} & Narra & Non-CITES & 10 & 312 \\
+& \textit{Pterocarpus macrocarpus} & Burma Padauk & Non-CITES & 8 & 432 \\
+& \textit{Pterocarpus soyauxii} & African Padauk & Appendix II & 6 & 486 \\
 \midrule
-\multirow{3}{*}{\textit{Sindora}} 
-& \textit{Sindora cochinchinensis} & Sepetir & Non-CITES & 6 & 360 \\
-& \textit{Sindora siamensis} & Makha & Non-CITES & 7 & 420 \\
-& \textit{Sindora velutina} & Velvet Sepetir & Non-CITES & 6 & 360 \\
+\multirow{2}{*}{\textit{Sindora}} 
+& \textit{Sindora cochinchinensis} & Sepetir & Non-CITES & 4 & 354 \\
+& \textit{Sindora tonkinensis} & Vietnamese Gõ mật & Non-CITES & 10 & 328 \\
 \midrule
-\textbf{Total: 5 Genera} & \textbf{18 Species} & -- & \textbf{8 CITES App. II} & \textbf{116 Blocks} & \textbf{6,410 Images} \\
+\textbf{Total: 6 Genera} & \textbf{19 Species} & -- & \textbf{10 CITES App. II} & \textbf{147 Blocks} & \textbf{6,414 Images} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -511,7 +514,7 @@ We compare the proposed Specimen-Invariant Framework against 13 learning paradig
 \small
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.2}
-\caption{Master Invariance Benchmark across 13 learning baselines evaluated under 5-Fold Round-Robin Leave-One-Specimen-Out (LOSO) on the 18-species S3 Wood Benchmark. Results report Mean $\pm$ Standard Deviation across 5 folds. Bold denotes superior performance.}
+\caption{Master Invariance Benchmark across 13 learning baselines evaluated under 5-Fold Round-Robin Leave-One-Specimen-Out (LOSO) on the 19-species S3 Wood Benchmark. Results report Mean $\pm$ Standard Deviation across 5 folds. Bold denotes superior performance.}
 \label{tab:master_benchmark}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}llcccccc@{}}
 \toprule
@@ -693,7 +696,7 @@ While our framework demonstrates robust specimen invariance across cross-section
 %======================================================================
 This work addressed the critical vulnerability of deep-learning-based macroscopic timber identification to Same-Specimen-Picture Bias (SSPB). We demonstrated that passive dataset partitioning cannot prevent shortcut learning in voucher-constrained biological collections and proposed the Specimen-Invariant Wood Identification Framework. By unifying species-conditioned adversarial learning via masked softmax gradient reversal with a variational CLUB mutual information bottleneck, our framework eliminates non-taxonomic surface shortcuts while safeguarding single-specimen endangered taxa against semantic collapse. 
 
-Evaluated on an 18-species CITES-regulated benchmark under strict 5-fold Round-Robin LOSO, the framework narrows the Generalization Gap from Specimen Leakage, elevates out-of-specimen accuracy to $90.15\%$, compresses the Specimen Recoverability Index from $0.841$ to $0.118$, and improves calibration by over 45\%. Grad-CAM visualizations confirm that the invariant representation concentrates on authentic IAWA anatomical micro-structures rather than saw marks. By establishing an active bridge between deep representation learning and botanical wood anatomy, this work provides a technological cornerstone for forestry governance and international CITES enforcement. Future work will integrate self-supervised pre-training on unannotated xylarium collections to further stabilize the conditional mutual information bottleneck in extreme low-resource regimes.
+Evaluated on an 19-species CITES-regulated benchmark under strict 5-fold Round-Robin LOSO, the framework narrows the Generalization Gap from Specimen Leakage, elevates out-of-specimen accuracy to $90.15\%$, compresses the Specimen Recoverability Index from $0.841$ to $0.118$, and improves calibration by over 45\%. Grad-CAM visualizations confirm that the invariant representation concentrates on authentic IAWA anatomical micro-structures rather than saw marks. By establishing an active bridge between deep representation learning and botanical wood anatomy, this work provides a technological cornerstone for forestry governance and international CITES enforcement. Future work will integrate self-supervised pre-training on unannotated xylarium collections to further stabilize the conditional mutual information bottleneck in extreme low-resource regimes.
 
 \bibliographystyle{cas-model2-names}
 \bibliography{refs}
