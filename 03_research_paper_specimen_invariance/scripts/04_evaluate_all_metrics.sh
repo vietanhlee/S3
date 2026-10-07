@@ -13,8 +13,22 @@ set -e
 
 BACKBONE="convnext_tiny"
 FOLD=0
-METADATA="out/metadata/metadata.csv"
-IMG_ROOT="out"
+
+# Tự động nhận diện đường dẫn metadata và ảnh trên Kaggle hoặc Local
+if [ -f "/kaggle/working/S3/01_data_paper_forensic_cites/out/metadata/metadata.csv" ]; then
+    METADATA="/kaggle/working/S3/01_data_paper_forensic_cites/out/metadata/metadata.csv"
+elif [ -f "01_data_paper_forensic_cites/out/metadata/metadata.csv" ]; then
+    METADATA="01_data_paper_forensic_cites/out/metadata/metadata.csv"
+else
+    METADATA="out/metadata/metadata.csv"
+fi
+
+if [ -d "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" ]; then
+    IMG_ROOT="/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
+else
+    IMG_ROOT="out"
+fi
+
 BASE_DIR="specimen_invariance_outputs"
 
 METHODS=(
@@ -23,10 +37,12 @@ METHODS=(
     "dann_unconditional"
     "club"
     "conditional_grl"
+    "conditional_grl_club"
 )
 
 echo "=================================================================="
 echo " Starting Full Module 3 Evaluation Across Trained Models          "
+echo " Base Dir: ${BASE_DIR} | Fold: ${FOLD}                            "
 echo "=================================================================="
 
 for METHOD in "${METHODS[@]}"; do
@@ -56,7 +72,11 @@ EXTRA_BACKBONES=(
 )
 
 for BB in "${EXTRA_BACKBONES[@]}"; do
-    RUN_DIR="${BASE_DIR}/conditional_grl_${BB}_fold${FOLD}_seed42"
+    # Check conditional_grl_club first, fallback to conditional_grl
+    RUN_DIR="${BASE_DIR}/conditional_grl_club_${BB}_fold${FOLD}_seed42"
+    if [ ! -d "${RUN_DIR}" ]; then
+        RUN_DIR="${BASE_DIR}/conditional_grl_${BB}_fold${FOLD}_seed42"
+    fi
     CKPT="${RUN_DIR}/best_model.pth"
     
     if [ -f "${CKPT}" ]; then
@@ -74,5 +94,12 @@ done
 
 echo ""
 echo "=================================================================="
-echo " Evaluation completed for all available checkpoints!              "
+echo " Aggregating All Results into Paper Tables (LaTeX)                "
+echo "=================================================================="
+python collect_all_benchmark_results.py --output_base_dir "${BASE_DIR}"
+
+echo ""
+echo "=================================================================="
+echo " Evaluation and Master Table Aggregation Complete!               "
+echo " Tables saved in: ${BASE_DIR}/summary_tables                      "
 echo "=================================================================="
