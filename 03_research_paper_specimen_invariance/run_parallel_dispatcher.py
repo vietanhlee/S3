@@ -52,6 +52,7 @@ BASELINES = [
     "dann_unconditional",   # Baseline: Unconditional domain adaptation (collapses on singleton taxa)
     "club",                 # Baseline: Variational mutual information bottleneck
     "conditional_grl",      # Proposed: Species-Conditioned Masked Softmax GRL
+    "conditional_grl_club", # Proposed Full: Species-Conditioned GRL + Variational CLUB Bottleneck
 ]
 
 BACKBONES = [
@@ -357,7 +358,9 @@ def parse_args():
     parser.add_argument("--strategy", type=str, default="data_parallel", choices=["data_parallel", "task_parallel"],
                         help="Execution strategy: 'data_parallel' (default) uses all visible GPUs simultaneously for each model; 'task_parallel' trains different models concurrently (1 model per GPU).")
     parser.add_argument("--mode", type=str, default="baselines", choices=["baselines", "backbones", "custom"],
-                        help="Mode: 'baselines' runs 5 core methods; 'backbones' runs 4 architectures; 'custom' uses --methods")
+                        help="Mode: 'baselines' runs 6 core methods; 'backbones' runs 4 architectures; 'custom' uses --methods")
+    parser.add_argument("--method", type=str, default="conditional_grl_club",
+                        help="Method to train when running --mode backbones (default: conditional_grl_club)")
     parser.add_argument("--methods", nargs="+", type=str, default=None,
                         help="Custom list of methods to run (when --mode custom)")
     parser.add_argument("--backbone", type=str, default="convnext_tiny", help="Default backbone")
@@ -401,7 +404,7 @@ def main():
             tasks.append({"method": m, "backbone": args.backbone, "fold": args.fold, "seed": args.seed})
     elif args.mode == "backbones":
         for b in BACKBONES:
-            tasks.append({"method": "conditional_grl", "backbone": b, "fold": args.fold, "seed": args.seed})
+            tasks.append({"method": args.method, "backbone": b, "fold": args.fold, "seed": args.seed})
     elif args.mode == "custom":
         if not args.methods:
             raise ValueError("When using --mode custom, please specify --methods <m1> <m2> ...")

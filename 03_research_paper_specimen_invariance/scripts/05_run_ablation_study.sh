@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 02_run_ablation_backbones.sh
+# 05_run_ablation_study.sh
 # ==============================================================================
-# Automatically detects all available GPUs and trains the proposed conditional
-# GRL model across 4 visual backbones concurrently:
-#   1. ConvNeXt-Tiny (Primary modern CNN)
-#   2. ResNet-50 (Classical residual CNN)
-#   3. EfficientNetV2-S (Compound scaling CNN)
-#   4. Swin-T (Hierarchical Vision Transformer)
+# Executes all 7 Ablation configurations for Paper Table 3:
+#   1. Baseline (Focal Loss only)
+#   2. Full Framework w/o Masked Softmax (Global DANN)
+#   3. Full Framework w/o Annealing (Constant lambda=1.0)
+#   4. Full Framework w/o CLUB Bottleneck (GRL only)
+#   5. Full Framework w/o GRL (CLUB only)
+#   6. Full Framework w/o Specimen-Balanced Sampler
+#   7. Proposed Full Framework (Conditional GRL + CLUB Bottleneck)
 # ==============================================================================
 
 set -e
 
-METHOD="conditional_grl_club"
+BACKBONE="convnext_tiny"
 FOLD=0
 EPOCHS=13
 BATCH_SIZE=64
 
-# Tự động nhận diện đường dẫn metadata và ảnh trên Kaggle hoặc Local
 if [ -f "/kaggle/working/S3/01_data_paper_forensic_cites/out/metadata/metadata.csv" ]; then
     METADATA="/kaggle/working/S3/01_data_paper_forensic_cites/out/metadata/metadata.csv"
 elif [ -f "01_data_paper_forensic_cites/out/metadata/metadata.csv" ]; then
@@ -32,27 +33,25 @@ else
     IMG_ROOT="out"
 fi
 
-OUTPUT_DIR="specimen_invariance_outputs"
+OUTPUT_DIR="specimen_invariance_outputs/ablation_study"
 
 echo "=================================================================="
-echo " Auto-Detecting GPUs & Running Backbone Ablations in Parallel     "
-echo " Method: ${METHOD} | Fold: ${FOLD} | Epochs: ${EPOCHS}            "
+echo " Starting Comprehensive Ablation Study (Table 3)                  "
+echo " Backbone: ${BACKBONE} | Fold: ${FOLD} | Epochs: ${EPOCHS}        "
 echo " Output Dir: ${OUTPUT_DIR}                                        "
 echo "=================================================================="
 
-# Invoke the multi-GPU parallel dispatcher for backbones with DataParallel
-python run_parallel_dispatcher.py \
-    --strategy data_parallel \
-    --mode backbones \
-    --method "${METHOD}" \
+python run_ablation_study.py \
+    --backbone "${BACKBONE}" \
     --fold "${FOLD}" \
     --epochs "${EPOCHS}" \
     --batch_size "${BATCH_SIZE}" \
     --metadata_csv "${METADATA}" \
     --image_root "${IMG_ROOT}" \
-    --output_base_dir "${OUTPUT_DIR}"
+    --output_dir "${OUTPUT_DIR}"
 
 echo ""
 echo "=================================================================="
-echo " All backbone ablations completed!                                "
+echo " Ablation study complete! Artifacts saved in: ${OUTPUT_DIR}        "
+echo " Check ${OUTPUT_DIR}/ablation_table.tex for Paper Table 3         "
 echo "=================================================================="
