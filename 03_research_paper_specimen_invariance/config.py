@@ -112,6 +112,7 @@ class TrainingConfig:
     logs_dir: str = "specimen_invariance_outputs/logs"
     save_best_only: bool = True
     metric_for_best: str = "macro_f1"  # Evaluated strictly on specimen-disjoint validation
+    club_weight: float = 0.10  # Weight mu for CLUB mutual information upper bound loss
 
 
 @dataclass

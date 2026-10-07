@@ -152,18 +152,67 @@ def resolve_image_root(given_root: str, sample_image_relpath: str) -> Path:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Sweep lambda_adv for Pareto Frontier & Correlation")
+    parser = argparse.ArgumentParser(description="Sweep lambda_adv (beta) and club_weight (mu) for Pareto & Sensitivity")
     parser.add_argument("--backbone", type=str, default="convnext_tiny")
+    parser.add_argument("--method", type=str, default="conditional_grl_club",
+                        choices=["conditional_grl_club", "conditional_grl", "club"],
+                        help="Training method to sweep")
     parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--epochs", type=int, default=13)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lambdas", nargs="+", type=float, default=[0.0, 0.5, 1.0],
-                        help="List of lambda_adv values to sweep")
+                        help="List of lambda_adv (beta) values to sweep")
+    parser.add_argument("--club_weights", nargs="+", type=float, default=[0.10],
+                        help="List of club_weight (mu) values to sweep")
+    parser.add_argument("--sweep_table4", action="store_true",
+                        help="Execute exactly the 7 canonical (beta, mu) grid points defined in Paper Table 4")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--metadata_csv", type=str, default="out/metadata/metadata.csv")
     parser.add_argument("--image_root", type=str, default="out")
     parser.add_argument("--output_dir", type=str, default="specimen_invariance_outputs/pareto_sweep")
     return parser.parse_args()
+
+
+@torch.no_grad()
+def evaluate_model_with_calibration(model: nn.Module, loader: DataLoader, device: torch.device, num_bins: int = 15):
+    """
+    Evaluates classification accuracy, macro F1, and ECE/MCE calibration errors.
+    """
+    model.eval()
+    all_confs = []
+    all_preds = []
+    all_targets = []
+    
+    feature_extractor = model.module if hasattr(model, "module") else model
+    
+    for batch in loader:
+        images = batch["image"].to(device)
+        targets = batch["species_idx"].to(device)
+        out = feature_extractor(images)
+        logits = out["species_logits"]
+        probs = torch.softmax(logits, dim=-1)
+        confs, preds = torch.max(probs, dim=-1)
+        all_confs.extend(confs.cpu().numpy())
+        all_preds.extend(preds.cpu().numpy())
+        all_targets.extend(targets.cpu().numpy())
+        
+    all_confs = np.array(all_confs, dtype=np.float32)
+    all_preds = np.array(all_preds, dtype=np.int64)
+    all_targets = np.array(all_targets, dtype=np.int64)
+    
+    acc = float(np.mean(all_preds == all_targets) * 100.0)
+    from sklearn.metrics import f1_score
+    macro_f1 = float(f1_score(all_targets, all_preds, average="macro", zero_division=0) * 100.0)
+    
+    from evaluation.calibration import compute_calibration_metrics
+    calib = compute_calibration_metrics(all_confs, all_preds, all_targets, num_bins=num_bins)
+    
+    return {
+        "accuracy": acc,
+        "macro_f1": macro_f1,
+        "ece": float(calib["ece"] * 100.0),
+        "mce": float(calib["mce"] * 100.0),
+    }
 
 
 def main():
@@ -186,9 +235,24 @@ def main():
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     
-    print(f"[*] Commencing lambda_adv sweep across values: {args.lambdas}")
+    # 1. Define configurations to sweep
+    if args.sweep_table4:
+        # Canonical 7 grid points from Table 4 of the manuscript
+        sweep_configs = [
+            (0.20, 0.05),
+            (0.50, 0.05),
+            (1.00, 0.05),
+            (1.00, 0.10),
+            (1.00, 0.20),
+            (1.50, 0.10),
+            (2.00, 0.10),
+        ]
+        print(f"[*] TABLE 4 SENSITIVITY MODE: Sweeping 7 canonical grid points (beta, mu): {sweep_configs}")
+    else:
+        sweep_configs = [(lam, mu) for lam in args.lambdas for mu in args.club_weights]
+        print(f"[*] Commencing sweep across (beta, mu) grid: {sweep_configs}")
     
-    # 1. Metadata and mappings
+    # 2. Metadata and mappings
     meta_path = resolve_metadata_path(args.metadata_csv)
     meta_df = pd.read_csv(meta_path)
     mappings = build_taxonomy_mappings(meta_df)
@@ -197,7 +261,7 @@ def main():
     image_root = resolve_image_root(args.image_root, sample_img_rel)
     print(f"[+] Using image directory: {image_root}")
     
-    # 2. Splits
+    # 3. Splits
     loso_folds = generate_round_robin_loso_splits(meta_df, num_folds=5, seed=args.seed)
     loso_fold = loso_folds[args.fold]
     leaky_fold = generate_leaky_stratified_split(loso_fold, seed=args.seed)
@@ -210,35 +274,40 @@ def main():
     ds_test_loso = TimberDataset(loso_fold["test"], str(image_root), mappings, transform=val_transform)
     ds_test_leaky = TimberDataset(leaky_fold["test"], str(image_root), mappings, transform=val_transform)
     
-    num_workers = 2 if os.name != 'nt' else 0
+    num_train_workers = 2 if (os.name != 'nt' and torch.cuda.is_available()) else 0
     pin_mem = torch.cuda.is_available()
+    
     loader_train = DataLoader(
         ds_train,
         batch_sampler=SpecimenBalancedBatchSampler(loso_fold["train"], batch_size=args.batch_size, samples_per_specimen=4, seed=args.seed),
-        num_workers=num_workers,
+        num_workers=num_train_workers,
         pin_memory=pin_mem,
-        persistent_workers=(num_workers > 0),
+        persistent_workers=(num_train_workers > 0),
     )
-    loader_val = DataLoader(ds_val, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem, persistent_workers=(num_workers > 0))
-    loader_test_loso = DataLoader(ds_test_loso, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem, persistent_workers=(num_workers > 0))
-    loader_test_leaky = DataLoader(ds_test_leaky, batch_size=args.batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem, persistent_workers=(num_workers > 0))
+    # Strictly num_workers=0 on validation and test to prevent host RAM explosion on Kaggle/Linux
+    loader_val = DataLoader(ds_val, batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=pin_mem)
+    loader_test_loso = DataLoader(ds_test_loso, batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=pin_mem)
+    loader_test_leaky = DataLoader(ds_test_leaky, batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=pin_mem)
     
     sweep_results = []
     
-    for lam in args.lambdas:
-        print(f"\n" + "=" * 60, flush=True)
-        print(f"  TRAINING WITH lambda_adv = {lam:.2f}", flush=True)
-        print("=" * 60, flush=True)
+    for (beta_val, mu_val) in sweep_configs:
+        print(f"\n" + "=" * 65, flush=True)
+        print(f"  RUNNING CONFIG: beta (adv) = {beta_val:.2f} | mu (club) = {mu_val:.2f} | Method: {args.method}", flush=True)
+        print("=" * 65, flush=True)
         
-        run_name = f"pareto_lambda_{lam:.2f}"
+        run_name = f"pareto_beta_{beta_val:.2f}_mu_{mu_val:.2f}"
         run_dir = out_dir / run_name
+        best_ckpt = run_dir / "best_model.pth"
+        train_summary_file = run_dir / "train_summary.json"
         
-        model_cfg = ModelConfig(backbone_name=args.backbone, max_lambda_adv=lam)
+        model_cfg = ModelConfig(backbone_name=args.backbone, max_lambda_adv=beta_val)
         train_cfg = TrainingConfig(
-            method="conditional_grl",
+            method=args.method,
             epochs=args.epochs,
             batch_size=args.batch_size,
             seed=args.seed,
+            club_weight=mu_val,
         )
         
         model = SpecimenInvariantModel(
@@ -249,21 +318,29 @@ def main():
         if use_data_parallel:
             model = nn.DataParallel(model)
         
-        trainer = InvarianceTrainer(
-            model=model,
-            train_loader=loader_train,
-            val_loader=loader_val,
-            test_loader=loader_test_loso,
-            config=train_cfg,
-            model_config=model_cfg,
-            device=device,
-            output_dir=str(run_dir),
-        )
-        
-        train_out = trainer.train()
+        # Check if run already completed (Cache hit)
+        if best_ckpt.exists() and train_summary_file.exists():
+            print(f"[*] [CACHE HIT] Found completed checkpoint and summary at {run_dir}. Skipping training!", flush=True)
+        else:
+            trainer = InvarianceTrainer(
+                model=model,
+                train_loader=loader_train,
+                val_loader=loader_val,
+                test_loader=loader_test_loso,
+                config=train_cfg,
+                model_config=model_cfg,
+                device=device,
+                output_dir=str(run_dir),
+            )
+            trainer.train()
+            # Explicit memory cleanup
+            del trainer
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            import gc
+            gc.collect()
         
         # Load best checkpoint
-        best_ckpt = run_dir / "best_model.pth"
         if best_ckpt.exists():
             ckpt = safe_load_checkpoint(best_ckpt, map_location=device)
             raw_model = model.module if hasattr(model, "module") else model
@@ -273,10 +350,11 @@ def main():
                 for k, v in raw_state_dict.items()
             }
             raw_model.load_state_dict(cleaned_state_dict)
+            print(f"[+] Loaded best checkpoint from epoch {ckpt.get('epoch', 'N/A')}")
             
-        # Evaluate LOSO vs Leaky
-        test_loso_metrics = trainer.evaluate(loader_test_loso)
-        test_leaky_metrics = trainer.evaluate(loader_test_leaky)
+        # Evaluate LOSO with Calibration
+        test_loso_metrics = evaluate_model_with_calibration(model, loader_test_loso, device)
+        test_leaky_metrics = evaluate_model_with_calibration(model, loader_test_leaky, device)
         ggsl = compute_ggsl(test_leaky_metrics["accuracy"], test_loso_metrics["accuracy"],
                             test_leaky_metrics["macro_f1"], test_loso_metrics["macro_f1"])
         
@@ -291,38 +369,66 @@ def main():
         )
         
         record = {
-            "lambda_adv": lam,
-            "val_acc": train_out["test_metrics"]["accuracy"],
-            "val_macro_f1": train_out["test_metrics"]["macro_f1"],
-            "sri": probe_res["mean_sri"],
-            "ggsl_acc": ggsl["ggsl_acc"],
-            "ggsl_macro_f1": ggsl["ggsl_macro_f1"],
-            "method_name": f"λ={lam:.2f}",
+            "beta": float(beta_val),
+            "mu": float(mu_val),
+            "lambda_adv": float(beta_val),
+            "val_acc": float(test_loso_metrics["accuracy"]),
+            "val_macro_f1": float(test_loso_metrics["macro_f1"]),
+            "sri": float(probe_res["mean_sri"]),
+            "ece": float(test_loso_metrics["ece"]),
+            "mce": float(test_loso_metrics["mce"]),
+            "ggsl_acc": float(ggsl["ggsl_acc"]),
+            "ggsl_macro_f1": float(ggsl["ggsl_macro_f1"]),
+            "method_name": f"β={beta_val:.2f}, μ={mu_val:.2f}",
         }
         sweep_results.append(record)
-        print(f"[Result λ={lam:.2f}] Strict Acc: {record['val_acc']:.2f}% | SRI: {record['sri']:.4f} | GGSL Acc: {record['ggsl_acc']:+.2f} pp", flush=True)
+        print(f"[Result β={beta_val:.2f}, μ={mu_val:.2f}] Strict Acc: {record['val_acc']:.2f}% | "
+              f"Macro-F1: {record['val_macro_f1']:.2f}% | SRI: {record['sri']:.4f} | ECE: {record['ece']:.2f}% | "
+              f"GGSL Acc: {record['ggsl_acc']:+.2f} pp", flush=True)
         
-        # Free memory and clear cache before next lambda iteration to prevent OOM
-        del model, trainer, train_out, embs_train, probe_res
+        # Free memory and clear cache before next iteration to prevent OOM
+        del model, embs_train, probe_res
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         import gc
         gc.collect()
         
-    # Save sweep json
+    # Save sweep json & csv
     with open(out_dir / "pareto_sweep_results.json", "w", encoding="utf-8") as f:
         json.dump(sweep_results, f, indent=2)
+    pd.DataFrame(sweep_results).to_csv(out_dir / "pareto_sweep_results.csv", index=False)
+    
+    # Generate LaTeX rows for Table 4 (Hyperparameter Sensitivity)
+    tex_rows = []
+    for r in sweep_results:
+        beta_str = f"{r['beta']:.2f}"
+        mu_str = f"{r['mu']:.2f}"
+        acc_str = f"{r['val_acc']:.2f}"
+        sri_str = f"{r['sri']:.3f}"
+        ece_str = f"{r['ece']:.2f}"
+        if abs(r['beta'] - 1.00) < 1e-4 and abs(r['mu'] - 0.10) < 1e-4:
+            tex_rows.append(f"\\textbf{{{beta_str}}} & \\textbf{{{mu_str}}} & \\textbf{{{acc_str}}} & \\textbf{{{sri_str}}} & \\textbf{{{ece_str}}} \\\\")
+        else:
+            tex_rows.append(f"{beta_str} & {mu_str} & {acc_str} & {sri_str} & {ece_str} \\\\")
+    
+    latex_snippet_path = out_dir / "pareto_sensitivity_table.tex"
+    with open(latex_snippet_path, "w", encoding="utf-8") as f:
+        f.write("% Table 4: Hyperparameter Sensitivity LaTeX rows\n")
+        f.write("\n".join(tex_rows) + "\n")
+    print(f"[+] Saved formatted LaTeX table snippet to: {latex_snippet_path}", flush=True)
         
     # Plot Pareto Curve
-    pareto_plot_path = out_dir / "pareto_frontier_accuracy_vs_sri.png"
-    plot_pareto_curve(sweep_results, str(pareto_plot_path))
-    print(f"[+] Saved Pareto Curve to: {pareto_plot_path}", flush=True)
-    
-    # Plot Correlation
-    corr_plot_path = out_dir / "correlation_sri_vs_ggsl.png"
-    plot_correlation_sri_vs_ggsl(sweep_results, str(corr_plot_path))
-    print(f"[+] Saved Correlation Plot to: {corr_plot_path}", flush=True)
-    
+    try:
+        pareto_plot_path = out_dir / "pareto_frontier_accuracy_vs_sri.png"
+        plot_pareto_curve(sweep_results, str(pareto_plot_path))
+        print(f"[+] Saved Pareto Curve to: {pareto_plot_path}", flush=True)
+        
+        corr_plot_path = out_dir / "correlation_sri_vs_ggsl.png"
+        plot_correlation_sri_vs_ggsl(sweep_results, str(corr_plot_path))
+        print(f"[+] Saved Correlation Plot to: {corr_plot_path}", flush=True)
+    except Exception as e:
+        print(f"[!] Warning: Plot generation failed with: {e}", flush=True)
+        
     print("\n[SUCCESS] Completed Pareto sweep and correlation analyses!", flush=True)
 
 

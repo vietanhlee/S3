@@ -147,7 +147,8 @@ class InvarianceTrainer(BaseTrainer):
                     var_loss = var_loss.mean()
                 
                 # Jointly minimize species loss, MI upper bound, and train variational net
-                loss = loss_species + 0.1 * mi_bound + var_loss
+                club_w = getattr(self.config, "club_weight", 0.10)
+                loss = loss_species + club_w * mi_bound + var_loss
 
             elif method in ("conditional_grl_club", "proposed_full"):
                 # PROPOSED FULL FRAMEWORK: Species-Conditioned GRL + Variational CLUB Bottleneck
@@ -174,8 +175,9 @@ class InvarianceTrainer(BaseTrainer):
                 if isinstance(var_loss, torch.Tensor):
                     var_loss = var_loss.mean()
                 
-                # Joint Loss: L_species + lambda_adv * L_adv_cond + 0.1 * MI_bound + L_var
-                loss = loss_species + lambda_adv * loss_adv + 0.1 * mi_bound + var_loss
+                # Joint Loss: L_species + lambda_adv * L_adv_cond + club_weight * MI_bound + L_var
+                club_w = getattr(self.config, "club_weight", 0.10)
+                loss = loss_species + lambda_adv * loss_adv + club_w * mi_bound + var_loss
 
             elif method == "group_dro":
                 # BASELINE: GroupDRO (groups = physical specimens)
