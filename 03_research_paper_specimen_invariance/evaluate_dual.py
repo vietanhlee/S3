@@ -16,15 +16,23 @@ os.environ["PYTHONUNBUFFERED"] = "1"
 
 import argparse
 import json
+import warnings
 from pathlib import Path
 from typing import Dict, List, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import RidgeClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedKFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+# Suppress sklearn convergence/class size warnings for cleaner logs
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 from dataset import create_dataloaders
 from models_gan import StandardBaselineModel, AdversarialInvariantGAN
@@ -120,13 +128,22 @@ def compute_sri_probes(embs: np.ndarray, specimens: np.ndarray, seed: int = 42) 
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
 
-        # 1. Linear Ridge Probe
-        clf_lin = RidgeClassifier(alpha=1.0)
+        # 1. Linear Ridge Probe with Standardized Scaling
+        clf_lin = make_pipeline(StandardScaler(), RidgeClassifier(alpha=1.0))
         clf_lin.fit(X_train, y_train)
         lin_accs.append(accuracy_score(y_test, clf_lin.predict(X_test)))
 
-        # 2. Non-linear MLP Probe
-        clf_mlp = MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=20, random_state=seed)
+        # 2. Non-linear MLP Probe with Standardized Scaling & Early Stopping
+        clf_mlp = make_pipeline(
+            StandardScaler(),
+            MLPClassifier(
+                hidden_layer_sizes=(128, 64),
+                max_iter=100,
+                early_stopping=True,
+                n_iter_no_change=5,
+                random_state=seed,
+            )
+        )
         clf_mlp.fit(X_train, y_train)
         mlp_accs.append(accuracy_score(y_test, clf_mlp.predict(X_test)))
 
