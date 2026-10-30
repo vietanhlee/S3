@@ -1,23 +1,22 @@
 """
 dataset.py
 ==========
-Production-grade PyTorch Dataset and DataLoader loaders for the 11-species timber benchmark.
-Strictly loads physical wood micrographs from disk with automatic image root resolution
-(supporting Kaggle input directories, server mounts, and local workspaces).
-Raises descriptive errors if real images are not mounted, strictly eliminating synthetic fallbacks.
+Production-grade PyTorch Dataset and DataLoader module for the 11-species timber benchmark.
+Directly scans and filters physical wood images from the disk directory structure:
+/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3
+without requiring external metadata.csv files.
+
+Implements per-seed dynamic partitioning:
+  1. Set random seed s.
+  2. For each taxon (10 vouchers), partition 2 vouchers to strictly Unseen Physical Test.
+  3. Partition remaining 8 vouchers into 80% Train and 20% In-Specimen Validation.
+  4. Returns train, val, and unseen DataLoaders.
 """
 
 import os
 import sys
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
-
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -25,12 +24,260 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
+# Đảm bảo console UTF-8 an toàn trên mọi hệ điều hành
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+# 11 loài họ Đậu Fabaceae sạch mục tiêu (100% cân bằng 10 phôi/loài, 110 phôi vật lý)
+TARGET_SPECIES = [
+    "Afzelia bella",
+    "Dalbergia melanoxylon",
+    "Dalbergia oliveri",
+    "Dalbergia rimosa",
+    "Dalbergia tonkinensis",
+    "Guibourtia arnoldiana",
+    "Guibourtia ehie",
+    "Peltogyne pubescens",
+    "Pterocarpus erinaceus",
+    "Pterocarpus indicus",
+    "Sindora tonkinensis",
+]
+
+# 8 loài bị loại bỏ hoàn toàn do dữ liệu không ổn định hoặc quá ít phôi vật lý
+EXCLUDED_SPECIES = [
+    "Sindora cochinchinensis",
+    "Pterocarpus soyauxii",
+    "Afzelia pachyloba",
+    "Afzelia quanzensis",
+    "Afzelia africana",
+    "Guibourtia coleosperma",
+    "Pterocarpus macrocarpus",
+    "Dalbergia cochinchinensis",
+]
+
+# Đường dẫn fix cứng theo yêu cầu người dùng
+DEFAULT_IMAGE_ROOT = "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
+
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
 
+def resolve_image_root(custom_root: Optional[Union[str, Path]] = None) -> Path:
+    """
+    Xác định thư mục ảnh gốc.
+    Ưu tiên cao nhất: đường dẫn fix cứng theo chỉ định /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3
+    Nếu không có (ví dụ chạy local hoặc mount khác), quét các candidate thông dụng.
+    """
+    candidates = []
+    if custom_root:
+        candidates.append(Path(custom_root))
+
+    # 1. Đường dẫn fix cứng do người dùng chỉ định
+    candidates.append(Path(DEFAULT_IMAGE_ROOT))
+
+    # 2. Các mount path thay thế trên Kaggle
+    candidates.extend([
+        Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin"),
+        Path("/kaggle/input/s3-origin/S3"),
+        Path("/kaggle/input/s3-origin"),
+        Path("/kaggle/input/s3/S3"),
+        Path("/kaggle/input/s3"),
+    ])
+
+    # 3. Quét đệ quy trong /kaggle/input nếu tồn tại
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.exists():
+        try:
+            for sub in kaggle_input.iterdir():
+                if sub.is_dir():
+                    candidates.append(sub / "S3")
+                    candidates.append(sub)
+        except Exception:
+            pass
+
+    # 4. Local workspace paths (cho mục đích phát triển / kiểm thử)
+    current_dir = Path(__file__).resolve().parent
+    repo_root = current_dir.parent
+    candidates.extend([
+        repo_root / "01_data_paper_forensic_cites" / "out" / "images",
+        repo_root / "01_data_paper_forensic_cites" / "out",
+        repo_root / "out" / "images",
+        current_dir / "images",
+        Path("images"),
+    ])
+
+    # Kiểm tra candidate nào chứa ít nhất 1 thư mục loài mục tiêu (ví dụ 'Afzelia bella')
+    for cand in candidates:
+        if cand and cand.exists():
+            for sp in TARGET_SPECIES:
+                sp_dir = cand / sp
+                if sp_dir.is_dir():
+                    print(f"[+] [DỮ LIỆU THẬT] Nhận diện thành công thư mục ảnh gốc: {cand.resolve()}")
+                    return cand.resolve()
+
+    # Nếu không tìm thấy, thông báo lỗi dừng chương trình
+    candidates_str = "\n".join(f"    - {str(c)}" for c in candidates[:6])
+    error_msg = f"""
+{'=' * 80}
+[LỖI DỮ LIỆU]: KHÔNG TÌM THẤY THƯ MỤC ẢNH GỖ TẠI CÁC ĐƯỜNG DẪN KAGGLE!
+{'=' * 80}
+Đường dẫn fix cứng yêu cầu:
+    {DEFAULT_IMAGE_ROOT}
+
+Các đường dẫn đã quét tự động:
+{candidates_str}
+
+HƯỚNG DẪN XỬ LÝ TRÊN KAGGLE:
+  1. Trong giao diện Kaggle Notebook, nhìn sang thanh bên phải (Input).
+  2. Bấm '+ Add Input' (hoặc '+ Add Data').
+  3. Tìm kiếm và thêm dataset: 'b23dckh002lvitanh/s3-origin'.
+  4. Đảm bảo dataset xuất hiện tại /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3
+{'=' * 80}
+"""
+    print(error_msg)
+    raise FileNotFoundError(f"Cannot find wood image dataset directory at {DEFAULT_IMAGE_ROOT}")
+
+
+def scan_and_build_dataset(image_root: Optional[Union[str, Path]] = None) -> pd.DataFrame:
+    """
+    Quét trực tiếp cây thư mục đĩa và xây dựng DataFrame danh mục ảnh:
+    Cấu trúc: <image_root>/<Species>/<Voucher>/<image_file>
+    Chỉ giữ lại đúng 11 loài mục tiêu, loại bỏ 8 loài không ổn định.
+    Không cần phụ thuộc metadata.csv bên ngoài!
+    """
+    root_path = resolve_image_root(image_root)
+    records = []
+    img_exts = {".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"}
+
+    species_mapping = {sp: idx for idx, sp in enumerate(TARGET_SPECIES)}
+
+    for sp_name in TARGET_SPECIES:
+        sp_dir = root_path / sp_name
+        if not sp_dir.is_dir():
+            # Thử tìm case-insensitive
+            matched = [d for d in root_path.iterdir() if d.is_dir() and d.name.lower() == sp_name.lower()]
+            if matched:
+                sp_dir = matched[0]
+            else:
+                print(f"[!] Cảnh báo: Không tìm thấy thư mục loài '{sp_name}' tại {root_path}")
+                continue
+
+        # Quét các subfolder phôi gỗ (vouchers)
+        voucher_dirs = [d for d in sp_dir.iterdir() if d.is_dir()]
+        
+        # Nếu không có subfolder phôi, quét trực tiếp file trong folder loài
+        if not voucher_dirs:
+            direct_imgs = [f for f in sp_dir.iterdir() if f.is_file() and f.suffix in img_exts]
+            for img_f in direct_imgs:
+                records.append({
+                    "image_path": str(img_f.resolve()),
+                    "image_id": img_f.stem,
+                    "taxon_name": sp_name,
+                    "species_idx": species_mapping[sp_name],
+                    "specimen_id": f"{sp_name}_voucher_01",
+                })
+        else:
+            for v_dir in voucher_dirs:
+                v_name = f"{sp_name}_{v_dir.name}"
+                v_imgs = [f for f in v_dir.iterdir() if f.is_file() and f.suffix in img_exts]
+                # Nếu ảnh nằm trong folder con sâu hơn
+                if not v_imgs:
+                    v_imgs = [f for f in v_dir.rglob("*") if f.is_file() and f.suffix in img_exts]
+                for img_f in v_imgs:
+                    records.append({
+                        "image_path": str(img_f.resolve()),
+                        "image_id": img_f.stem,
+                        "taxon_name": sp_name,
+                        "species_idx": species_mapping[sp_name],
+                        "specimen_id": v_name,
+                    })
+
+    df = pd.DataFrame(records)
+    if df.empty:
+        raise ValueError(f"Không tìm thấy bất kỳ file ảnh nào hợp lệ trong 11 loài tại {root_path}")
+
+    # Gán chỉ số index liên tục cho toàn bộ các phôi vật lý
+    unique_vouchers = sorted(df["specimen_id"].unique())
+    voucher_to_idx = {v: idx for idx, v in enumerate(unique_vouchers)}
+    df["global_specimen_idx"] = df["specimen_id"].map(voucher_to_idx)
+
+    print(f"[+] Quét hoàn tất từ đĩa: {len(df):,} ảnh | {df['taxon_name'].nunique()} loài | {len(unique_vouchers)} phôi gỗ vật lý")
+    return df
+
+
+def split_dataset_by_seed(
+    df: pd.DataFrame,
+    seed: int = 42,
+    unseen_vouchers_per_species: int = 2,
+    val_ratio: float = 0.20,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Thực hiện phân vùng dữ liệu theo Seed cụ thể:
+      1. Đặt seed rng = RandomState(seed).
+      2. Với mỗi loài (10 phôi): chọn ngẫu nhiên unseen_vouchers_per_species (2 phôi)
+         làm tập Unseen Physical Test (22 phôi hoàn toàn mới ngoài hiện trường).
+      3. 8 phôi còn lại đưa vào tập In-Specimen pool (88 phôi).
+      4. Trên 88 phôi này, chia ngẫu nhiên ảnh thành Train Set (80%) và Validation Set (20%).
+    """
+    rng = np.random.RandomState(seed)
+
+    unseen_voucher_ids = set()
+    in_specimen_voucher_ids = set()
+
+    for sp_name, group in df.groupby("taxon_name"):
+        vouchers = sorted(group["specimen_id"].unique())
+        shuffled = rng.permutation(vouchers).tolist()
+        
+        # Chọn ra 2 phôi unseen
+        unseen_picks = shuffled[:unseen_vouchers_per_species]
+        in_picks = shuffled[unseen_vouchers_per_species:]
+        
+        unseen_voucher_ids.update(unseen_picks)
+        in_specimen_voucher_ids.update(in_picks)
+
+    df_unseen = df[df["specimen_id"].isin(unseen_voucher_ids)].copy().reset_index(drop=True)
+    df_in_pool = df[df["specimen_id"].isin(in_specimen_voucher_ids)].copy().reset_index(drop=True)
+
+    # Chia train / val trên tập in-specimen pool
+    # Stratified split theo taxon_name để bảo đảm phân bố cân bằng tuyệt đối
+    train_indices = []
+    val_indices = []
+
+    for sp_name, group in df_in_pool.groupby("taxon_name"):
+        idx_list = rng.permutation(group.index.values)
+        n_val = max(1, int(len(idx_list) * val_ratio))
+        val_indices.extend(idx_list[:n_val])
+        train_indices.extend(idx_list[n_val:])
+
+    df_train = df_in_pool.loc[train_indices].copy().reset_index(drop=True)
+    df_val = df_in_pool.loc[val_indices].copy().reset_index(drop=True)
+
+    # Gán nhãn phân vùng split
+    df_train["eval_split"] = "train"
+    df_val["eval_split"] = "val"
+    df_unseen["eval_split"] = "test_unseen"
+
+    # Remap lại specimen_idx trong tập train [0 .. N_train_specimens - 1]
+    train_vouchers = sorted(df_train["specimen_id"].unique())
+    v_map = {v: idx for idx, v in enumerate(train_vouchers)}
+    df_train["specimen_idx"] = df_train["specimen_id"].map(v_map)
+    df_val["specimen_idx"] = df_val["specimen_id"].map(lambda x: v_map.get(x, 0))
+    df_unseen["specimen_idx"] = 0
+
+    print(f"\n[+] Phân chia dữ liệu hoàn tất cho Seed {seed}:")
+    print(f"    - Train Set       : {len(df_train):,} ảnh (trên {len(train_vouchers)} phôi)")
+    print(f"    - Val Set (Seen)  : {len(df_val):,} ảnh (trên cùng {len(train_vouchers)} phôi)")
+    print(f"    - Unseen Test Set : {len(df_unseen):,} ảnh (trên {len(unseen_voucher_ids)} phôi CHƯA TỪNG THẤY)")
+
+    return df_train, df_val, df_unseen
+
+
 def build_train_transforms(image_size: int = 224) -> Callable:
-    """Builds standardized macroscopic timber training augmentations."""
+    """Augmentation chuẩn hóa cho ảnh hiển vi/macro gỗ cắt ngang."""
     return transforms.Compose([
         transforms.Resize((int(image_size * 1.14), int(image_size * 1.14))),
         transforms.RandomCrop(image_size),
@@ -43,7 +290,7 @@ def build_train_transforms(image_size: int = 224) -> Callable:
 
 
 def build_eval_transforms(image_size: int = 224) -> Callable:
-    """Builds deterministic evaluation transforms."""
+    """Biến đổi chuẩn hóa xác định cho tập Val và Test."""
     return transforms.Compose([
         transforms.Resize((image_size, image_size)),
         transforms.ToTensor(),
@@ -51,173 +298,26 @@ def build_eval_transforms(image_size: int = 224) -> Callable:
     ])
 
 
-def resolve_image_root(df: pd.DataFrame, custom_root: Optional[Union[str, Path]] = None) -> Path:
+class TimberDataset(Dataset):
     """
-    Tự động nhận diện và xác thực thư mục ảnh gỗ thực tế trên đĩa.
-    Ưu tiên quét:
-      1. custom_root được truyền vào.
-      2. Môi trường Kaggle /kaggle/input/** (nơi dataset s3-origin được mount).
-      3. Thư mục cục bộ / server relative paths.
-    Nếu không tìm thấy ảnh thật, raise FileNotFoundError có hướng dẫn rõ ràng.
-    """
-    sample_rel = ""
-    if not df.empty and "image_path" in df.columns:
-        sample_rel = str(df["image_path"].iloc[0]).replace("\\", "/")
-
-    candidates: List[Path] = []
-    if custom_root:
-        candidates.append(Path(custom_root))
-
-    # 1. Quét môi trường Kaggle
-    kaggle_input = Path("/kaggle/input")
-    if kaggle_input.exists():
-        candidates.extend([
-            Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"),
-            Path("/kaggle/input/datasets/b23dckh002lvitanh/s3-origin"),
-            Path("/kaggle/input/s3-origin/S3"),
-            Path("/kaggle/input/s3-origin"),
-            Path("/kaggle/input/s3/S3"),
-            Path("/kaggle/input/s3"),
-        ])
-        try:
-            for sub in kaggle_input.iterdir():
-                if sub.is_dir():
-                    candidates.append(sub)
-                    candidates.append(sub / "S3")
-                    candidates.append(sub / "images")
-                    candidates.append(sub / "out")
-                    candidates.append(sub / "out" / "images")
-                    for sub2 in sub.iterdir():
-                        if sub2.is_dir():
-                            candidates.append(sub2)
-                            candidates.append(sub2 / "S3")
-                            candidates.append(sub2 / "images")
-        except Exception:
-            pass
-
-    # 2. Quét môi trường Local và Repo
-    current_file_dir = Path(__file__).resolve().parent
-    repo_root = current_file_dir.parent
-
-    candidates.extend([
-        repo_root / "01_data_paper_forensic_cites" / "out" / "images",
-        repo_root / "01_data_paper_forensic_cites" / "out",
-        repo_root / "out" / "images",
-        repo_root / "out",
-        Path("../01_data_paper_forensic_cites/out/images"),
-        Path("../01_data_paper_forensic_cites/out"),
-        Path("01_data_paper_forensic_cites/out/images"),
-        Path("01_data_paper_forensic_cites/out"),
-        Path("images"),
-        current_file_dir / "images",
-    ])
-
-    # Kiểm tra candidate nào chứa sample_rel
-    for cand in candidates:
-        if cand and cand.exists():
-            if sample_rel:
-                if (cand / sample_rel).is_file():
-                    print(f"[+] [DỮ LIỆU THẬT] Đã nhận diện thư mục ảnh gốc: {cand.resolve()}")
-                    print(f"    - Ảnh mẫu xác thực: {cand / sample_rel}")
-                    return cand.resolve()
-                if (cand / "images" / sample_rel).is_file():
-                    print(f"[+] [DỮ LIỆU THẬT] Đã nhận diện thư mục ảnh gốc: {(cand / 'images').resolve()}")
-                    return (cand / "images").resolve()
-
-    # Kiểm tra theo thư mục loài đầu tiên
-    first_taxon = sample_rel.split("/")[0] if "/" in sample_rel else ""
-    if first_taxon:
-        for cand in candidates:
-            if cand and cand.exists():
-                taxon_dir = cand / first_taxon
-                if taxon_dir.is_dir():
-                    any_img = next(taxon_dir.rglob("*.png"), None) or next(taxon_dir.rglob("*.jpg"), None)
-                    if any_img:
-                        print(f"[+] [DỮ LIỆU THẬT] Đã nhận diện thư mục ảnh gốc: {cand.resolve()}")
-                        print(f"    - Ảnh taxon mẫu xác thực: {any_img}")
-                        return cand.resolve()
-
-    # Không tìm thấy bất kỳ ảnh thật nào -> Báo lỗi chi tiết, không chạy giả lập!
-    scanned_list = "\n".join(f"    - {str(c)}" for c in candidates[:8] if str(c))
-    error_msg = f"""
-{'=' * 80}
-[LỖI DỮ LIỆU THỰC TẾ]: KHÔNG TÌM THẤY TẬP DỮ LIỆU ẢNH GỖ TRÊN ĐĨA!
-{'=' * 80}
-Hệ thống KHÔNG CHẠY TRÊN DỮ LIỆU GIẢ LẬP (SYNTHETIC) NỮA.
-Để huấn luyện mô hình thật, hệ thống cần 3,702 ảnh hiển vi / macro gốc (.png/.jpg).
-
-Ảnh mẫu đang tìm kiếm:
-    '{sample_rel}'
-
-Các đường dẫn đã quét tự động:
-{scanned_list}
-
-HƯỚNG DẪN KHẮC PHỤC TRÊN KAGGLE:
-  1. Trong giao diện Kaggle Notebook, nhìn sang thanh công cụ bên phải, mục 'Input'.
-  2. Bấm vào nút '+ Add Input' (hoặc '+ Add Data').
-  3. Tìm kiếm dataset: 'b23dckh002lvitanh/s3-origin' (hoặc từ khóa 's3-origin').
-  4. Bấm nút (+) để thêm dataset vào Notebook (dataset sẽ xuất hiện tại /kaggle/input/s3-origin).
-  5. Sau khi nạp xong, chạy lại lệnh:
-     bash run_all.sh
-{'=' * 80}
-"""
-    print(error_msg)
-    raise FileNotFoundError(f"Missing real wood images. Sample '{sample_rel}' not found on disk.")
-
-
-class Timber11Dataset(Dataset):
-    """
-    Dataset representing the clean 11-species wood forensics benchmark.
-    Yields strictly real physical wood micrographs from disk.
+    Dataset đọc ảnh trực tiếp từ file path trên đĩa.
+    Cam kết 100% nạp ảnh thật, không dùng bất kỳ fallback giả lập nào.
     """
 
-    def __init__(
-        self,
-        df: pd.DataFrame,
-        image_root: Union[str, Path],
-        transform: Optional[Callable] = None,
-        is_train: bool = False,
-    ):
+    def __init__(self, df: pd.DataFrame, transform: Optional[Callable] = None, is_train: bool = False):
         self.df = df.reset_index(drop=True)
-        self.image_root = Path(image_root)
         self.transform = transform or (build_train_transforms() if is_train else build_eval_transforms())
         self.is_train = is_train
-
-        # Remap specimen IDs in this specific subset to contiguous indices [0 .. N_specimens - 1]
-        unique_specimens = sorted(self.df["specimen_id"].unique())
-        self.specimen_to_idx = {sid: i for i, sid in enumerate(unique_specimens)}
-        self.num_specimens = len(unique_specimens)
 
     def __len__(self) -> int:
         return len(self.df)
 
-    def _get_image_path(self, row: pd.Series) -> Path:
-        rel_path = str(row.get("image_path", "")).replace("\\", "/").strip()
-        if rel_path:
-            cand = self.image_root / rel_path
-            if cand.is_file():
-                return cand
-            cand_sub = self.image_root / "images" / rel_path
-            if cand_sub.is_file():
-                return cand_sub
-
-        img_id = str(row.get("image_id", ""))
-        for ext in [".png", ".jpg", ".jpeg"]:
-            cand_id = self.image_root / f"{img_id}{ext}"
-            if cand_id.is_file():
-                return cand_id
-
-        return self.image_root / rel_path
-
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         row = self.df.iloc[idx]
-        img_path = self._get_image_path(row)
+        img_path = Path(str(row["image_path"]))
 
         if not img_path.is_file():
-            raise FileNotFoundError(
-                f"[Dữ liệu thiếu] Không tìm thấy file ảnh thực tế: {img_path} "
-                f"(image_id: {row.get('image_id')}, specimen: {row.get('specimen_id')})"
-            )
+            raise FileNotFoundError(f"[Thiếu file] Không tìm thấy ảnh thực tế: {img_path}")
 
         try:
             img = Image.open(img_path).convert("RGB")
@@ -226,40 +326,29 @@ class Timber11Dataset(Dataset):
 
         tensor_img = self.transform(img)
 
-        species_idx = int(row["species_idx"])
-        specimen_idx = int(self.specimen_to_idx.get(row["specimen_id"], 0))
-        global_specimen_idx = int(row.get("global_specimen_idx", specimen_idx))
-
         return {
             "image": tensor_img,
-            "species_idx": torch.tensor(species_idx, dtype=torch.long),
-            "specimen_idx": torch.tensor(specimen_idx, dtype=torch.long),
-            "global_specimen_idx": torch.tensor(global_specimen_idx, dtype=torch.long),
-            "image_id": str(row["image_id"]),
-            "specimen_id": str(row["specimen_id"]),
+            "species_idx": torch.tensor(int(row["species_idx"]), dtype=torch.long),
+            "specimen_idx": torch.tensor(int(row.get("specimen_idx", 0)), dtype=torch.long),
+            "global_specimen_idx": torch.tensor(int(row.get("global_specimen_idx", 0)), dtype=torch.long),
+            "image_id": str(row.get("image_id", idx)),
+            "specimen_id": str(row.get("specimen_id", "unknown")),
         }
 
 
-def create_dataloaders(
-    metadata_csv: Union[str, Path],
-    image_root: Optional[Union[str, Path]] = None,
+def create_seed_dataloaders(
+    df_train: pd.DataFrame,
+    df_val: pd.DataFrame,
+    df_unseen: pd.DataFrame,
     batch_size: int = 64,
     num_workers: int = 2 if os.name != "nt" else 0,
 ) -> Tuple[DataLoader, DataLoader, DataLoader, Dict]:
     """
-    Creates DataLoaders for (train, test_seen, test_unseen) strictly reading real images.
-    Auto-resolves image_root across Kaggle and local environments.
+    Tạo DataLoaders cho 3 tập: Train, Val (Seen Specimens), Unseen Test.
     """
-    df = pd.read_csv(metadata_csv)
-    resolved_root = resolve_image_root(df, custom_root=image_root)
-
-    df_train = df[df["eval_split"] == "train"].copy().reset_index(drop=True)
-    df_seen = df[df["eval_split"] == "test_seen"].copy().reset_index(drop=True)
-    df_unseen = df[df["eval_split"] == "test_unseen"].copy().reset_index(drop=True)
-
-    ds_train = Timber11Dataset(df_train, image_root=resolved_root, is_train=True)
-    ds_seen = Timber11Dataset(df_seen, image_root=resolved_root, is_train=False)
-    ds_unseen = Timber11Dataset(df_unseen, image_root=resolved_root, is_train=False)
+    ds_train = TimberDataset(df_train, is_train=True)
+    ds_val = TimberDataset(df_val, is_train=False)
+    ds_unseen = TimberDataset(df_unseen, is_train=False)
 
     loader_train = DataLoader(
         ds_train,
@@ -270,8 +359,8 @@ def create_dataloaders(
         drop_last=True if len(ds_train) > batch_size else False,
     )
 
-    loader_seen = DataLoader(
-        ds_seen,
+    loader_val = DataLoader(
+        ds_val,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
@@ -287,13 +376,12 @@ def create_dataloaders(
     )
 
     info = {
-        "num_classes": df["species_idx"].nunique(),
+        "num_classes": len(TARGET_SPECIES),
         "train_samples": len(ds_train),
-        "seen_samples": len(ds_seen),
+        "val_samples": len(ds_val),
         "unseen_samples": len(ds_unseen),
-        "train_specimens": ds_train.num_specimens,
-        "species_names": sorted(df["taxon_name"].unique()),
-        "image_root": str(resolved_root),
+        "train_specimens": df_train["specimen_id"].nunique(),
+        "species_names": TARGET_SPECIES,
     }
 
-    return loader_train, loader_seen, loader_unseen, info
+    return loader_train, loader_val, loader_unseen, info

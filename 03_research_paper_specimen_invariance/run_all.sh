@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # run_all.sh
-# Master 1-Click Execution Script for Specimen-Invariant GAN Timber Benchmark
-# Runs: Data Preparation -> Train Baseline -> Train GAN -> Dual Evaluation -> Report
+# Master 1-Click Multi-Seed Execution Script for Specimen-Invariant GAN Timber Benchmark
+# Directly scans: /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3
+# Evaluates 3 Seeds (42, 123, 456) with Dynamic Per-Seed Holdout Partitioning
+# Evaluates both In-Specimen Validation and Out-of-Specimen Unseen Test sets
 # ==============================================================================
 
 set -e
@@ -13,36 +15,24 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "================================================================================"
-echo "  SPECIMEN-INVARIANT TIMBER FORENSICS: 1-CLICK DUAL-PROTOCOL BENCHMARK"
-echo "  Clean 11-Species Dataset (110 physical vouchers, 3,702 images) | Seed: 42"
+echo "  SPECIMEN-INVARIANT TIMBER FORENSICS: 3-SEED DUAL-PROTOCOL BENCHMARK"
+echo "  Clean 11-Species Dataset (110 physical vouchers, 10 vouchers/species)"
+echo "  Direct Path: /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
+echo "  Seeds: 42, 123, 456 | Epochs: 20 | Batch Size: 64"
 echo "================================================================================"
 
-# Step 1: Prepare clean 11-species metadata and dual-split partitions
-echo ""
-echo "[STEP 1/4] Preparing clean 11-species dataset & dual-split partitions..."
-python prepare_dataset.py --seed 42
-
-# Step 2: Train Standard Baseline Model (ERM)
-echo ""
-echo "[STEP 2/4] Training Standard Baseline Model (ConvNeXt-Tiny - ERM)..."
-python train_baseline.py --epochs 20 --batch_size 64 --seed 42
-
-# Step 3: Train Proposed Adversarial Invariant 'GAN' Model
-echo ""
-echo "[STEP 3/4] Training Proposed Adversarial Invariant 'GAN' Model (GRL + CLUB)..."
-python train_gan.py --epochs 20 --batch_size 64 --adv_weight 0.30 --club_weight 0.05 --seed 42
-
-# Step 4: Run Dual-Protocol Evaluation & Generate Markdown Report
-echo ""
-echo "[STEP 4/4] Running Dual-Protocol Audit (Seen vs. Unseen, SRI Probes, ECE)..."
-python evaluate_dual.py --seed 42
-
-echo ""
-echo "[*] Generating final Markdown Report..."
-python generate_report.py
+python run_benchmark_3seeds.py \
+    --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \
+    --seeds 42 123 456 \
+    --epochs 20 \
+    --batch_size 64 \
+    --lr 3e-4 \
+    --adv_weight 0.30 \
+    --club_weight 0.05 \
+    --backbone "convnext_tiny"
 
 echo ""
 echo "================================================================================"
-echo "[SUCCESS] Benchmark completed successfully!"
-echo "Check detailed report at: $SCRIPT_DIR/EXPERIMENT_RESULTS_REPORT.md"
+echo "[SUCCESS] Multi-Seed Benchmark completed successfully!"
+echo "Check publication report at: $SCRIPT_DIR/EXPERIMENT_RESULTS_REPORT.md"
 echo "================================================================================"
