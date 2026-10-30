@@ -7,7 +7,7 @@ Elsevier Data in Brief.
 Functionality:
   1. Inspects dataset structure, taxonomic composition (19 Fabaceae species), and metadata.
   2. Verifies governed partition integrity (CCR = 100.0%, SHA-256 Cross-Split Overlap = 0).
-  3. Verifies and parses ConvNeXt-Tiny supervised classification baseline performance.
+  3. Verifies and parses ResNet-50 supervised classification baseline performance.
   4. Simulates a forensic border-control wood identification query.
   5. Summarizes technical validation status matching Table 6 and Table 7 in the manuscript.
 
@@ -30,24 +30,24 @@ import pandas as pd
 # 1. 19 Fabaceae Taxa Reference Catalog (Ground Truth)
 # -----------------------------------------------------------------------------
 FABACEAE_TAXA_CATALOG = [
-    {"genus": "Afzelia", "binomial": "Afzelia africana", "cites": "CITES App. II", "vernacular": "Go Doussie", "trade_name": "African Doussie", "n_specimens": 4, "n_images": 350},
-    {"genus": "Afzelia", "binomial": "Afzelia bella", "cites": "CITES App. II", "vernacular": "Papao-Nua / Go Go", "trade_name": "Bella Doussie", "n_specimens": 10, "n_images": 360},
-    {"genus": "Afzelia", "binomial": "Afzelia pachyloba", "cites": "CITES App. II", "vernacular": "Go Pachy", "trade_name": "White Doussie", "n_specimens": 5, "n_images": 219},
-    {"genus": "Afzelia", "binomial": "Afzelia quanzensis", "cites": "CITES App. II", "vernacular": "Go Quanzensis", "trade_name": "Pod Mahogany", "n_specimens": 8, "n_images": 350},
-    {"genus": "Dalbergia", "binomial": "Dalbergia cochinchinensis", "cites": "CITES App. II (Native VN)", "vernacular": "Trac (Rosewood)", "trade_name": "Siam Rosewood", "n_specimens": 1, "n_images": 360},
+    {"genus": "Afzelia", "binomial": "Afzelia africana", "cites": "CITES App. II", "vernacular": "Go Doussie", "trade_name": "African Doussie", "n_specimens": 4, "n_images": 241},
+    {"genus": "Afzelia", "binomial": "Afzelia bella", "cites": "CITES App. II", "vernacular": "Papao-Nua / Go Go", "trade_name": "Bella Doussie", "n_specimens": 10, "n_images": 400},
+    {"genus": "Afzelia", "binomial": "Afzelia pachyloba", "cites": "CITES App. II", "vernacular": "Go Pachy", "trade_name": "White Doussie", "n_specimens": 5, "n_images": 116},
+    {"genus": "Afzelia", "binomial": "Afzelia quanzensis", "cites": "CITES App. II", "vernacular": "Go Quanzensis", "trade_name": "Pod Mahogany", "n_specimens": 8, "n_images": 369},
+    {"genus": "Dalbergia", "binomial": "Dalbergia cochinchinensis", "cites": "CITES App. II (Native VN)", "vernacular": "Trac (Rosewood)", "trade_name": "Siam Rosewood", "n_specimens": 1, "n_images": 354},
     {"genus": "Dalbergia", "binomial": "Dalbergia melanoxylon", "cites": "CITES App. II", "vernacular": "Trac chau Phi", "trade_name": "African Blackwood", "n_specimens": 10, "n_images": 291},
-    {"genus": "Dalbergia", "binomial": "Dalbergia oliveri", "cites": "CITES App. II", "vernacular": "Cam lai", "trade_name": "Burmese Rosewood", "n_specimens": 10, "n_images": 360},
+    {"genus": "Dalbergia", "binomial": "Dalbergia oliveri", "cites": "CITES App. II", "vernacular": "Cam lai", "trade_name": "Burmese Rosewood", "n_specimens": 10, "n_images": 316},
     {"genus": "Dalbergia", "binomial": "Dalbergia rimosa", "cites": "CITES App. II", "vernacular": "Trac day", "trade_name": "Rimose Rosewood", "n_specimens": 10, "n_images": 300},
-    {"genus": "Dalbergia", "binomial": "Dalbergia tonkinensis", "cites": "CITES App. II (Native VN)", "vernacular": "Sua", "trade_name": "Vietnamese Rosewood", "n_specimens": 10, "n_images": 360},
+    {"genus": "Dalbergia", "binomial": "Dalbergia tonkinensis", "cites": "CITES App. II (Native VN)", "vernacular": "Sua", "trade_name": "Vietnamese Rosewood", "n_specimens": 10, "n_images": 325},
     {"genus": "Guibourtia", "binomial": "Guibourtia arnoldiana", "cites": "Non-CITES", "vernacular": "Go Muntenye", "trade_name": "Mutenye / Benge", "n_specimens": 10, "n_images": 323},
-    {"genus": "Guibourtia", "binomial": "Guibourtia coleosperma", "cites": "Non-CITES", "vernacular": "Mussivi / Huong da", "trade_name": "Rhodesian Copalwood", "n_specimens": 2, "n_images": 355},
-    {"genus": "Guibourtia", "binomial": "Guibourtia ehie", "cites": "Non-CITES", "vernacular": "Hyedua", "trade_name": "Ovangkol / Shedua", "n_specimens": 10, "n_images": 355},
+    {"genus": "Guibourtia", "binomial": "Guibourtia coleosperma", "cites": "Non-CITES", "vernacular": "Mussivi / Huong da", "trade_name": "Rhodesian Copalwood", "n_specimens": 1, "n_images": 360},
+    {"genus": "Guibourtia", "binomial": "Guibourtia ehie", "cites": "Non-CITES", "vernacular": "Hyedua", "trade_name": "Ovangkol / Shedua", "n_specimens": 10, "n_images": 400},
     {"genus": "Peltogyne", "binomial": "Peltogyne pubescens", "cites": "Non-CITES", "vernacular": "Huong tim nam my", "trade_name": "Purpleheart", "n_specimens": 10, "n_images": 371},
     {"genus": "Pterocarpus", "binomial": "Pterocarpus erinaceus", "cites": "CITES App. II", "vernacular": "Huong van tay phi", "trade_name": "African Barwood / Kosso", "n_specimens": 10, "n_images": 336},
     {"genus": "Pterocarpus", "binomial": "Pterocarpus indicus", "cites": "Non-CITES", "vernacular": "Huong mat chim", "trade_name": "Narra / Amboyna", "n_specimens": 10, "n_images": 312},
-    {"genus": "Pterocarpus", "binomial": "Pterocarpus macrocarpus", "cites": "Non-CITES", "vernacular": "Huong qua to", "trade_name": "Burma Padauk", "n_specimens": 8, "n_images": 360},
-    {"genus": "Pterocarpus", "binomial": "Pterocarpus soyauxii", "cites": "Non-CITES", "vernacular": "Padouk / Huong padouk", "trade_name": "African Padauk", "n_specimens": 6, "n_images": 360},
-    {"genus": "Sindora", "binomial": "Sindora cochinchinensis", "cites": "Non-CITES (Native VN)", "vernacular": "Gu", "trade_name": "Sindora / Sepetir", "n_specimens": 4, "n_images": 355},
+    {"genus": "Pterocarpus", "binomial": "Pterocarpus macrocarpus", "cites": "Non-CITES", "vernacular": "Huong qua to", "trade_name": "Burma Padauk", "n_specimens": 8, "n_images": 432},
+    {"genus": "Pterocarpus", "binomial": "Pterocarpus soyauxii", "cites": "CITES App. II", "vernacular": "Padouk / Huong padouk", "trade_name": "African Padauk", "n_specimens": 6, "n_images": 486},
+    {"genus": "Sindora", "binomial": "Sindora cochinchinensis", "cites": "Non-CITES (Native VN)", "vernacular": "Gu", "trade_name": "Sindora / Sepetir", "n_specimens": 4, "n_images": 354},
     {"genus": "Sindora", "binomial": "Sindora tonkinensis", "cites": "Non-CITES (Native VN)", "vernacular": "Gu lau", "trade_name": "Tonkin Sepetir", "n_specimens": 10, "n_images": 328},
 ]
 
@@ -148,12 +148,12 @@ def main():
         dhash_exact = len(train_dhashes & test_dhashes)
         print(f"    - Tier 2: dHash Perceptual Match  : {dhash_exact} identical hashes (Hamming = 0)")
 
-    # 3. Supervised Classification Baseline Results (ConvNeXt-Tiny)
-    print(f"\n[3] SUPERVISED CLASSIFICATION BASELINE EVALUATION (Table 6 in Paper):")
+    # 3. Supervised Classification Baseline Results (ResNet-50)
+    print(f"\n[3] SUPERVISED CLASSIFICATION BASELINE EVALUATION (Table 8 in Paper):")
     results = load_baseline_results(base_dir)
     if results:
         sm = results.get("summary_metrics", {})
-        print(f"    - Architecture         : ConvNeXt-Tiny (Pre-trained ImageNet-1K)")
+        print(f"    - Architecture         : ResNet-50 (Pre-trained ImageNet-1K)")
         print(f"    - Optimization Loss    : Multiclass Focal Loss (gamma=2.0, alpha=0.25)")
         print(f"    - Overall Top-1 Acc    : {sm.get('overall_accuracy', 0.0)*100:.2f}%")
         print(f"    - Macro-Averaged Prec  : {sm.get('macro_precision', 0.0)*100:.2f}%")

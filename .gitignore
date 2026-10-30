@@ -26,3 +26,13 @@ outputs2/
 *.fdb_latexmk
 *.synctex.gz
 main.pdf
+paper_output.pdf
+page_*.png
+paper2_diff.txt
+test_diff.patch
+test_extracted_layout.txt
+*.bak*
+*_extracted*.txt
+03_research_paper_specimen_invariance/outputs/
+01_data_paper_forensic_cites/baseline_outputs/
+01_data_paper_forensic_cites/scratch/

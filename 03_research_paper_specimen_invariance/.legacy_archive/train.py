@@ -162,10 +162,12 @@ def set_seed(seed: int):
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Specimen-Invariant Wood ID Models")
     parser.add_argument("--method", type=str, default="conditional_grl",
-                        choices=["conditional_grl", "conditional_grl_club", "dann_unconditional", "club", "group_dro",
+                        choices=["conditional_grl", "conditional_grl_club", "full_invariant", "dann_unconditional", "club", "group_dro",
                                  "irm", "focal", "arcface", "strong_reg", "mixup", "supcon",
                                  "semihard_triplet", "frozen_linear", "ce"],
                         help="Training methodology or baseline")
+    parser.add_argument("--model-type", "--model_type", type=str, default=None,
+                        help="Alias for --method (for backwards compatibility with documentation)")
     parser.add_argument("--backbone", type=str, default="convnext_tiny",
                         choices=["convnext_tiny", "resnet50", "tf_efficientnetv2_s", "swin_t"],
                         help="Visual backbone architecture")
@@ -186,6 +188,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.model_type is not None:
+        args.method = args.model_type
+    if args.method == "full_invariant":
+        args.method = "conditional_grl_club"
     set_seed(args.seed)
     
     if torch.cuda.is_available():

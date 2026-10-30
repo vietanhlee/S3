@@ -73,7 +73,7 @@ out/
 | 17 | *Pterocarpus* | *Pterocarpus soyauxii* | Padauk | African Padauk | Non-CITES | 6 | 486 |
 | 18 | *Sindora* | *Sindora cochinchinensis* | Gụ | Sindora / Sepetir | Non-CITES (Native / High-value VN) | 4 | 352 |
 | 19 | *Sindora* | *Sindora tonkinensis* | Gụ lau | Tonkin Sepetir | Non-CITES (Native / High-value VN) | 10 | 331 |
-| **Total** | **6 Genera** | **19 Species** | — | — | **10 CITES App. II (4 High-Value VN)** | **148 Blocks** | **6,414** |
+| **Total** | **6 Genera** | **19 Species** | — | — | **10 CITES App. II (4 High-Value VN)** | **147 Blocks** | **6,414** |
 
 *\*Note: Afzelia pachyloba constitutes a statistical minority class ($N=116$) due to reference specimen scarcity, while being legally regulated under CITES Appendix II.*
 

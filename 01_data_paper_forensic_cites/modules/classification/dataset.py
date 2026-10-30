@@ -45,27 +45,51 @@ class MacroscopicWoodDataset(Dataset):
         return img, label_idx
 
 
-def build_transforms(img_size: int = 224) -> Tuple[transforms.Compose, transforms.Compose]:
-    """Data augmentation chuẩn hóa theo thiết kế trong Section 4.2 của bài báo."""
+def build_transforms(img_size: int = 224, aug_mode: str = "full") -> Tuple[transforms.Compose, transforms.Compose]:
+    """
+    Data augmentation chuẩn hóa theo thiết kế của bài báo:
+      - 'none': Chỉ Resize + Normalize (không augmentation, đo độ nhạy hướng mẫu và ánh sáng).
+      - 'geometric': Đối xứng quay SO(2) và lật (RandomHorizontalFlip, RandomVerticalFlip, RandomRotation 180°),
+                     bảo toàn bất biến đẳng hướng của mặt cắt ngang transverse.
+      - 'full': Toàn diện (Geometric + ColorJitter độ sáng/độ tương phản ±0.15 + RandomResizedCrop 0.85-1.0),
+                mô phỏng biến thiên nguồn sáng đèn LED hiện trường và góc nghiêng kính lúp.
+    """
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
-
-    train_tf = transforms.Compose([
-        transforms.RandomResizedCrop(img_size, scale=(0.8, 1.0)),
-        transforms.RandomRotation(30),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
-        transforms.ColorJitter(brightness=0.25, contrast=0.25, saturation=0.25, hue=0.05),
-        transforms.RandomGrayscale(p=0.05),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
-    ])
 
     eval_tf = transforms.Compose([
         transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
+
+    mode = str(aug_mode).lower().strip()
+    if mode in ["none", "minimal", "no_aug"]:
+        train_tf = transforms.Compose([
+            transforms.Resize((img_size, img_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+    elif mode in ["geometric", "geo"]:
+        train_tf = transforms.Compose([
+            transforms.Resize((img_size, img_size)),
+            transforms.RandomRotation(180),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+    else:  # 'full'
+        train_tf = transforms.Compose([
+            transforms.RandomResizedCrop(img_size, scale=(0.85, 1.0)),
+            transforms.RandomRotation(180),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.15, hue=0.03),
+            transforms.RandomGrayscale(p=0.03),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
 
     return train_tf, eval_tf
 

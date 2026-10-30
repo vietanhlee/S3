@@ -7,7 +7,13 @@ Module phân loại gỗ macroscopic và kiểm định kỹ thuật (Technical 
 from .dataset import MacroscopicWoodDataset, build_transforms, load_or_generate_dataset_split
 from .losses import MulticlassFocalLoss, build_criterion
 from .metrics import plot_confusion_matrix, plot_learning_curves, plot_per_class_metrics
-from .engine import train_one_epoch, evaluate_model, run_training_session
+from .engine import (
+    train_one_epoch,
+    evaluate_model,
+    run_training_session,
+    run_linear_probe_session,
+    run_augmentation_ablation_session
+)
 
 __all__ = [
     "MacroscopicWoodDataset",
@@ -20,5 +26,7 @@ __all__ = [
     "plot_per_class_metrics",
     "train_one_epoch",
     "evaluate_model",
-    "run_training_session"
+    "run_training_session",
+    "run_linear_probe_session",
+    "run_augmentation_ablation_session"
 ]

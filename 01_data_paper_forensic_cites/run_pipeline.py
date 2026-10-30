@@ -8,7 +8,7 @@ Script điều phối (Master Orchestrator) tinh gọn cho IC4SD-ForensicMacroWo
 Quy trình tinh gọn (2 bước chính):
   1. 'assets': Sinh metadata, tính độ nét Laplacian (sigma^2 >= 100), mã băm
      mật mã SHA-256 và mã băm tri giác dHash/pHash (khử trùng lặp 2 cấp độ).
-  2. 'classify': Huấn luyện baseline phân loại (ConvNeXt-Tiny, ResNet-50, EfficientNet-B0)
+  2. 'classify': Huấn luyện baseline phân loại (ResNet-50, ConvNeXt-Tiny, EfficientNet-B0)
      qua 3 random seeds
      (42, 123, 456) và tự động tính toán kiểm định thống kê (Mean +- Std, 95% CI).
   - 'all': Tự động chạy tuần tự Bước 1 -> Bước 2.
@@ -17,8 +17,8 @@ Cách dùng cơ bản:
   # Chạy toàn bộ quy trình với kiểm định thống kê 3 seeds (chuẩn bài báo):
   python run_pipeline.py --all --data-dir <đường_dẫn_ảnh>
 
-  # Chạy 3 baselines (ConvNeXt-Tiny + ResNet-50 + EfficientNet-B0):
-  python run_pipeline.py --step classify --models convnext_tiny resnet50 efficientnet_b0 --compare-splits --epochs 25
+  # Chạy 3 baselines (ResNet-50 + ConvNeXt-Tiny + EfficientNet-B0):
+  python run_pipeline.py --step classify --models resnet50 convnext_tiny efficientnet_b0 --compare-splits --epochs 25
 
   # Chỉ chạy thử nghiệm nhanh với 1 seed:
   python run_pipeline.py --step classify --single-seed
@@ -28,6 +28,7 @@ Cách dùng cơ bản:
 """
 
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import sys
 
 # Đảm bảo in tiếng Việt có dấu an toàn tuyệt đối trên Windows terminal (cmd/powershell)
@@ -55,7 +56,9 @@ from utils.statistical_testing import (
 def run_command(cmd: List[str]) -> None:
     """Thực thi lệnh shell và dừng ngay lập tức nếu gặp lỗi."""
     print(f"\n[EXEC] {' '.join(cmd)}")
-    result = subprocess.run(cmd)
+    env = dict(os.environ)
+    env["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+    result = subprocess.run(cmd, env=env)
     if result.returncode != 0:
         print(f"\n[!] LỖI THỰC THI: Lệnh sau trả về mã lỗi {result.returncode}:")
         print(f"    {' '.join(cmd)}")
@@ -145,18 +148,24 @@ def run_classify_multi_seed(
     data_dir: Optional[str] = None,
     batch_size: Optional[int] = None,
     lr: Optional[float] = None,
-    model_name: str = "convnext_tiny"
+    model_name: str = "convnext_tiny",
+    augmentation: str = "full"
 ) -> None:
     """Bước 2: Huấn luyện Baseline Phân loại qua nhiều random seeds và kiểm định thống kê."""
     print("\n" + "=" * 82)
     print(f" [BƯỚC 2/2] HUẤN LUYỆN BASELINE [{model_name.upper()}] QUA {len(seeds)} RANDOM SEEDS & KIỂM ĐỊNH THỐNG KÊ ")
-    print(f" Model: {model_name} | Seeds: {seeds} | Loss: {loss_mode.upper()} | Epochs: {epochs}")
+    print(f" Model: {model_name} | Seeds: {seeds} | Loss: {loss_mode.upper()} | Aug: {augmentation.upper()} | Epochs: {epochs}")
     print("=" * 82)
     output_dir.mkdir(parents=True, exist_ok=True)
     fig_dir.mkdir(parents=True, exist_ok=True)
 
     seed_payloads = []
-    loss_tag = "focal" if loss_mode in ["focal", "both"] else "ce"
+    if "cb" in str(loss_mode).lower():
+        loss_tag = "cb_focal"
+    elif str(loss_mode).lower() in ["focal", "both"]:
+        loss_tag = "focal"
+    else:
+        loss_tag = "cross_entropy"
 
     for idx, seed in enumerate(seeds, 1):
         print(f"\n>>> [SEED {idx}/{len(seeds)}: SEED = {seed}] <<<")
@@ -173,7 +182,8 @@ def run_classify_multi_seed(
             "--epochs", str(epochs),
             "--output-dir", str(seed_out_dir),
             "--fig-dir", str(seed_fig_dir),
-            "--seed", str(seed)
+            "--seed", str(seed),
+            "--augmentation", str(augmentation)
         ]
         if data_dir:
             cmd.extend(["--data-dir", data_dir])
@@ -321,12 +331,23 @@ def run_split_comparison_summary(
             except Exception as e:
                 print(f"[!] Warning: Lỗi khi đọc multi_seed summary từ {multi_p}: {e}")
 
-        single_p = d / f"classification_results_{loss_tag}.json"
-        if not single_p.exists():
+        norm_tag = "cb_focal" if "cb" in str(loss_tag).lower() else ("focal" if "focal" in str(loss_tag).lower() and "cb" not in str(loss_tag).lower() else "cross_entropy")
+        candidate_names = [f"classification_results_{norm_tag}.json", f"classification_results_{loss_tag}.json", "classification_results_focal.json", "classification_results_cross_entropy.json", "classification_results_cb_focal.json"]
+        
+        single_p = None
+        for cname in candidate_names:
+            p = d / cname
+            if p.exists():
+                single_p = p
+                break
+        if single_p is None:
             for sub in d.glob("seed_*"):
-                cand = sub / f"classification_results_{loss_tag}.json"
-                if cand.exists():
-                    single_p = cand
+                for cname in candidate_names:
+                    cand = sub / cname
+                    if cand.exists():
+                        single_p = cand
+                        break
+                if single_p is not None:
                     break
 
         if single_p.exists():
@@ -429,12 +450,22 @@ def run_multi_model_comparison(
                 print(f"[!] Warning: Lỗi khi đọc {multi_p}: {e}")
 
         # Fallback: single seed result
-        single_p = model_dir / f"classification_results_{loss_tag}.json"
-        if not single_p.exists():
+        norm_tag = "cb_focal" if "cb" in str(loss_tag).lower() else ("focal" if "focal" in str(loss_tag).lower() and "cb" not in str(loss_tag).lower() else "cross_entropy")
+        candidate_names = [f"classification_results_{norm_tag}.json", f"classification_results_{loss_tag}.json", "classification_results_focal.json", "classification_results_cross_entropy.json", "classification_results_cb_focal.json"]
+        single_p = None
+        for cname in candidate_names:
+            p = model_dir / cname
+            if p.exists():
+                single_p = p
+                break
+        if single_p is None:
             for sub in model_dir.glob("seed_*"):
-                cand = sub / f"classification_results_{loss_tag}.json"
-                if cand.exists():
-                    single_p = cand
+                for cname in candidate_names:
+                    cand = sub / cname
+                    if cand.exists():
+                        single_p = cand
+                        break
+                if single_p is not None:
                     break
         if single_p.exists():
             try:
@@ -481,6 +512,23 @@ def run_multi_model_comparison(
 
     print("=" * 100)
 
+    params_map = {
+        "convnext_tiny": "28.6M",
+        "resnet50": "25.6M",
+        "efficientnet_b0": "5.3M",
+    }
+
+    if compare_splits and "canonical" in results and "specimen_disjoint" in results:
+        results["generalization_gap"] = {}
+        for model_name in model_names:
+            m_can = results["canonical"].get(model_name, {})
+            m_dis = results["specimen_disjoint"].get(model_name, {})
+            results["generalization_gap"][model_name] = {
+                "delta_accuracy": round(m_dis.get("accuracy", 0.0) - m_can.get("accuracy", 0.0), 4),
+                "delta_macro_f1": round(m_dis.get("macro_f1", 0.0) - m_can.get("macro_f1", 0.0), 4),
+                "delta_weighted_f1": round(m_dis.get("weighted_f1", 0.0) - m_can.get("weighted_f1", 0.0), 4),
+            }
+
     # Save JSON
     out_json = base_output_dir / "multi_model_comparison.json"
     with open(out_json, "w", encoding="utf-8") as f:
@@ -503,6 +551,26 @@ def run_multi_model_comparison(
             wf1_str = f"{m.get('weighted_f1',0)*100:.2f}%"
             md_lines.append(f"| **{dname}** | {acc_str} | {f1_str} | {wf1_str} |")
 
+    if compare_splits and "canonical" in results and "specimen_disjoint" in results:
+        md_lines.append("\n## Đối chiếu Toàn diện theo Bảng 10 (Table 10 Cross-Architecture Format)\n")
+        md_lines.append("| Neural Backbone Architecture | Params | Partition Protocol | Overall Accuracy | Macro F1-Score | Weighted F1-Score | $\\Delta$ Macro-F1 |")
+        md_lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
+        for model_name in ["efficientnet_b0", "resnet50", "convnext_tiny"]:
+            if model_name in model_names:
+                dname = display_names.get(model_name, model_name)
+                p_count = params_map.get(model_name, "---")
+                m_can = results["canonical"].get(model_name, {})
+                m_dis = results["specimen_disjoint"].get(model_name, {})
+                can_acc = f"{m_can.get('accuracy',0)*100:.2f}% ± {m_can.get('accuracy_std',0)*100:.2f}%"
+                can_f1 = f"{m_can.get('macro_f1',0)*100:.2f}% ± {m_can.get('macro_f1_std',0)*100:.2f}%"
+                can_wf1 = f"{m_can.get('weighted_f1',0)*100:.2f}%"
+                dis_acc = f"{m_dis.get('accuracy',0)*100:.2f}% ± {m_dis.get('accuracy_std',0)*100:.2f}%"
+                dis_f1 = f"{m_dis.get('macro_f1',0)*100:.2f}% ± {m_dis.get('macro_f1_std',0)*100:.2f}%"
+                dis_wf1 = f"{m_dis.get('weighted_f1',0)*100:.2f}%"
+                delta_f1 = (m_dis.get("macro_f1", 0.0) - m_can.get("macro_f1", 0.0)) * 100
+                md_lines.append(f"| **{dname}** | {p_count} | Operational Canonical | {can_acc} | {can_f1} | {can_wf1} | **{delta_f1:+.2f}%** |")
+                md_lines.append(f"| | | Strict Specimen-Disjoint | {dis_acc} | {dis_f1} | {dis_wf1} | |")
+
     with open(out_md, "w", encoding="utf-8") as f:
         f.write("\n".join(md_lines) + "\n")
     print(f"[+] Đã lưu báo cáo Markdown: {out_md}")
@@ -517,8 +585,10 @@ def main():
     parser.add_argument("--all", action="store_true",
                         help="Thực hiện toàn bộ quy trình thực nghiệm (Assets -> Multi-seed Classify)")
     parser.add_argument("--step", type=str, default="all",
-                        choices=["all", "assets", "audit", "classify"],
-                        help="Bước cần thực hiện: assets | audit | classify | all")
+                        choices=["all", "assets", "audit", "classify", "ablation"],
+                        help="Bước cần thực hiện: assets | audit | classify | ablation | all")
+    parser.add_argument("--ablation", action="store_true",
+                        help="Kích hoạt chạy nghiên cứu triệt tiêu (Linear Probe + Loss Ablation Table 11)")
     parser.add_argument("--split-type", type=str, default="canonical",
                         choices=["canonical", "specimen_disjoint"],
                         help="Kiểu phân vùng: 'canonical' (mặc định) hoặc 'specimen_disjoint'")
@@ -528,9 +598,9 @@ def main():
                         help="Đường dẫn đến thư mục chứa 19 lớp ảnh macroscopic wood")
     parser.add_argument("--assets-dir", type=str, default="paper_data_assets",
                         help="Thư mục chứa các tệp metadata, splits và leakage audit")
-    parser.add_argument("--models", type=str, nargs="+", default=["convnext_tiny"],
+    parser.add_argument("--models", type=str, nargs="+", default=["resnet50"],
                         help="Danh sách các kiến trúc backbone từ timm để chạy benchmark đối chiếu "
-                             "(mặc định ['convnext_tiny']; ví dụ: --models convnext_tiny resnet50 efficientnet_b0)")
+                             "(mặc định ['resnet50']; ví dụ: --models resnet50 convnext_tiny efficientnet_b0)")
     parser.add_argument("--model-name", type=str, default=None,
                         help="(Tương thích ngược) Tên kiến trúc backbone đơn từ timm. Ưu tiên --models nếu cả hai được chỉ định.")
     parser.add_argument("--batch-size", type=int, default=64,
@@ -538,8 +608,11 @@ def main():
     parser.add_argument("--classify-epochs", "--epochs", type=int, default=22, dest="classify_epochs",
                         help="Số epochs cho mô hình phân loại (mặc định 22)")
     parser.add_argument("--classify-loss", "--loss", type=str, default="focal", dest="classify_loss",
-                        choices=["focal", "cross_entropy", "both"],
-                        help="Hàm mất mát phân loại: 'focal', 'cross_entropy', hoặc 'both'")
+                        choices=["focal", "cross_entropy", "ce", "cb_focal", "class_balanced_focal", "both"],
+                        help="Hàm mất mát phân loại: 'focal', 'cross_entropy', 'cb_focal', hoặc 'both'")
+    parser.add_argument("--augmentation", type=str, default="full",
+                        choices=["none", "minimal", "geometric", "full"],
+                        help="Chế độ tiền xử lý augmentation: 'none', 'geometric' (SO(2)), hoặc 'full'")
     parser.add_argument("--classify-lr", "--lr", type=float, default=5e-4, dest="classify_lr",
                         help="Tốc độ học cho phân loại (mặc định 5e-4)")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456],
@@ -578,7 +651,7 @@ def main():
     if args.step in ["all", "audit"]:
         run_audit_step(python_bin, assets_dir)
 
-    # BƯỚC 2: HUẤN LUYỆN CLASSIFICATION BASELINE (CONVNEXT-TINY / RESNET50)
+    # BƯỚC 2: HUẤN LUYỆN CLASSIFICATION BASELINE (RESNET-50 / CONVNEXT-TINY)
     if args.step in ["all", "classify"]:
         metadata_csv = assets_dir / "metadata" / "metadata.csv"
         ensure_disjoint_split_exists(assets_dir)
@@ -610,7 +683,8 @@ def main():
                     data_dir=args.data_dir,
                     batch_size=args.batch_size,
                     lr=args.classify_lr,
-                    model_name=model_name
+                    model_name=model_name,
+                    augmentation=args.augmentation
                 )
 
                 # 2. Chạy trên Specimen-Disjoint Split (chạy đầy đủ các seeds như Canonical)
@@ -631,7 +705,8 @@ def main():
                     data_dir=args.data_dir,
                     batch_size=args.batch_size,
                     lr=args.classify_lr,
-                    model_name=model_name
+                    model_name=model_name,
+                    augmentation=args.augmentation
                 )
 
                 # 3. Tổng hợp bảng so sánh đối chiếu
@@ -666,7 +741,8 @@ def main():
                     data_dir=args.data_dir,
                     batch_size=args.batch_size,
                     lr=args.classify_lr,
-                    model_name=model_name
+                    model_name=model_name,
+                    augmentation=args.augmentation
                 )
                 
                 if model_name == "convnext_tiny":
@@ -679,6 +755,31 @@ def main():
         # After all models, generate cross-model comparison if len(active_models) > 1
         if len(active_models) > 1:
             run_multi_model_comparison(active_models, Path("baseline_outputs"), args.classify_loss, args.compare_splits)
+
+    # BƯỚC 3: NGHIÊN CỨU TRIỆT TIÊU (ABLATION: LINEAR PROBE + LOSS ABLATION TABLE 11)
+    if args.step in ["all", "ablation"] or getattr(args, "ablation", False):
+        print("\n" + "=" * 80)
+        print(" [BƯỚC 3] NGHIÊN CỨU TRIỆT TIÊU (LINEAR PROBE & OBJECTIVE LOSS ABLATION) ")
+        print("=" * 80)
+        can_split_csv = assets_dir / "splits" / "split_canonical.csv"
+        metadata_csv = assets_dir / "metadata" / "metadata.csv"
+        cmd_abl = [
+            python_bin, "train_classification_pipeline.py",
+            "--split-csv", str(can_split_csv),
+            "--metadata-csv", str(metadata_csv),
+            "--run-all-ablations",
+            "--output-dir", "baseline_outputs"
+        ]
+        if args.data_dir:
+            cmd_abl.extend(["--data-dir", args.data_dir])
+        run_command(cmd_abl)
+
+        # Đồng bộ và cập nhật toàn bộ benchmark artifacts
+        try:
+            from utils.generate_benchmark_artifacts import generate_artifacts
+            generate_artifacts(Path("baseline_outputs"))
+        except Exception as e:
+            print(f"[!] Warning khi đồng bộ benchmark artifacts: {e}")
 
     print("\n" + "=" * 78)
     print(" [✓] HOÀN TẤT QUY TRÌNH THỰC NGHIỆM! DỮ LIỆU ĐÃ ĐỒNG BỘ CHUẨN PUBLICATION.")

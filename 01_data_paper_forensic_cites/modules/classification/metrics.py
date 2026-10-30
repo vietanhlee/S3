@@ -23,7 +23,7 @@ def plot_confusion_matrix(cm: np.ndarray, class_names: List[str], save_path: Pat
     im = plt.imshow(cm_norm, interpolation='nearest', cmap=plt.cm.Blues)
     im.set_clim(0, 1.0)
     total_n = int(cm.sum())
-    plt.title(f"ConvNeXt-Tiny Baseline — Confusion Matrix (Test Split, N={total_n:,})", fontsize=13, fontweight="bold", pad=15)
+    plt.title(f"ResNet-50 Baseline — Confusion Matrix (Test Split, N={total_n:,})", fontsize=13, fontweight="bold", pad=15)
     cbar = plt.colorbar(im, fraction=0.046, pad=0.04)
     cbar.set_label("Normalized Ratio (Recall)", fontsize=10)
 
