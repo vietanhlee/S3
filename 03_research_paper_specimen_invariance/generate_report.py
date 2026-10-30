@@ -6,13 +6,28 @@ EXPERIMENT_RESULTS_REPORT.md comparing Baseline vs. Adversarial Invariant 'GAN'.
 """
 
 import json
+import sys
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+
+CURRENT_DIR = Path(__file__).resolve().parent
 
 
 def main():
-    json_path = Path("03_research_paper_specimen_invariance/outputs/comparison_results.json")
+    json_path = CURRENT_DIR / "outputs" / "comparison_results.json"
     if not json_path.exists():
-        json_path = Path("outputs/comparison_results.json")
+        # Fallback search
+        for alt in [Path("outputs/comparison_results.json"), Path("03_research_paper_specimen_invariance/outputs/comparison_results.json")]:
+            if alt.exists():
+                json_path = alt
+                break
         if not json_path.exists():
             raise FileNotFoundError(f"Cannot find evaluation JSON at {json_path}")
 
@@ -90,7 +105,7 @@ bash run_all.sh
 Script sẽ tự động chạy đủ 20 epochs trên Seed 42 và cập nhật lại bảng số liệu trong file báo cáo này.
 """
 
-    report_path = Path("03_research_paper_specimen_invariance/EXPERIMENT_RESULTS_REPORT.md")
+    report_path = CURRENT_DIR / "EXPERIMENT_RESULTS_REPORT.md"
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_md)
 

@@ -7,8 +7,16 @@ Saves the best checkpoint to outputs/gan/best_gan.pth.
 """
 
 import os
+import sys
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["PYTHONUNBUFFERED"] = "1"
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 import argparse
 import json
@@ -23,6 +31,8 @@ from sklearn.metrics import accuracy_score, f1_score
 from dataset import create_dataloaders
 from models_gan import AdversarialInvariantGAN
 
+CURRENT_DIR = Path(__file__).resolve().parent
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Adversarial Invariant GAN Framework")
@@ -35,9 +45,9 @@ def parse_args():
     parser.add_argument("--adv_weight", type=float, default=0.30, help="Adversarial loss weight beta")
     parser.add_argument("--club_weight", type=float, default=0.05, help="CLUB MI compression weight mu")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--metadata_csv", type=str, default="03_research_paper_specimen_invariance/data/metadata_11species.csv")
-    parser.add_argument("--image_root", type=str, default="01_data_paper_forensic_cites/out")
-    parser.add_argument("--output_dir", type=str, default="03_research_paper_specimen_invariance/outputs/gan")
+    parser.add_argument("--metadata_csv", type=str, default=str(CURRENT_DIR / "data" / "metadata_11species.csv"))
+    parser.add_argument("--image_root", type=str, default=None, help="Root folder of real images (auto-detected if None)")
+    parser.add_argument("--output_dir", type=str, default=str(CURRENT_DIR / "outputs" / "gan"))
     return parser.parse_args()
 
 

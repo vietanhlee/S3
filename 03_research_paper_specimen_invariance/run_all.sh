@@ -44,5 +44,5 @@ python generate_report.py
 echo ""
 echo "================================================================================"
 echo "[SUCCESS] Benchmark completed successfully!"
-echo "Check detailed report at: 03_research_paper_specimen_invariance/EXPERIMENT_RESULTS_REPORT.md"
+echo "Check detailed report at: $SCRIPT_DIR/EXPERIMENT_RESULTS_REPORT.md"
 echo "================================================================================"

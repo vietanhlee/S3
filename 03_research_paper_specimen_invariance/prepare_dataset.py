@@ -9,8 +9,16 @@ using a fixed random seed (Seed 42).
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 import pandas as pd
 import numpy as np
 
@@ -27,18 +35,22 @@ EXCLUDED_SPECIES = [
 ]
 
 
+CURRENT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = CURRENT_DIR.parent
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Prepare 11-species timber dataset and splits")
     parser.add_argument(
         "--raw_metadata",
         type=str,
-        default="01_data_paper_forensic_cites/out/metadata/metadata.csv",
+        default=None,
         help="Path to raw source metadata CSV"
     )
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="03_research_paper_specimen_invariance/data",
+        default=str(CURRENT_DIR / "data"),
         help="Directory to save filtered metadata and splits"
     )
     parser.add_argument(
@@ -50,17 +62,36 @@ def parse_args():
     return parser.parse_args()
 
 
+def find_raw_metadata(custom_path=None) -> Path:
+    if custom_path and Path(custom_path).is_file():
+        return Path(custom_path).resolve()
+
+    candidates = [
+        CURRENT_DIR.parent / "01_data_paper_forensic_cites" / "out" / "metadata" / "metadata.csv",
+        Path("../01_data_paper_forensic_cites/out/metadata/metadata.csv"),
+        Path("01_data_paper_forensic_cites/out/metadata/metadata.csv"),
+        Path("/kaggle/working/S3/01_data_paper_forensic_cites/out/metadata/metadata.csv"),
+        Path("/kaggle/working/S3_paper/01_data_paper_forensic_cites/out/metadata/metadata.csv"),
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            return cand.resolve()
+
+    # Search in Kaggle input
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.exists():
+        for f in kaggle_input.rglob("metadata.csv"):
+            if f.is_file():
+                return f.resolve()
+
+    raise FileNotFoundError("Cannot locate raw metadata.csv across standard local and Kaggle paths.")
+
+
 def main():
     args = parse_args()
-    raw_path = Path(args.raw_metadata)
+    raw_path = find_raw_metadata(args.raw_metadata)
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-
-    if not raw_path.exists():
-        # Fallback to look relative to repo root if run from subfolder
-        raw_path = Path("..") / raw_path
-        if not raw_path.exists():
-            raise FileNotFoundError(f"Cannot find raw metadata at {args.raw_metadata}")
 
     print(f"[*] Loading raw metadata from: {raw_path}")
     df = pd.read_csv(raw_path)

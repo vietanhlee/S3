@@ -36,5 +36,5 @@ python generate_report.py
 
 Write-Host "`n================================================================================" -ForegroundColor Green
 Write-Host "[SUCCESS] Benchmark completed successfully!" -ForegroundColor Green
-Write-Host "Check detailed report at: 03_research_paper_specimen_invariance/EXPERIMENT_RESULTS_REPORT.md" -ForegroundColor Green
+Write-Host "Check detailed report at: $ScriptDir\EXPERIMENT_RESULTS_REPORT.md" -ForegroundColor Green
 Write-Host "================================================================================" -ForegroundColor Green

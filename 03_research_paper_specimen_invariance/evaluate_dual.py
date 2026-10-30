@@ -11,8 +11,16 @@ Compares the Standard Baseline Model vs. the Proposed Adversarial Invariant 'GAN
 """
 
 import os
+import sys
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["PYTHONUNBUFFERED"] = "1"
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 import argparse
 import json
@@ -37,14 +45,16 @@ warnings.filterwarnings("ignore", category=UserWarning)
 from dataset import create_dataloaders
 from models_gan import StandardBaselineModel, AdversarialInvariantGAN
 
+CURRENT_DIR = Path(__file__).resolve().parent
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Dual-Protocol Evaluation & Probing")
-    parser.add_argument("--baseline_ckpt", type=str, default="03_research_paper_specimen_invariance/outputs/baseline/best_baseline.pth")
-    parser.add_argument("--gan_ckpt", type=str, default="03_research_paper_specimen_invariance/outputs/gan/best_gan.pth")
-    parser.add_argument("--metadata_csv", type=str, default="03_research_paper_specimen_invariance/data/metadata_11species.csv")
-    parser.add_argument("--image_root", type=str, default="01_data_paper_forensic_cites/out")
-    parser.add_argument("--output_file", type=str, default="03_research_paper_specimen_invariance/outputs/comparison_results.json")
+    parser.add_argument("--baseline_ckpt", type=str, default=str(CURRENT_DIR / "outputs" / "baseline" / "best_baseline.pth"))
+    parser.add_argument("--gan_ckpt", type=str, default=str(CURRENT_DIR / "outputs" / "gan" / "best_gan.pth"))
+    parser.add_argument("--metadata_csv", type=str, default=str(CURRENT_DIR / "data" / "metadata_11species.csv"))
+    parser.add_argument("--image_root", type=str, default=None, help="Root folder of real images (auto-detected if None)")
+    parser.add_argument("--output_file", type=str, default=str(CURRENT_DIR / "outputs" / "comparison_results.json"))
     parser.add_argument("--max_batches", type=int, default=None, help="Max batches for quick audit")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
