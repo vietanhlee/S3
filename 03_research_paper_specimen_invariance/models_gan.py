@@ -116,14 +116,23 @@ class SpeciesClassifier(nn.Module):
         return self.head(x)
 
 
-class SpecimenDiscriminator(nn.Module):
+class SpeciesConditionedSpecimenDiscriminator(nn.Module):
     """
-    Minimax Adversarial Specimen Discriminator (The 'GAN' Discriminator).
-    Receives features through GRL and attempts to classify physical specimen identity.
-    Adversarial reversal forces the Feature Extractor to remove specimen signatures.
+    Minimax Adversarial Specimen Discriminator with Species Masked Softmax (Proposition 1 & Theorem 1).
+    Receives features through GRL and attempts to classify physical specimen identity
+    ONLY within the co-species voucher candidates:
+    P(s_i | y=c, z) = exp(w_{c,i}^T z) * M_{c,i} / sum_j [exp(w_{c,j}^T z) * M_{c,j}]
     """
 
-    def __init__(self, in_features: int, num_specimens: int = 77, hidden_dim: int = 256, dropout: float = 0.2):
+    def __init__(
+        self,
+        in_features: int,
+        num_specimens: int = 44,
+        num_classes: int = 11,
+        hidden_dim: int = 256,
+        dropout: float = 0.2,
+        species_specimen_mask: Optional[torch.Tensor] = None,
+    ):
         super().__init__()
         self.grl = GradientReversalLayer(alpha=1.0)
         self.net = nn.Sequential(
@@ -137,23 +146,42 @@ class SpecimenDiscriminator(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(hidden_dim // 2, num_specimens),
         )
+        self.num_classes = num_classes
+        self.num_specimens = num_specimens
+
+        if species_specimen_mask is not None:
+            self.register_buffer("mask", species_specimen_mask.clone().float())
+        else:
+            self.register_buffer("mask", torch.ones(num_classes, num_specimens, dtype=torch.float32))
+
+    def set_mask(self, mask: torch.Tensor):
+        self.mask.copy_(mask.float())
 
     def set_alpha(self, alpha: float):
         self.grl.set_alpha(alpha)
 
-    def forward(self, features: torch.Tensor) -> torch.Tensor:
+    def forward(self, features: torch.Tensor, species_labels: Optional[torch.Tensor] = None) -> torch.Tensor:
         reversed_features = self.grl(features)
-        return self.net(reversed_features)
+        raw_logits = self.net(reversed_features)
+        if species_labels is not None:
+            batch_mask = self.mask[species_labels]
+            masked_logits = raw_logits + (1.0 - batch_mask) * -1e9
+            return masked_logits
+        return raw_logits
+
+
+# Backward-compatible alias
+SpecimenDiscriminator = SpeciesConditionedSpecimenDiscriminator
 
 
 class VariationalCLUB(nn.Module):
     """
-    Variational Contrastive Log-ratio Upper Bound (vCLUB) Estimator.
-    Minimizes the mutual information upper bound I(Z; S) to compress residual specimen variance.
-    Uses Intra-Taxon negative sampling to preserve biological species boundaries.
+    Vectorized Variational Contrastive Log-ratio Upper Bound (vCLUB) Estimator.
+    Minimizes the mutual information upper bound I(Z; S | Y) to compress residual specimen variance.
+    100% Vectorized GPU matrix operations (Zero Python for-loops, Smooth gradients).
     """
 
-    def __init__(self, feat_dim: int, num_specimens: int = 77, hidden_dim: int = 128, specimen_emb_dim: int = 32):
+    def __init__(self, feat_dim: int, num_specimens: int = 44, hidden_dim: int = 128, specimen_emb_dim: int = 32):
         super().__init__()
         self.specimen_embed = nn.Embedding(num_specimens, specimen_emb_dim)
         self.p_mu = nn.Sequential(
@@ -168,36 +196,47 @@ class VariationalCLUB(nn.Module):
             nn.Tanh(),
         )
 
-    def get_log_prob(self, z: torch.Tensor, s_emb: torch.Tensor) -> torch.Tensor:
-        mu = self.p_mu(z)
-        logvar = self.p_logvar(z)
-        return -0.5 * (((mu - s_emb) ** 2) / (logvar.exp() + 1e-6) + logvar).sum(dim=-1)
-
     def compute_mi_loss(self, z: torch.Tensor, s_labels: torch.Tensor, y_labels: torch.Tensor) -> torch.Tensor:
         """
         Computes the contrastive mutual information upper bound with intra-taxon negative pairs.
+        Vectorized without Python loops.
         """
         batch_size = z.size(0)
         if batch_size <= 1:
             return torch.tensor(0.0, device=z.device, requires_grad=True)
 
-        s_emb = self.specimen_embed(s_labels)
-        positive_log_prob = self.get_log_prob(z, s_emb)
+        mu = self.p_mu(z)              # [B, d]
+        logvar = self.p_logvar(z)      # [B, d]
+        var = logvar.exp() + 1e-6      # [B, d]
+        s_emb = self.specimen_embed(s_labels) # [B, d]
 
-        # Intra-taxon negative shuffling (j != i, same species if possible)
-        negative_indices = torch.randperm(batch_size, device=z.device)
-        for i in range(batch_size):
-            co_species = (y_labels == y_labels[i]).nonzero(as_tuple=True)[0]
-            if len(co_species) > 1:
-                cands = co_species[co_species != i]
-                if len(cands) > 0:
-                    negative_indices[i] = cands[torch.randint(len(cands), (1,)).item()]
+        # 1. Positive log prob: log q(s_i | z_i)
+        pos_log_prob = -0.5 * (((mu - s_emb) ** 2) / var + logvar).sum(dim=-1) # [B]
 
-        s_neg_emb = s_emb[negative_indices]
-        negative_log_prob = self.get_log_prob(z, s_neg_emb)
+        # 2. Pairwise log prob: log q(s_j | z_i) [B, B]
+        mu_exp = mu.unsqueeze(1)         # [B, 1, d]
+        var_exp = var.unsqueeze(1)       # [B, 1, d]
+        logvar_exp = logvar.unsqueeze(1) # [B, 1, d]
+        s_emb_exp = s_emb.unsqueeze(0)   # [1, B, d]
 
-        mi_bound = (positive_log_prob - negative_log_prob).mean()
-        return F.relu(mi_bound)
+        pairwise_log_prob = -0.5 * (((mu_exp - s_emb_exp) ** 2) / var_exp + logvar_exp).sum(dim=-1) # [B, B]
+
+        # Intra-taxon mask: same species (y_i == y_j) but different specimen (s_i != s_j)
+        same_species = (y_labels.unsqueeze(1) == y_labels.unsqueeze(0))
+        diff_specimen = (s_labels.unsqueeze(1) != s_labels.unsqueeze(0))
+        intra_neg_mask = same_species & diff_specimen
+
+        diag_mask = torch.eye(batch_size, dtype=torch.bool, device=z.device)
+        general_neg_mask = ~diag_mask
+
+        has_intra_neg = intra_neg_mask.any(dim=1, keepdim=True)
+        final_neg_mask = torch.where(has_intra_neg, intra_neg_mask, general_neg_mask).float()
+
+        mask_sums = final_neg_mask.sum(dim=1).clamp(min=1.0)
+        neg_log_prob = (pairwise_log_prob * final_neg_mask).sum(dim=1) / mask_sums
+
+        mi_bound = (pos_log_prob - neg_log_prob).mean()
+        return mi_bound
 
 
 class StandardBaselineModel(nn.Module):
@@ -226,23 +265,29 @@ class AdversarialInvariantGAN(nn.Module):
     Components:
     1. Feature Extractor (Generator/Encoder) E_theta
     2. Species Classifier C_w
-    3. Specimen Discriminator D_phi with Gradient Reversal Layer (GRL)
-    4. Variational CLUB Mutual Information Bottleneck
+    3. Species-Conditioned Specimen Discriminator D_phi with Gradient Reversal Layer (GRL) & Masked Softmax
+    4. Vectorized Variational CLUB Mutual Information Bottleneck
     """
 
     def __init__(
         self,
         backbone_name: str = "resnet18",
         num_classes: int = 11,
-        num_specimens: int = 77,
+        num_specimens: int = 44,
         pretrained: bool = True,
-        adv_weight: float = 0.05,
-        club_weight: float = 0.005,
+        adv_weight: float = 0.30,
+        club_weight: float = 0.010,
+        species_specimen_mask: Optional[torch.Tensor] = None,
     ):
         super().__init__()
         self.backbone, self.feat_dim = build_backbone(backbone_name, pretrained=pretrained)
         self.classifier = SpeciesClassifier(self.feat_dim, num_classes=num_classes)
-        self.discriminator = SpecimenDiscriminator(self.feat_dim, num_specimens=num_specimens)
+        self.discriminator = SpeciesConditionedSpecimenDiscriminator(
+            in_features=self.feat_dim,
+            num_specimens=num_specimens,
+            num_classes=num_classes,
+            species_specimen_mask=species_specimen_mask,
+        )
         self.club = VariationalCLUB(self.feat_dim, num_specimens=num_specimens)
 
         self.adv_weight = adv_weight
@@ -260,7 +305,7 @@ class AdversarialInvariantGAN(nn.Module):
     ) -> Dict[str, torch.Tensor]:
         features = self.backbone(x)
         species_logits = self.classifier(features)
-        specimen_logits = self.discriminator(features)
+        specimen_logits = self.discriminator(features, species_labels=species_labels)
 
         out = {
             "species_logits": species_logits,

@@ -13,8 +13,8 @@ Set-Location $ScriptDir
 
 Write-Host "================================================================================" -ForegroundColor Cyan
 Write-Host "  SPECIMEN-INVARIANT TIMBER FORENSICS: 4-SEED BENCHMARK" -ForegroundColor Cyan
-Write-Host "  Protocol: 3 Evaluation Sets (Val, Seen Test, Unseen Test)" -ForegroundColor Cyan
-Write-Host "  Holdout : 3 Physical Vouchers/Species (33 Unseen Vouchers Total)" -ForegroundColor Cyan
+Write-Host "  Protocol: Stress-Test 50% Specimen Holdout" -ForegroundColor Cyan
+Write-Host "  Splits  : Train (44 vouchers) | Val (11 vouchers) | Test (55 vouchers = 5/sp)" -ForegroundColor Cyan
 Write-Host "  Taxa    : 11 Clean Fabaceae Species (110 physical vouchers)" -ForegroundColor Cyan
 Write-Host "  Backbone: ResNet-18 (Lightweight) | Device: CUDA" -ForegroundColor Cyan
 Write-Host "  Direct  : /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" -ForegroundColor Cyan
@@ -24,12 +24,13 @@ Write-Host "====================================================================
 python run_benchmark_3seeds.py `
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" `
     --seeds 42 123 456 789 `
-    --unseen_vouchers_per_species 3 `
+    --test_vouchers_per_species 5 `
+    --val_vouchers_per_species 1 `
     --epochs 20 `
     --batch_size 64 `
     --lr 3e-4 `
-    --adv_weight 0.05 `
-    --club_weight 0.005 `
+    --adv_weight 0.30 `
+    --club_weight 0.010 `
     --backbone "resnet18"
 
 Write-Host "`n================================================================================" -ForegroundColor Green

@@ -240,7 +240,12 @@ def main():
         print(f"[!] Warning: Baseline checkpoint not found at {args.baseline_ckpt}. Running with initialized weights for sanity check.")
 
     # 2. Load GAN Model
-    gan_model = AdversarialInvariantGAN(num_classes=num_classes, num_specimens=num_train_specimens, pretrained=False).to(device)
+    gan_model = AdversarialInvariantGAN(
+        num_classes=num_classes,
+        num_specimens=num_train_specimens,
+        pretrained=False,
+        species_specimen_mask=info.get("species_specimen_mask"),
+    ).to(device)
     if os.path.exists(args.gan_ckpt):
         ckpt_gan = torch.load(args.gan_ckpt, map_location=device)
         gan_model.load_state_dict(ckpt_gan["model_state_dict"])
@@ -259,9 +264,9 @@ def main():
         "benchmark_info": {
             "num_classes": num_classes,
             "train_vouchers": num_train_specimens,
-            "unseen_vouchers": 22,
-            "seen_test_samples": info["seen_samples"],
-            "unseen_test_samples": info["unseen_samples"],
+            "unseen_vouchers": info.get("unseen_specimens", 55),
+            "seen_test_samples": info.get("seen_test_samples", len(loader_seen.dataset) if hasattr(loader_seen, "dataset") else 0),
+            "unseen_test_samples": info.get("unseen_samples", len(loader_unseen.dataset) if hasattr(loader_unseen, "dataset") else 0),
         },
         "baseline_model": baseline_results,
         "adversarial_gan_model": gan_results,

@@ -6,14 +6,14 @@ Directly scans and filters physical wood images from the disk directory structur
 /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3
 without requiring external metadata.csv files.
 
-Implements per-seed dynamic partitioning with 3 evaluation sets and 3 unseen vouchers/species:
+Implements rigorous per-seed dynamic partitioning with Stress-Test 5-voucher holdout:
   1. Set random seed s.
-  2. For each taxon (10 vouchers), partition 3 vouchers to strictly Out-of-Specimen Unseen Physical Test (33 vouchers total).
-  3. Partition remaining 7 vouchers (77 vouchers total) into:
-     - 70% Train Set
-     - 15% In-Specimen Validation Set (Set 1)
-     - 15% In-Specimen Seen Test Set (Set 2)
-  4. Delivers 3 comprehensive evaluation sets: Val, Seen Test, and Unseen Test (Set 3).
+  2. For each taxon (10 vouchers):
+     - 5 vouchers -> Strictly Out-of-Specimen Unseen Physical Test (55 vouchers total, 50% holdout).
+     - 1 voucher  -> Strictly Out-of-Specimen Validation Set (11 vouchers total, honest checkpointing).
+     - 4 vouchers -> Train Pool (44 vouchers total, 40% vouchers).
+  3. Partition Train Pool into 80% Train Set and 20% In-Specimen Seen Test Set.
+  4. Delivers 4 comprehensive evaluation partitions with true species-specimen masks.
 """
 
 import os
@@ -215,84 +215,98 @@ def scan_and_build_dataset(image_root: Optional[Union[str, Path]] = None) -> pd.
 def split_dataset_by_seed(
     df: pd.DataFrame,
     seed: int = 42,
-    unseen_vouchers_per_species: int = 3,
-    val_ratio: float = 0.15,
-    seen_test_ratio: float = 0.15,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    test_vouchers_per_species: int = 5,
+    val_vouchers_per_species: int = 1,
+    seen_test_ratio: float = 0.20,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, torch.Tensor]:
     """
-    Thực hiện phân vùng dữ liệu theo Seed cụ thể với 3 bộ đánh giá (Val, Seen Test, Unseen Test):
+    Phân chia dữ liệu chuẩn phương pháp luận khoa học:
       1. Đặt seed rng = RandomState(seed).
-      2. Với mỗi loài (10 phôi): chọn ngẫu nhiên unseen_vouchers_per_species (3 phôi)
-         làm tập Unseen Physical Test (33 phôi hoàn toàn mới ngoài hiện trường, 3 phôi/loài).
-      3. 7 phôi còn lại đưa vào tập In-Specimen pool (77 phôi).
-      4. Trên 77 phôi này, chia ngẫu nhiên ảnh thành:
-         - Train Set (70% ảnh trên 77 phôi)
-         - In-Specimen Validation Set (15% ảnh trên 77 phôi)
-         - In-Specimen Seen Test Set (15% ảnh trên 77 phôi)
+      2. Với mỗi loài (10 phôi vật lý):
+         - 5 phôi rút ngẫu nhiên làm Out-of-Specimen Test Set (55 phôi, chiếm 50% số phôi).
+         - 1 phôi rút ngẫu nhiên làm Out-of-Specimen Val Set (11 phôi, dùng để chọn checkpoint thật).
+         - 4 phôi còn lại đưa vào Train Pool (44 phôi).
+      3. Trên 44 phôi Train Pool:
+         - 80% ảnh làm Train Set.
+         - 20% ảnh làm In-Specimen Seen Test Set.
+      4. Trả về: (df_train, df_val, df_seen_test, df_test_unseen, species_specimen_mask).
     """
     rng = np.random.RandomState(seed)
 
-    unseen_voucher_ids = set()
-    in_specimen_voucher_ids = set()
+    test_voucher_ids = set()
+    val_voucher_ids = set()
+    train_pool_voucher_ids = set()
 
     for sp_name, group in df.groupby("taxon_name"):
         vouchers = sorted(group["specimen_id"].unique())
         shuffled = rng.permutation(vouchers).tolist()
-        
-        # Chọn ra 3 phôi unseen mỗi loài (tổng 33 phôi)
-        unseen_picks = shuffled[:unseen_vouchers_per_species]
-        in_picks = shuffled[unseen_vouchers_per_species:]
-        
-        unseen_voucher_ids.update(unseen_picks)
-        in_specimen_voucher_ids.update(in_picks)
 
-    df_unseen = df[df["specimen_id"].isin(unseen_voucher_ids)].copy().reset_index(drop=True)
-    df_in_pool = df[df["specimen_id"].isin(in_specimen_voucher_ids)].copy().reset_index(drop=True)
+        picks_test = shuffled[:test_vouchers_per_species]
+        picks_val = shuffled[test_vouchers_per_species : test_vouchers_per_species + val_vouchers_per_species]
+        picks_train = shuffled[test_vouchers_per_species + val_vouchers_per_species :]
 
-    # Chia train / val / seen_test trên tập in-specimen pool
-    # Stratified split theo taxon_name để bảo đảm phân bố loài cân bằng tuyệt đối
+        test_voucher_ids.update(picks_test)
+        val_voucher_ids.update(picks_val)
+        train_pool_voucher_ids.update(picks_train)
+
+    df_test_unseen = df[df["specimen_id"].isin(test_voucher_ids)].copy().reset_index(drop=True)
+    df_val = df[df["specimen_id"].isin(val_voucher_ids)].copy().reset_index(drop=True)
+    df_train_pool = df[df["specimen_id"].isin(train_pool_voucher_ids)].copy().reset_index(drop=True)
+
+    # Chia train / seen_test trên tập train pool
     train_indices = []
-    val_indices = []
     seen_test_indices = []
 
-    for sp_name, group in df_in_pool.groupby("taxon_name"):
+    for sp_name, group in df_train_pool.groupby("taxon_name"):
         idx_list = rng.permutation(group.index.values)
-        n_val = max(1, int(len(idx_list) * val_ratio))
         n_seen = max(1, int(len(idx_list) * seen_test_ratio))
-        
-        val_indices.extend(idx_list[:n_val])
-        seen_test_indices.extend(idx_list[n_val : n_val + n_seen])
-        train_indices.extend(idx_list[n_val + n_seen :])
+        seen_test_indices.extend(idx_list[:n_seen])
+        train_indices.extend(idx_list[n_seen:])
 
-    df_train = df_in_pool.loc[train_indices].copy().reset_index(drop=True)
-    df_val = df_in_pool.loc[val_indices].copy().reset_index(drop=True)
-    df_seen_test = df_in_pool.loc[seen_test_indices].copy().reset_index(drop=True)
+    df_train = df_train_pool.loc[train_indices].copy().reset_index(drop=True)
+    df_seen_test = df_train_pool.loc[seen_test_indices].copy().reset_index(drop=True)
 
     # Gán nhãn phân vùng split
     df_train["eval_split"] = "train"
-    df_val["eval_split"] = "val"
+    df_val["eval_split"] = "val_unseen"
     df_seen_test["eval_split"] = "test_seen"
-    df_unseen["eval_split"] = "test_unseen"
+    df_test_unseen["eval_split"] = "test_unseen"
 
-    # Remap lại specimen_idx trong tập train [0 .. N_train_specimens - 1] (77 phôi)
+    # Remap lại specimen_idx trong tập train [0 .. 43] (44 phôi train)
     train_vouchers = sorted(df_train["specimen_id"].unique())
     v_map = {v: idx for idx, v in enumerate(train_vouchers)}
     df_train["specimen_idx"] = df_train["specimen_id"].map(v_map)
-    df_val["specimen_idx"] = df_val["specimen_id"].map(lambda x: v_map.get(x, 0))
     df_seen_test["specimen_idx"] = df_seen_test["specimen_id"].map(lambda x: v_map.get(x, 0))
 
-    # Gán nhãn specimen_idx riêng cho tập unseen [0 .. N_unseen_specimens - 1] (33 phôi) để đo SRI Probe
-    unseen_vouchers = sorted(df_unseen["specimen_id"].unique())
-    unseen_v_map = {v: idx for idx, v in enumerate(unseen_vouchers)}
-    df_unseen["specimen_idx"] = df_unseen["specimen_id"].map(unseen_v_map)
+    # Gán nhãn cho tập val và test
+    val_vouchers = sorted(df_val["specimen_id"].unique())
+    val_v_map = {v: idx for idx, v in enumerate(val_vouchers)}
+    df_val["specimen_idx"] = df_val["specimen_id"].map(val_v_map)
 
-    print(f"\n[+] Phân chia dữ liệu hoàn tất cho Seed {seed} (3 bộ đánh giá + 3 phôi test/loài):")
-    print(f"    - Train Set            : {len(df_train):,} ảnh (trên {len(train_vouchers)} phôi)")
-    print(f"    - Bộ 1: Val Set (Seen) : {len(df_val):,} ảnh (trên cùng {len(train_vouchers)} phôi)")
-    print(f"    - Bộ 2: Seen Test Set  : {len(df_seen_test):,} ảnh (trên cùng {len(train_vouchers)} phôi)")
-    print(f"    - Bộ 3: Unseen Test Set: {len(df_unseen):,} ảnh (trên {len(unseen_voucher_ids)} phôi CHƯA TỪNG THẤY - 3 phôi/loài)")
+    test_vouchers = sorted(df_test_unseen["specimen_id"].unique())
+    test_v_map = {v: idx for idx, v in enumerate(test_vouchers)}
+    df_test_unseen["specimen_idx"] = df_test_unseen["specimen_id"].map(test_v_map)
 
-    return df_train, df_val, df_seen_test, df_unseen
+    # Xây dựng ma trận mặt nạ Species-Specimen Mask [num_classes, num_train_specimens]
+    num_classes = len(TARGET_SPECIES)
+    num_train_specimens = len(train_vouchers)
+    species_mapping = {sp: idx for idx, sp in enumerate(TARGET_SPECIES)}
+    species_specimen_mask = torch.zeros((num_classes, num_train_specimens), dtype=torch.float32)
+
+    for v_name, s_idx in v_map.items():
+        # Tìm loài của voucher này
+        v_rows = df_train[df_train["specimen_id"] == v_name]
+        if not v_rows.empty:
+            sp_idx = int(v_rows.iloc[0]["species_idx"])
+            species_specimen_mask[sp_idx, s_idx] = 1.0
+
+    print(f"\n[+] Phân chia dữ liệu khoa học hoàn tất cho Seed {seed} (5 phôi Test/loài):")
+    print(f"    - Train Set                : {len(df_train):,} ảnh (trên {len(train_vouchers)} phôi - 4 phôi/loài)")
+    print(f"    - Seen Test Set (Seen)     : {len(df_seen_test):,} ảnh (trên cùng {len(train_vouchers)} phôi)")
+    print(f"    - Val Set (Out-of-Specimen): {len(df_val):,} ảnh (trên {len(val_vouchers)} phôi CHƯA TỪNG THẤY - 1 phôi/loài)")
+    print(f"    - Test Set (Out-of-Specimen): {len(df_test_unseen):,} ảnh (trên {len(test_vouchers)} phôi CHƯA TỪNG THẤY - 5 phôi/loài)")
+
+    return df_train, df_val, df_seen_test, df_test_unseen, species_specimen_mask
 
 
 def build_train_transforms(image_size: int = 224) -> Callable:
@@ -360,11 +374,12 @@ def create_seed_dataloaders(
     df_val: pd.DataFrame,
     df_seen_test: pd.DataFrame,
     df_unseen: pd.DataFrame,
+    species_specimen_mask: Optional[torch.Tensor] = None,
     batch_size: int = 64,
     num_workers: int = 2 if os.name != "nt" else 0,
 ) -> Tuple[DataLoader, DataLoader, DataLoader, DataLoader, Dict]:
     """
-    Tạo DataLoaders cho 4 tập: Train, In-Specimen Val, In-Specimen Seen Test, Out-of-Specimen Unseen Test.
+    Tạo DataLoaders cho 4 tập: Train (44 phôi), Out-of-Specimen Val (11 phôi), In-Specimen Seen Test, Out-of-Specimen Test (55 phôi).
     """
     ds_train = TimberDataset(df_train, is_train=True)
     ds_val = TimberDataset(df_val, is_train=False)
@@ -411,8 +426,10 @@ def create_seed_dataloaders(
         "seen_test_samples": len(ds_seen_test),
         "unseen_samples": len(ds_unseen),
         "train_specimens": df_train["specimen_id"].nunique(),
+        "val_specimens": df_val["specimen_id"].nunique(),
         "unseen_specimens": df_unseen["specimen_id"].nunique(),
         "species_names": TARGET_SPECIES,
+        "species_specimen_mask": species_specimen_mask,
     }
 
     return loader_train, loader_val, loader_seen_test, loader_unseen, info
@@ -424,7 +441,7 @@ def create_dataloaders(
     batch_size: int = 64,
     num_workers: int = 2 if os.name != "nt" else 0,
     seed: int = 42,
-    unseen_vouchers_per_species: int = 3,
+    test_vouchers_per_species: int = 5,
 ) -> Tuple[DataLoader, DataLoader, DataLoader, Dict]:
     """
     Wrapper tương thích ngược cho train_baseline.py, train_gan.py, evaluate_dual.py:
@@ -432,10 +449,10 @@ def create_dataloaders(
     (loader_train, loader_val, loader_unseen, info).
     """
     df = scan_and_build_dataset(image_root)
-    df_train, df_val, df_seen_test, df_unseen = split_dataset_by_seed(
-        df, seed=seed, unseen_vouchers_per_species=unseen_vouchers_per_species
+    df_train, df_val, df_seen_test, df_unseen, mask = split_dataset_by_seed(
+        df, seed=seed, test_vouchers_per_species=test_vouchers_per_species
     )
     loader_train, loader_val, loader_seen_test, loader_unseen, info = create_seed_dataloaders(
-        df_train, df_val, df_seen_test, df_unseen, batch_size=batch_size, num_workers=num_workers
+        df_train, df_val, df_seen_test, df_unseen, species_specimen_mask=mask, batch_size=batch_size, num_workers=num_workers
     )
     return loader_train, loader_val, loader_unseen, info

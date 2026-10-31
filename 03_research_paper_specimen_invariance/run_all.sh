@@ -16,8 +16,8 @@ cd "$SCRIPT_DIR"
 
 echo "================================================================================"
 echo "  SPECIMEN-INVARIANT TIMBER FORENSICS: 4-SEED BENCHMARK"
-echo "  Protocol: 3 Evaluation Sets (Val, Seen Test, Unseen Test)"
-echo "  Holdout : 3 Physical Vouchers/Species (33 Unseen Vouchers Total)"
+echo "  Protocol: Stress-Test 50% Specimen Holdout"
+echo "  Splits  : Train (44 vouchers) | Val (11 vouchers) | Test (55 vouchers = 5/sp)"
 echo "  Taxa    : 11 Clean Fabaceae Species (110 physical vouchers)"
 echo "  Backbone: ResNet-18 (Lightweight) | Device: CUDA (Kaggle T4/P100)"
 echo "  Direct  : /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
@@ -27,12 +27,13 @@ echo "==========================================================================
 python run_benchmark_3seeds.py \
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \
     --seeds 42 123 456 789 \
-    --unseen_vouchers_per_species 3 \
+    --test_vouchers_per_species 5 \
+    --val_vouchers_per_species 1 \
     --epochs 20 \
     --batch_size 64 \
     --lr 3e-4 \
-    --adv_weight 0.05 \
-    --club_weight 0.005 \
+    --adv_weight 0.30 \
+    --club_weight 0.010 \
     --backbone "resnet18"
 
 echo ""

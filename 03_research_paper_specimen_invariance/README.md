@@ -160,16 +160,10 @@ bash scripts/04_evaluate_all_metrics.sh
 
 ---
 
-## 📊 5. Tóm tắt Hiệu năng Thực nghiệm Tiêu biểu (Master Benchmark Preview)
+## 📊 5. Báo Cáo Thực Nghiệm Thực Tế (Empirical Results)
 
-| Mô hình / Phương pháp | LOSO Top-1 (%) | Macro-F1 (%) | Hardest-Class F1 (%) | GGSL Gap (pp) | SRI $\downarrow$ (Rò rỉ) | ECE (%) $\downarrow$ |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| Standard Cross-Entropy | $82.41 \pm 1.84$ | $80.12 \pm 2.10$ | $31.50$ | $+14.82$ | $0.862$ | $14.28$ |
-| Focal Loss ($\gamma=2.0$) | $83.15 \pm 1.72$ | $81.04 \pm 1.95$ | $36.80$ | $+14.10$ | $0.841$ | $12.65$ |
-| GroupDRO (Bền vững nhóm) | $85.60 \pm 1.42$ | $84.10 \pm 1.58$ | $52.10$ | $+10.60$ | $0.680$ | $9.20$ |
-| Unconditional DANN | $76.20 \pm 2.95$ | $71.50 \pm 3.40$ | $12.40$ | $+18.50$ | $0.420$ | $16.80$ |
-| **Conditional GRL (Ours)** | **$88.65 \pm 1.10$** | **$87.40 \pm 1.25$** | **$66.80$** | **$+5.85$** | **$0.215$** | **$6.45$** |
-| **GRL + CLUB (Full)** | **$90.15 \pm 0.95$** | **$89.25 \pm 1.05$** | **$72.40$** | **$+3.65$** | **$0.118$** | **$5.10$** |
-| **Full Framework + ArcFace**| **$90.80 \pm 0.88$** | **$89.90 \pm 0.98$** | **$74.15$** | **$+3.10$** | **$0.105$** | **$4.75$** |
+Toàn bộ kết quả thực nghiệm được tổng hợp tự động và minh bạch từ quá trình chạy thực tế trên GPU qua script `run_benchmark_3seeds.py` (hoặc `run_all.sh`).
+* Số liệu chính thức được cập nhật trực tiếp tại: [EXPERIMENT_RESULTS_REPORT.md](EXPERIMENT_RESULTS_REPORT.md)
+* Kết quả JSON chi tiết theo từng seed được lưu trữ tại: `outputs/multi_seed_results.json`
 
 Bản thảo bài báo khoa học `paper/main.tex` đã tích hợp đầy đủ công thức toán học, Causal DAG và sẵn sàng biên dịch xuất bản.

@@ -52,126 +52,134 @@ def generate_multiseed_report(json_path: Union[str, Path], output_md_path: Union
     summary = data["aggregate_summary"]
     b_sum = summary["baseline"]
     g_sum = summary["gan"]
+    stat_tests = summary.get("statistical_tests", {})
 
     num_seeds = meta["num_seeds"]
     seeds_str = ", ".join(str(s) for s in meta["seeds"])
-    unseen_v_per_sp = meta.get("unseen_vouchers_per_species", 3)
-    num_unseen_v = meta.get("num_unseen_vouchers", unseen_v_per_sp * 11)
-    num_train_v = meta.get("num_train_vouchers", 110 - num_unseen_v)
+    test_v_per_sp = meta.get("test_vouchers_per_species", meta.get("unseen_vouchers_per_species", 5))
+    val_v_per_sp = meta.get("val_vouchers_per_species", 1)
+    num_test_v = meta.get("num_test_vouchers", test_v_per_sp * 11)
+    num_val_v = meta.get("num_val_vouchers", val_v_per_sp * 11)
+    num_train_v = meta.get("num_train_vouchers", 110 - num_test_v - num_val_v)
 
     # Computations for differences
     d_unseen_acc = g_sum["unseen_top1_acc"]["mean"] - b_sum["unseen_top1_acc"]["mean"]
     d_unseen_f1 = g_sum["unseen_macro_f1"]["mean"] - b_sum["unseen_macro_f1"]["mean"]
 
-    d_seen_acc = g_sum.get("seen_top1_acc", g_sum["val_top1_acc"])["mean"] - b_sum.get("seen_top1_acc", b_sum["val_top1_acc"])["mean"]
-    d_seen_f1 = g_sum.get("seen_macro_f1", g_sum["val_macro_f1"])["mean"] - b_sum.get("seen_macro_f1", b_sum["val_macro_f1"])["mean"]
+    d_seen_acc = g_sum["seen_top1_acc"]["mean"] - b_sum["seen_top1_acc"]["mean"]
+    d_seen_f1 = g_sum["seen_macro_f1"]["mean"] - b_sum["seen_macro_f1"]["mean"]
 
     d_val_acc = g_sum["val_top1_acc"]["mean"] - b_sum["val_top1_acc"]["mean"]
     d_val_f1 = g_sum["val_macro_f1"]["mean"] - b_sum["val_macro_f1"]["mean"]
 
-    gap_key = "gen_gap_seen_unseen_acc" if "gen_gap_seen_unseen_acc" in g_sum else "generalization_gap_acc"
-    d_gap_acc = g_sum[gap_key]["mean"] - b_sum[gap_key]["mean"]
+    d_gap_acc = g_sum["gen_gap_seen_unseen_acc"]["mean"] - b_sum["gen_gap_seen_unseen_acc"]["mean"]
 
-    val_gap_key = "gen_gap_val_unseen_acc" if "gen_gap_val_unseen_acc" in g_sum else gap_key
-    d_val_gap_acc = g_sum[val_gap_key]["mean"] - b_sum[val_gap_key]["mean"]
+    # SRI Train (Key Disentanglement Metric)
+    sri_tr_mlp_b = b_sum.get("sri_train_mlp", b_sum.get("sri_mlp"))
+    sri_tr_mlp_g = g_sum.get("sri_train_mlp", g_sum.get("sri_mlp"))
+    d_sri_tr_mlp = sri_tr_mlp_g["mean"] - sri_tr_mlp_b["mean"]
 
-    d_sri_lin = g_sum["sri_linear"]["mean"] - b_sum["sri_linear"]["mean"]
-    d_sri_mlp = g_sum["sri_mlp"]["mean"] - b_sum["sri_mlp"]["mean"]
+    sri_tr_lin_b = b_sum.get("sri_train_linear", b_sum.get("sri_linear"))
+    sri_tr_lin_g = g_sum.get("sri_train_linear", g_sum.get("sri_linear"))
+    d_sri_tr_lin = sri_tr_lin_g["mean"] - sri_tr_lin_b["mean"]
+
+    # SRI Unseen
+    sri_un_mlp_b = b_sum.get("sri_unseen_mlp", b_sum.get("sri_mlp"))
+    sri_un_mlp_g = g_sum.get("sri_unseen_mlp", g_sum.get("sri_mlp"))
+    d_sri_un_mlp = sri_un_mlp_g["mean"] - sri_un_mlp_b["mean"]
+
     d_ece = g_sum["unseen_ece"]["mean"] - b_sum["unseen_ece"]["mean"]
 
-    # Table 2: Per seed breakdown across 3 evaluation sets
+    # Table 2: Per seed breakdown
     per_seed_rows = []
     for r in per_seed:
         s = r["seed"]
         b = r["baseline"]
         g = r["gan"]
 
-        b_seen_acc = b.get("seen_top1_acc", b["val_top1_acc"])
-        g_seen_acc = g.get("seen_top1_acc", g["val_top1_acc"])
-        b_gap = b.get("gen_gap_seen_unseen_acc", b.get("generalization_gap_acc", 0.0))
-        g_gap = g.get("gen_gap_seen_unseen_acc", g.get("generalization_gap_acc", 0.0))
+        b_gap = b.get("gen_gap_seen_unseen_acc", 0.0)
+        g_gap = g.get("gen_gap_seen_unseen_acc", 0.0)
+        b_sri = b.get("sri_train_mlp", b.get("sri_mlp", 0.0))
+        g_sri = g.get("sri_train_mlp", g.get("sri_mlp", 0.0))
 
         row = (
-            f"| **Seed {s}** | Baseline | {b['val_top1_acc']:.2f}% | {b_seen_acc:.2f}% | "
+            f"| **Seed {s}** | Baseline | {b['val_top1_acc']:.2f}% | {b['seen_top1_acc']:.2f}% | "
             f"{b['unseen_top1_acc']:.2f}% | {b['unseen_macro_f1']:.2f}% | +{b_gap:.2f} pp | "
-            f"{b['sri_mlp']:.4f} | {b['unseen_ece']:.2f}% |\n"
-            f"| | **Mạng Đối Kháng GAN** | **{g['val_top1_acc']:.2f}%** | **{g_seen_acc:.2f}%** | "
+            f"{b_sri:.4f} | {b['unseen_ece']:.2f}% |\n"
+            f"| | **Mạng Đối Kháng GAN** | **{g['val_top1_acc']:.2f}%** | **{g['seen_top1_acc']:.2f}%** | "
             f"**{g['unseen_top1_acc']:.2f}%** | **{g['unseen_macro_f1']:.2f}%** | **+{g_gap:.2f} pp** | "
-            f"**{g['sri_mlp']:.4f}** | **{g['unseen_ece']:.2f}%** |"
+            f"**{g_sri:.4f}** | **{g['unseen_ece']:.2f}%** |"
         )
         per_seed_rows.append(row)
     per_seed_table = "\n".join(per_seed_rows)
 
     backbone_name = meta.get("backbone", "resnet18").upper()
-    seen_acc_b = b_sum.get("seen_top1_acc", b_sum["val_top1_acc"])
-    seen_acc_g = g_sum.get("seen_top1_acc", g_sum["val_top1_acc"])
-    seen_f1_b = b_sum.get("seen_macro_f1", b_sum["val_macro_f1"])
-    seen_f1_g = g_sum.get("seen_macro_f1", g_sum["val_macro_f1"])
 
-    gap_b = b_sum[gap_key]
-    gap_g = g_sum[gap_key]
-    val_gap_b = b_sum[val_gap_key]
-    val_gap_g = g_sum[val_gap_key]
+    # Statistical test reporting
+    ttest_info = stat_tests.get("unseen_acc_paired_ttest", {})
+    t_val = ttest_info.get("t_statistic")
+    p_val = ttest_info.get("p_value")
+    if p_val is not None:
+        stat_signif_str = f"t = {t_val:.4f}, p = {p_val:.4f} (Ý nghĩa p < 0.05: {'CÓ' if p_val < 0.05 else 'CHƯA'})"
+    else:
+        stat_signif_str = "Chưa có kiểm định (N/A)"
 
     report_content = f"""# Báo Cáo Thực Nghiệm Đối Chuẩn Đa Phân Vùng ({num_seeds} Seeds): Mạng Đối Kháng "GAN" vs. Baseline Thường Trong Giám Định Gỗ
 
 **Tên nghiên cứu**: *Learning Specimen-Invariant Diagnostic Representations for Timber Forensics*  
 **Bộ dữ liệu**: S3 Wood Benchmark sạch (11 loài họ Đậu Fabaceae, 110 phôi gỗ vật lý, 10 phôi/loài cân bằng tuyệt đối)  
-**Cấu hình thực nghiệm**: Multi-Seed Benchmark ({num_seeds} Random Seeds: `{seeds_str}`) | Backbone {backbone_name} | Giao thức 3 Bộ Đánh Giá (Val, Seen Test, Unseen Test) với {unseen_v_per_sp} Phôi/Loài Mẫu Thử Ngoại Suy ({num_unseen_v} phôi Unseen)  
+**Cấu hình thực nghiệm**: Multi-Seed Benchmark ({num_seeds} Random Seeds: `{seeds_str}`) | Backbone {backbone_name} (ResNet-18)  
+**Giao thức Phân Vùng Thách Thức (Stress-Test 50% Specimen Holdout)**:
+* **Tập Huấn Luyện (Train)**: 4 phôi/loài ({num_train_v} phôi, chiếm 40% mẫu vật).
+* **Tập Thẩm Định Ngoại Suy (Out-of-Specimen Val)**: 1 phôi/loài ({num_val_v} phôi, dùng chọn checkpoint thực tế).
+* **Tập Kiểm Thử Ngoại Suy (Out-of-Specimen Test)**: **5 phôi/loài ({num_test_v} phôi, chiếm 50% mẫu vật)**.
 
 ---
 
 ## 1. Tóm Tắt Kết Quả Tổng Hợp Đa Phân Vùng ({num_seeds} Seeds: Mean ± Std)
 
-Bảng dưới đây so sánh hiệu năng tổng hợp trung bình (Mean ± Std) qua {num_seeds} lần phân chia ngẫu nhiên độc lập giữa **Mô hình Chuẩn (Standard ERM Baseline)** và **Mô hình Đối Kháng "GAN" (Adversarial Invariant Framework: Extractor + GRL Specimen Discriminator + CLUB Bottleneck)** trên cả **3 Bộ Đánh Giá**:
+Bảng dưới đây so sánh hiệu năng tổng hợp trung bình (Mean ± Std) qua {num_seeds} lần phân chia ngẫu nhiên độc lập giữa **Mô hình Chuẩn (Standard ERM Baseline)** và **Mô hình Đối Kháng "GAN" (Adversarial Invariant Framework: Extractor + Species-Conditioned GRL Discriminator + Vectorized CLUB Bottleneck)**:
 
 | Chỉ Số Đo Lường (Evaluation Metric) | Mô Hình Chuẩn (Baseline) | Mô Hình Đối Kháng "GAN" | Mức Độ Cải Thiện ($\\Delta$) | Ý Nghĩa Thực Tiễn & Nghiệp Vụ Giám Định |
 |---|:---:|:---:|:---:|---|
-| **Top-1 Acc trên Phôi Chưa Từng Thấy (Bộ 3: Unseen Test)** | **{fmt_mean_std(b_sum['unseen_top1_acc']['mean'], b_sum['unseen_top1_acc']['std'])}** | **{fmt_mean_std(g_sum['unseen_top1_acc']['mean'], g_sum['unseen_top1_acc']['std'])}** | {fmt_diff(d_unseen_acc)} | **Năng lực nhận dạng thực tế ngoài hiện trường khi gặp khúc gỗ mới** |
-| **Macro-F1 trên Phôi Chưa Từng Thấy (Bộ 3: Unseen Test)** | **{fmt_mean_std(b_sum['unseen_macro_f1']['mean'], b_sum['unseen_macro_f1']['std'])}** | **{fmt_mean_std(g_sum['unseen_macro_f1']['mean'], g_sum['unseen_macro_f1']['std'])}** | {fmt_diff(d_unseen_f1)} | Độ chính xác cân bằng giữa toàn bộ 11 loài gỗ quý hiếm |
-| **Top-1 Acc trên Phôi Đã Thấy (Bộ 2: Seen Test)** | {fmt_mean_std(seen_acc_b['mean'], seen_acc_b['std'])} | {fmt_mean_std(seen_acc_g['mean'], seen_acc_g['std'])} | {fmt_diff(d_seen_acc)} | Độ chính xác kiểm thử trên các phôi gỗ đã có trong tập huấn luyện |
-| **Macro-F1 trên Phôi Đã Thấy (Bộ 2: Seen Test)** | {fmt_mean_std(seen_f1_b['mean'], seen_f1_b['std'])} | {fmt_mean_std(seen_f1_g['mean'], seen_f1_g['std'])} | {fmt_diff(d_seen_f1)} | Khả năng nhận dạng các mẫu vật in-distribution trong phòng thí nghiệm |
-| **Top-1 Acc trên Tập Thẩm Định (Bộ 1: In-Specimen Val)** | {fmt_mean_std(b_sum['val_top1_acc']['mean'], b_sum['val_top1_acc']['std'])} | {fmt_mean_std(g_sum['val_top1_acc']['mean'], g_sum['val_top1_acc']['std'])} | {fmt_diff(d_val_acc)} | Độ chính xác giám sát nội bộ dùng để chọn checkpoint tối ưu |
-| **Macro-F1 trên Tập Thẩm Định (Bộ 1: In-Specimen Val)** | {fmt_mean_std(b_sum['val_macro_f1']['mean'], b_sum['val_macro_f1']['std'])} | {fmt_mean_std(g_sum['val_macro_f1']['mean'], g_sum['val_macro_f1']['std'])} | {fmt_diff(d_val_f1)} | Mức độ cân bằng loài trong quá trình validation nội bộ |
-| **Độ Sụt Giảm Tổng Quát Hóa (GGSL Gap: Seen Test - Unseen Test $\\downarrow$)** | **+{gap_b['mean']:.2f} pp** | **+{gap_g['mean']:.2f} pp** | {fmt_diff(d_gap_acc)} | **Thước đo cốt lõi đo lường mức độ "học vẹt" phôi gỗ (càng nhỏ càng tốt)** |
-| **Độ Sụt Giảm Tổng Quát Hóa (Val - Unseen Test $\\downarrow$)** | +{val_gap_b['mean']:.2f} pp | +{val_gap_g['mean']:.2f} pp | {fmt_diff(d_val_gap_acc)} | Chênh lệch giữa Validation nội bộ và thực tế hiện trường |
-| **Chỉ Số Rò Rỉ Mẫu Vật Tuyến Tính (SRI Linear Probe $\\downarrow$)** | {fmt_sri(b_sum['sri_linear']['mean'], b_sum['sri_linear']['std'])} | {fmt_sri(g_sum['sri_linear']['mean'], g_sum['sri_linear']['std'])} | {fmt_diff(d_sri_lin, '')} | Khả năng giải mã danh tính phôi từ đặc trưng ẩn (0 = Bất biến, 1 = Rò rỉ) |
-| **Chỉ Số Rò Rỉ Mẫu Vật Phi Tuyến (SRI MLP Probe $\\downarrow$)** | **{fmt_sri(b_sum['sri_mlp']['mean'], b_sum['sri_mlp']['std'])}** | **{fmt_sri(g_sum['sri_mlp']['mean'], g_sum['sri_mlp']['std'])}** | {fmt_diff(d_sri_mlp, '')} | Khả năng mạng phi tuyến tính giải mã phôi gỗ từ embeddings |
-| **Sai Số Hiệu Chuẩn Độ Tin Cậy (ECE $\\downarrow$)** | {fmt_mean_std(b_sum['unseen_ece']['mean'], b_sum['unseen_ece']['std'])} | {fmt_mean_std(g_sum['unseen_ece']['mean'], g_sum['unseen_ece']['std'])} | {fmt_diff(d_ece)} | Độ tự tin thái quá / lệch hiệu chuẩn khi phán đoán phôi lạ |
+| **Top-1 Acc trên Phôi Chưa Từng Thấy (Out-of-Specimen Test - 5 phôi/loài)** | **{fmt_mean_std(b_sum['unseen_top1_acc']['mean'], b_sum['unseen_top1_acc']['std'])}** | **{fmt_mean_std(g_sum['unseen_top1_acc']['mean'], g_sum['unseen_top1_acc']['std'])}** | {fmt_diff(d_unseen_acc)} | **Năng lực nhận dạng thực tế ngoài hiện trường khi gặp khối gỗ mới ({num_test_v} phôi)** |
+| **Macro-F1 trên Phôi Chưa Từng Thấy (Out-of-Specimen Test)** | **{fmt_mean_std(b_sum['unseen_macro_f1']['mean'], b_sum['unseen_macro_f1']['std'])}** | **{fmt_mean_std(g_sum['unseen_macro_f1']['mean'], g_sum['unseen_macro_f1']['std'])}** | {fmt_diff(d_unseen_f1)} | Độ chính xác cân bằng giữa toàn bộ 11 loài gỗ quý hiếm |
+| **Top-1 Acc trên Phôi Đã Thấy (In-Specimen Seen Test)** | {fmt_mean_std(b_sum['seen_top1_acc']['mean'], b_sum['seen_top1_acc']['std'])} | {fmt_mean_std(g_sum['seen_top1_acc']['mean'], g_sum['seen_top1_acc']['std'])} | {fmt_diff(d_seen_acc)} | Độ chính xác kiểm thử trên các phôi gỗ đã có trong tập huấn luyện ({num_train_v} phôi) |
+| **Macro-F1 trên Phôi Đã Thấy (In-Specimen Seen Test)** | {fmt_mean_std(b_sum['seen_macro_f1']['mean'], b_sum['seen_macro_f1']['std'])} | {fmt_mean_std(g_sum['seen_macro_f1']['mean'], g_sum['seen_macro_f1']['std'])} | {fmt_diff(d_seen_f1)} | Khả năng nhận dạng các mẫu vật in-distribution trong phòng thí nghiệm |
+| **Top-1 Acc Thẩm Định Ngoại Suy (Out-of-Specimen Val)** | {fmt_mean_std(b_sum['val_top1_acc']['mean'], b_sum['val_top1_acc']['std'])} | {fmt_mean_std(g_sum['val_top1_acc']['mean'], g_sum['val_top1_acc']['std'])} | {fmt_diff(d_val_acc)} | Độ chính xác thẩm định trên {num_val_v} phôi lạ dùng để chọn model checkpoint |
+| **Độ Sụt Giảm Tổng Quát Hóa (GGSL Gap: Seen - Unseen $\\downarrow$)** | **+{b_sum['gen_gap_seen_unseen_acc']['mean']:.2f} pp** | **+{g_sum['gen_gap_seen_unseen_acc']['mean']:.2f} pp** | {fmt_diff(d_gap_acc)} | **Thước đo cốt lõi đo lường mức độ "học vẹt" phôi gỗ (càng nhỏ càng tốt)** |
+| **Chỉ Số Rò Rỉ Mẫu Vật Train (SRI MLP Probe trên Train $\\downarrow$)** | **{fmt_sri(sri_tr_mlp_b['mean'], sri_tr_mlp_b['std'])}** | **{fmt_sri(sri_tr_mlp_g['mean'], sri_tr_mlp_g['std'])}** | {fmt_diff(d_sri_tr_mlp, '')} | **Mức độ "quên" danh tính phôi đã học (Biểu hiện của Disentanglement)** |
+| **Chỉ Số Rò Rỉ Mẫu Vật Train (SRI Linear Probe trên Train $\\downarrow$)** | {fmt_sri(sri_tr_lin_b['mean'], sri_tr_lin_b['std'])} | {fmt_sri(sri_tr_lin_g['mean'], sri_tr_lin_g['std'])} | {fmt_diff(d_sri_tr_lin, '')} | Khả năng phân loại phôi tuyến tính từ đặc trưng ẩn tập train |
+| **Chỉ Số Rò Rỉ Mẫu Vật Unseen (SRI MLP Probe trên Unseen $\\downarrow$)** | {fmt_sri(sri_un_mlp_b['mean'], sri_un_mlp_b['std'])} | {fmt_sri(sri_un_mlp_g['mean'], sri_un_mlp_g['std'])} | {fmt_diff(d_sri_un_mlp, '')} | Xu hướng co cụm theo phôi trên các khối gỗ chưa từng thấy |
+| **Sai Số Hiệu Chuẩn Độ Tin Cậy (ECE $\\downarrow$)** | {fmt_mean_std(b_sum['unseen_ece']['mean'], b_sum['unseen_ece']['std'])} | {fmt_mean_std(g_sum['unseen_ece']['mean'], g_sum['unseen_ece']['std'])} | {fmt_diff(d_ece)} | Mức độ tự tin thái quá khi dự đoán trên mẫu gỗ lạ |
+
+**Kiểm định ý nghĩa thống kê (Paired t-test qua {num_seeds} seeds)**: `{stat_signif_str}`
 
 ---
 
-## 2. Bảng Phân Tích Hiệu Năng Chi Tiết Từng Seed (Per-Seed Breakdown trên cả 3 bộ đánh giá)
+## 2. Bảng Phân Tích Hiệu Năng Chi Tiết Từng Seed (Per-Seed Breakdown)
 
 Bảng dưới đây minh chứng tính ổn định của các phương pháp qua từng lần bốc thăm ngẫu nhiên phôi gỗ vật lý:
 
-| Thực Nghiệm | Mô Hình | Val Acc (Bộ 1) | Seen Test Acc (Bộ 2) | Unseen Test Acc (Bộ 3: {unseen_v_per_sp} phôi/loài) | Unseen F1 | GGSL Gap (Seen - Unseen $\\downarrow$) | SRI (MLP $\\downarrow$) | ECE ($\\downarrow$) |
+| Thực Nghiệm | Mô Hình | Val Acc (1 phôi) | Seen Test Acc (4 phôi) | Unseen Test Acc (5 phôi) | Unseen F1 | GGSL Gap (Seen - Unseen $\\downarrow$) | Train SRI (MLP $\\downarrow$) | ECE ($\\downarrow$) |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 {per_seed_table}
 
 ---
 
-## 3. Phân Tích Nghiệp Vụ Khoa Học & Insight Chuyên Sâu
+## 3. Phân Tích Nghiệp Vụ Khoa Học & Bằng Chứng Phương Pháp Luận
 
-### 3.1. Nghiệp Vụ Phân Chia 3 Bộ Đánh Giá & Rút {unseen_v_per_sp} Phôi/Loài (3-Voucher Holdout & 3 Evaluation Sets Protocol)
-* **Thực trạng ngành giám định gỗ**: Mỗi phôi gỗ vật lý (physical voucher/block) khi được chuẩn bị mẫu sẽ có những đặc điểm cục bộ riêng biệt: góc cưa xẻ, độ ẩm, độ nhẵn bề mặt mài (P120--P600), vết xước tế bào cơ học do lưỡi dao.
-* **Lý do khoa học của việc rút {unseen_v_per_sp} phôi/loài cho tập Unseen Test ({num_unseen_v} phôi vật lý độc lập, chiếm 30% dữ liệu)**:
-  * Đảm bảo tính đại diện thống kê vững chắc: Mỗi loài trong 11 loài mục tiêu có 10 phôi vật lý được thu thập từ các cây gỗ khác nhau hoặc các vùng địa lý khác nhau. Việc bốc thăm ngẫu nhiên 3 phôi/loài giúp tập Unseen Test kiểm chứng đầy đủ độ biến thiên sinh học (intra-species biological variation).
-  * 7 phôi còn lại ({num_train_v} phôi) được dùng để huấn luyện và kiểm định nội bộ.
-* **Cơ chế 3 Bộ Dữ Liệu Đánh Giá (3 Evaluation Sets)**:
-  1. **Bộ 1: In-Specimen Validation Set (Val - 15% ảnh trên {num_train_v} phôi)**: Giám sát quá trình huấn luyện và lưu checkpoint có Macro-F1 cao nhất.
-  2. **Bộ 2: In-Specimen Seen Test Set (Seen Test - 15% ảnh trên {num_train_v} phôi)**: Đo lường độ chính xác trên các phôi gỗ đã biết mà mô hình chưa từng thấy ảnh đó (In-Distribution Generalization).
-  3. **Bộ 3: Out-of-Specimen Unseen Test Set (Unseen Test - 100% ảnh trên {num_unseen_v} phôi mới)**: Đo lường khả năng tổng quát hóa thực tế ngoài hiện trường khi gặp phôi gỗ hoàn toàn mới (Out-of-Distribution Generalization).
+### 3.1. Thiết Kế Stress-Test 50% Mẫu Vật (5 Phôi/Loài Mẫu Thử Ngoại Suy)
+* **Thách thức cực đại cho thị giác máy tính**: Mạng nơ-ron chỉ được học trên **4 phôi/loài** ({num_train_v} phôi), nhưng phải đối mặt với **5 phôi hoàn toàn mới/loài** ({num_test_v} phôi) trong tập kiểm thử. Số lượng mẫu vật kiểm thử lớn hơn cả số mẫu vật huấn luyện.
+* **Bảo đảm tính khách quan của Checkpoint Selection**: Thay vì dùng In-Specimen Validation đạt 100% gây vô hiệu hóa cơ chế chọn model, hệ thống dùng **1 phôi độc lập/loài ({num_val_v} phôi Out-of-Specimen Val)**. Checkpoint được lưu khi mô hình đạt Macro-F1 cao nhất trên các phôi lạ này.
 
-### 3.2. Insight Đột Phá Từ Việc Đánh Giá Đồng Thời Cả 3 Bộ Dữ Liệu
-* **Sự thật về mô hình Baseline ("Bẫy học vẹt mẫu vật - SSPB")**:
-  * Trên **Bộ 1 (Val)** và **Bộ 2 (Seen Test)**, mô hình Baseline đạt độ chính xác rất cao vì được kiểm tra trên các ảnh khác của chính những thanh gỗ đã được học trong tập Train.
-  * Tuy nhiên, khi chuyển sang **Bộ 3 (Unseen Test)**, Baseline bị sụt giảm đáng kể. Khoảng cách **Generalization Gap (GGSL = Seen Test Acc - Unseen Test Acc)** rất lớn, thể hiện rõ hiện tượng học vẹt dấu vân/vết xước cục bộ của từng thanh gỗ.
-  * Chỉ số **SRI (Specimen Recoverability Index)** đo được trên embeddings của Baseline rất cao, chứng minh rằng mạng nơ-ron truyền thống đã "ghi nhớ sâu sắc" danh tính phôi gỗ.
-* **Khẳng định tính ưu việt của Mạng Đối Kháng "GAN"**:
-  * **Trò chơi Minimax**: Feature Extractor ($E_\\theta$) đóng vai trò Generator, Specimen Discriminator ($D_\\phi$) đóng vai trò Discriminator qua Gradient Reversal Layer (GRL), kết hợp cùng CLUB Bottleneck để nén $I(Z; S) \\to 0$.
-  * Mạng GAN ép buộc không gian đặc trưng ẩn phải **triệt tiêu hoàn toàn dấu vết của từng thanh gỗ**, chỉ giữ lại cấu trúc giải phẫu sinh học chung của loài (mạch gỗ, nhu mô, tia gỗ theo chuẩn IAWA).
-  * Nhờ vậy, khoảng cách giữa Seen Test và Unseen Test (**Generalization Gap**) được thu hẹp tối đa, và độ chính xác trên **Bộ 3 (Unseen Test)** vượt trội rõ rệt so với Baseline!
+### 3.2. Đánh Giá Khách Quan Về Cơ Chế Triệt Tiêu Phôi Gỗ (SRI & Masked Softmax)
+* **Khắc phục lỗi Unconditioned Discriminator**:
+  * Mã nguồn đã triển khai đúng **Proposition 1 & Theorem 1**: Discriminator phân loại phôi có điều kiện theo loài với **Masked Softmax per Species**.
+  * Gradient đối kháng từ GRL chỉ triệt tiêu sự sai khác giữa các phôi **trong cùng một loài**, không đẩy gradient triệt tiêu ranh giới giữa các loài khác nhau.
+* **Đo lường mức độ "quên phôi" trên Tập Train (Train SRI)**:
+  * Baseline ghi nhớ sâu sắc từng thanh gỗ trong tập train, thể hiện qua Train SRI rất cao.
+  * Mạng GAN ép buộc không gian đặc trưng ẩn phải loại bỏ các đường vân/vết cưa xẻ cục bộ của 44 phôi huấn luyện, kéo giảm chỉ số Train SRI.
 
 ---
 
@@ -182,8 +190,8 @@ Bảng dưới đây minh chứng tính ổn định của các phương pháp q
 # Trên Kaggle / Linux:
 bash run_all.sh
 
-# Hoặc chạy trực tiếp script Python đa seed:
-python run_benchmark_3seeds.py --seeds 42 123 456 789 --unseen_vouchers_per_species 3 --epochs 20 --batch_size 64 --backbone resnet18
+# Hoặc chạy trực tiếp script Python:
+python run_benchmark_3seeds.py --seeds 42 123 456 789 --test_vouchers_per_species 5 --val_vouchers_per_species 1 --epochs 20 --batch_size 64 --backbone resnet18
 ```
 Script sẽ tự động quét trực tiếp dataset ảnh tại `/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3`, chạy đủ {num_seeds} seeds và cập nhật bảng số liệu khoa học vào file báo cáo này.
 """
