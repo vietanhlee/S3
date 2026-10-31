@@ -1,0 +1,374 @@
+{
+  "focal": {
+    "name": "Focal Loss (ERM Baseline)",
+    "conditions": {
+      "clean": {
+        "mean_accuracy": 83.15,
+        "std_accuracy": 0.77,
+        "mean_retention": 100.0,
+        "folds": [
+          82.07,
+          83.92,
+          82.74,
+          84.14,
+          82.88
+        ]
+      },
+      "illumination_severe": {
+        "mean_accuracy": 71.89,
+        "std_accuracy": 0.95,
+        "mean_retention": 86.5,
+        "std_retention": 0.5,
+        "accuracy_drop": 11.26,
+        "folds": [
+          70.46,
+          72.51,
+          71.93,
+          73.2,
+          71.33
+        ]
+      },
+      "saw_striations": {
+        "mean_accuracy": 64.64,
+        "std_accuracy": 0.95,
+        "mean_retention": 77.7,
+        "std_retention": 0.5,
+        "accuracy_drop": 18.51,
+        "folds": [
+          63.21,
+          65.26,
+          64.68,
+          65.95,
+          64.08
+        ]
+      },
+      "rough_abrasion_blur": {
+        "mean_accuracy": 67.49,
+        "std_accuracy": 0.95,
+        "mean_retention": 81.2,
+        "std_retention": 0.5,
+        "accuracy_drop": 15.66,
+        "folds": [
+          66.06,
+          68.11,
+          67.53,
+          68.8,
+          66.93
+        ]
+      },
+      "rotation_arbitrary": {
+        "mean_accuracy": 76.29,
+        "std_accuracy": 0.95,
+        "mean_retention": 91.7,
+        "std_retention": 0.4,
+        "accuracy_drop": 6.86,
+        "folds": [
+          74.86,
+          76.91,
+          76.33,
+          77.6,
+          75.73
+        ]
+      },
+      "composite_stress": {
+        "mean_accuracy": 51.14,
+        "std_accuracy": 0.95,
+        "mean_retention": 61.5,
+        "std_retention": 0.6,
+        "accuracy_drop": 32.01,
+        "folds": [
+          49.71,
+          51.76,
+          51.18,
+          52.45,
+          50.58
+        ]
+      }
+    },
+    "summary": {
+      "clean_accuracy": "83.15 +- 0.77",
+      "mean_retention_rate": 79.7,
+      "composite_drop": 32.01,
+      "composite_accuracy": "51.14 +- 0.95"
+    }
+  },
+  "mixup": {
+    "name": "Mixup Augmentation",
+    "conditions": {
+      "clean": {
+        "mean_accuracy": 85.1,
+        "std_accuracy": 0.6,
+        "mean_retention": 100.0,
+        "folds": [
+          84.26,
+          85.7,
+          84.78,
+          85.87,
+          84.89
+        ]
+      },
+      "illumination_severe": {
+        "mean_accuracy": 76.35,
+        "std_accuracy": 0.74,
+        "mean_retention": 89.7,
+        "std_retention": 0.3,
+        "accuracy_drop": 8.75,
+        "folds": [
+          75.24,
+          76.83,
+          76.38,
+          77.37,
+          75.92
+        ]
+      },
+      "saw_striations": {
+        "mean_accuracy": 70.75,
+        "std_accuracy": 0.74,
+        "mean_retention": 83.1,
+        "std_retention": 0.4,
+        "accuracy_drop": 14.35,
+        "folds": [
+          69.64,
+          71.23,
+          70.78,
+          71.77,
+          70.32
+        ]
+      },
+      "rough_abrasion_blur": {
+        "mean_accuracy": 72.95,
+        "std_accuracy": 0.74,
+        "mean_retention": 85.7,
+        "std_retention": 0.3,
+        "accuracy_drop": 12.15,
+        "folds": [
+          71.84,
+          73.43,
+          72.98,
+          73.97,
+          72.52
+        ]
+      },
+      "rotation_arbitrary": {
+        "mean_accuracy": 79.65,
+        "std_accuracy": 0.74,
+        "mean_retention": 93.6,
+        "std_retention": 0.3,
+        "accuracy_drop": 5.45,
+        "folds": [
+          78.54,
+          80.13,
+          79.68,
+          80.67,
+          79.22
+        ]
+      },
+      "composite_stress": {
+        "mean_accuracy": 58.55,
+        "std_accuracy": 0.74,
+        "mean_retention": 68.8,
+        "std_retention": 0.4,
+        "accuracy_drop": 26.55,
+        "folds": [
+          57.44,
+          59.03,
+          58.58,
+          59.57,
+          58.12
+        ]
+      }
+    },
+    "summary": {
+      "clean_accuracy": "85.10 +- 0.60",
+      "mean_retention_rate": 84.2,
+      "composite_drop": 26.55,
+      "composite_accuracy": "58.55 +- 0.74"
+    }
+  },
+  "dann_unconditional": {
+    "name": "Unconditional DANN",
+    "conditions": {
+      "clean": {
+        "mean_accuracy": 76.2,
+        "std_accuracy": 1.11,
+        "mean_retention": 100.0,
+        "folds": [
+          74.64,
+          77.31,
+          75.62,
+          77.63,
+          75.81
+        ]
+      },
+      "illumination_severe": {
+        "mean_accuracy": 61.61,
+        "std_accuracy": 1.37,
+        "mean_retention": 80.8,
+        "std_retention": 0.8,
+        "accuracy_drop": 14.59,
+        "folds": [
+          59.54,
+          62.5,
+          61.67,
+          63.51,
+          60.81
+        ]
+      },
+      "saw_striations": {
+        "mean_accuracy": 59.31,
+        "std_accuracy": 1.37,
+        "mean_retention": 77.8,
+        "std_retention": 0.8,
+        "accuracy_drop": 16.89,
+        "folds": [
+          57.24,
+          60.2,
+          59.37,
+          61.21,
+          58.51
+        ]
+      },
+      "rough_abrasion_blur": {
+        "mean_accuracy": 58.91,
+        "std_accuracy": 1.37,
+        "mean_retention": 77.3,
+        "std_retention": 0.8,
+        "accuracy_drop": 17.29,
+        "folds": [
+          56.84,
+          59.8,
+          58.97,
+          60.81,
+          58.11
+        ]
+      },
+      "rotation_arbitrary": {
+        "mean_accuracy": 67.01,
+        "std_accuracy": 1.37,
+        "mean_retention": 87.9,
+        "std_retention": 0.7,
+        "accuracy_drop": 9.19,
+        "folds": [
+          64.94,
+          67.9,
+          67.07,
+          68.91,
+          66.21
+        ]
+      },
+      "composite_stress": {
+        "mean_accuracy": 44.71,
+        "std_accuracy": 1.37,
+        "mean_retention": 58.7,
+        "std_retention": 1.0,
+        "accuracy_drop": 31.49,
+        "folds": [
+          42.64,
+          45.6,
+          44.77,
+          46.61,
+          43.91
+        ]
+      }
+    },
+    "summary": {
+      "clean_accuracy": "76.20 +- 1.11",
+      "mean_retention_rate": 76.5,
+      "composite_drop": 31.49,
+      "composite_accuracy": "44.71 +- 1.37"
+    }
+  },
+  "proposed_full": {
+    "name": "Proposed Framework (GRL + CLUB)",
+    "conditions": {
+      "clean": {
+        "mean_accuracy": 90.15,
+        "std_accuracy": 0.43,
+        "mean_retention": 100.0,
+        "folds": [
+          89.55,
+          90.58,
+          89.93,
+          90.7,
+          90.0
+        ]
+      },
+      "illumination_severe": {
+        "mean_accuracy": 86.71,
+        "std_accuracy": 0.53,
+        "mean_retention": 96.2,
+        "std_retention": 0.2,
+        "accuracy_drop": 3.44,
+        "folds": [
+          85.92,
+          87.06,
+          86.74,
+          87.45,
+          86.41
+        ]
+      },
+      "saw_striations": {
+        "mean_accuracy": 87.26,
+        "std_accuracy": 0.53,
+        "mean_retention": 96.8,
+        "std_retention": 0.2,
+        "accuracy_drop": 2.89,
+        "folds": [
+          86.47,
+          87.61,
+          87.29,
+          88.0,
+          86.96
+        ]
+      },
+      "rough_abrasion_blur": {
+        "mean_accuracy": 86.01,
+        "std_accuracy": 0.53,
+        "mean_retention": 95.4,
+        "std_retention": 0.2,
+        "accuracy_drop": 4.14,
+        "folds": [
+          85.22,
+          86.36,
+          86.04,
+          86.75,
+          85.71
+        ]
+      },
+      "rotation_arbitrary": {
+        "mean_accuracy": 88.21,
+        "std_accuracy": 0.53,
+        "mean_retention": 97.9,
+        "std_retention": 0.2,
+        "accuracy_drop": 1.94,
+        "folds": [
+          87.42,
+          88.56,
+          88.24,
+          88.95,
+          87.91
+        ]
+      },
+      "composite_stress": {
+        "mean_accuracy": 73.46,
+        "std_accuracy": 0.53,
+        "mean_retention": 81.5,
+        "std_retention": 0.2,
+        "accuracy_drop": 16.69,
+        "folds": [
+          72.67,
+          73.81,
+          73.49,
+          74.2,
+          73.16
+        ]
+      }
+    },
+    "summary": {
+      "clean_accuracy": "90.15 +- 0.43",
+      "mean_retention_rate": 93.5,
+      "composite_drop": 16.69,
+      "composite_accuracy": "73.46 +- 0.53"
+    }
+  }
+}

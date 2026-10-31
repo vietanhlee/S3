@@ -21,7 +21,7 @@ Write-Host "  Direct  : /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" -
 Write-Host "  Seeds   : 42, 123, 456, 789 | Epochs: 20 | Batch Size: 64" -ForegroundColor Cyan
 Write-Host "================================================================================" -ForegroundColor Cyan
 
-python run_benchmark_3seeds.py `
+python run_benchmark.py `
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" `
     --seeds 42 123 456 789 `
     --test_vouchers_per_species 5 `

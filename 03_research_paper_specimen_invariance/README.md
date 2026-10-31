@@ -49,120 +49,107 @@ flowchart LR
 
 ---
 
-## 📂 2. Cấu trúc Thư mục Mã nguồn
+## 📂 2. Cấu trúc Thư mục Khoa học Chuẩn Hóa (Production Repository Layout)
+
+Thư mục đã được tái cấu trúc sạch sẽ, chuẩn hóa tuyệt đối và loại bỏ hoàn toàn các file rác, file alias:
 
 ```
 03_research_paper_specimen_invariance/
-├── datasets/                             # Quản lý nạp dữ liệu và bộ chia
-│   ├── dataset.py                        # TimberDataset và ánh xạ nhãn loài/phôi gỗ
-│   ├── samplers.py                       # SpecimenBalancedBatchSampler
-│   └── splits.py                         # Trình sinh Round-Robin LOSO & Leaky splits
-├── models/                               # Kiến trúc mạng nơ-ron
-│   ├── backbones.py                      # ConvNeXt-Tiny, ResNet-50, Swin-T, EfficientNetV2-S
-│   ├── grl.py                            # Gradient Reversal Layer với Sigmoid Annealing
-│   ├── heads.py                          # SpeciesClassifier, Masked Conditional Discriminator
-│   ├── club.py                           # Discrete CLUB mutual information estimator
-│   └── full_model.py                     # Khung thống nhất SpecimenInvariantModel
-├── losses/                               # Các hàm mất mát chuyên biệt
-│   ├── species_losses.py                 # Class-Balanced Focal Loss
-│   ├── contrastive_losses.py             # SupCon Loss, Semi-Hard Triplet Loss
-│   └── group_robust_losses.py            # GroupDRO, Invariant Risk Minimization (IRM)
-├── trainers/                             # Quản lý vòng lặp huấn luyện
-│   ├── base_trainer.py                   # Trainer cơ bản với kiểm định LOSO nghiêm ngặt
-│   └── trainer_adversarial.py            # Trainer hợp nhất cho GRL, CLUB và 13 baselines
-├── evaluation/                           # Bộ công cụ đánh giá khoa học
-│   ├── specimen_probe.py                 # Linear Probe 50/50 & Tính toán chỉ số SRI
-│   ├── calibration.py                    # Đo lường sai số định chuẩn ECE, MCE
-│   ├── metrics.py                        # Tính khoảng cách suy giảm rò rỉ GGSL
-│   └── visualizer.py                     # Trực quan hóa t-SNE, đường cong Pareto & tương quan
-├── paper/                                # Bản thảo bài báo khoa học Elsevier
-│   ├── main.tex                          # File mã nguồn LaTeX cas-sc hoàn chỉnh (717 dòng)
-│   ├── refs.bib                          # Cơ sở dữ liệu BibTeX chuẩn quốc tế
-│   └── figures/                          # Biểu đồ Grad-CAM và kiến trúc mạng
-├── scripts/                              # Các kịch bản bash chạy tự động
-│   ├── 01_run_loso_baselines.sh          # Chạy 13 baselines song song đa GPU
-│   ├── 02_run_ablation_backbones.sh      # Chạy kiểm chứng trên 4 backbones
-│   ├── 03_run_pareto_sweep.sh            # Quét trọng số đối kháng và vẽ đường cong Pareto
-│   └── 04_evaluate_all_metrics.sh        # Đánh giá toàn bộ chỉ số sau khi train
-├── config.py                             # Cấu hình siêu tham số tập trung
-├── run_parallel_dispatcher.py            # ĐIỀU PHỐI ĐA GPU THÔNG MINH (Task Queue)
-├── train.py                              # CLI huấn luyện mô hình độc lập
-├── evaluate.py                           # CLI đánh giá kiểm định đa chiều
-├── run_pareto_sweep.py                   # CLI quét bề mặt Pareto tối ưu
-└── README.md                             # Hướng dẫn chi tiết dự án 3
+├── README.md                          # Tài liệu hướng dẫn & giải trình khoa học toàn diện
+├── EXPERIMENT_RESULTS_REPORT.md       # Báo cáo thực nghiệm đa phân vùng (tự động cập nhật từ GPU)
+├── requirements.txt                   # Danh mục thư viện phụ thuộc
+├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, Multi-Seed, Paired t-test)
+├── run_all.sh                         # 1-Click Master Bash Script (cho Kaggle / Linux GPU)
+├── run_all.ps1                        # 1-Click Master PowerShell Script (cho Windows GPU)
+│
+├── dataset.py                         # Module Dataset & DataLoader: Quét trực tiếp ảnh từ đĩa & chia phân vùng
+├── models_gan.py                      # Kiến trúc: Baseline ERM, Masked Softmax GRL Specimen Discriminator, Vectorized CLUB
+├── evaluate_dual.py                   # Script đánh giá đa giao thức: Seen/Unseen, Train/Test SRI Probing, ECE
+├── generate_report.py                 # Bộ biên dịch báo cáo Markdown khoa học & kiểm định thống kê
+│
+├── data/                              # Danh mục siêu dữ liệu tham chiếu
+│   └── metadata_11species.csv
+│
+├── outputs/                           # Kết quả thực nghiệm chính thức
+│   └── multi_seed_results.json        # Dữ liệu JSON gốc đo lường từ các GPU runs
+│
+├── paper/                             # Bản thảo bài báo khoa học Elsevier Pattern Recognition
+│   ├── main.tex                       # File LaTeX manuscript hoàn chỉnh
+│   ├── main.pdf                       # Bản PDF biên dịch
+│   ├── refs.bib                       # Cơ sở dữ liệu trích dẫn BibTeX
+│   ├── cas-sc.cls                     # Template Elsevier CAS-SC
+│   ├── enumitem.sty
+│   ├── figures/                       # Sơ đồ kiến trúc & đồ thị khoa học
+│   ├── reviews_and_responses/         # Hồ sơ phản biện & thư giải trình chi tiết qua các vòng
+│   └── build_tools/                   # Các script bổ trợ tạo đồ thị và biên tập layout
+│
+└── archive/                           # Lưu trữ mã nguồn & kết quả lịch sử
+    ├── legacy_code/                   # Mã nguồn khung cũ đã được lưu trữ an toàn
+    └── legacy_outputs/                # Bảng LaTeX và kết quả các vòng chạy trước
 ```
 
 ---
 
-## 🔬 3. Danh mục 13 Giao thức & Mô hình Đối chiếu (Baselines)
+## 🔬 3. Giao thức Thực nghiệm Thách thức (Stress-Test 50% Specimen Holdout)
 
-| Nhóm Phương pháp | Tên Mô hình / Baseline | Cơ chế Hoạt động Chính |
-| :--- | :--- | :--- |
-| **1. Không can thiệp (ERM)** | `cross_entropy`, `focal`, `arcface`, `supcon` | Học rủi ro thực nghiệm thông thường; dễ bị học vẹt phôi gỗ. |
-| **2. Điều hòa chung (Reg)** | `strong_reg`, `mixup` | Phạt trọng số Weight Decay mạnh ($10^{-2}$), Dropout ($0.5$), và nội suy ảnh Mixup. |
-| **3. Bền vững nhóm (DRO)** | `group_dro`, `irm` | Tối ưu hóa tổn thất trên nhóm phôi gỗ xấu nhất (GroupDRO) và bất biến gradient (IRM). |
-| **4. Thích ứng đối kháng** | `dann_unconditional`, `conditional_grl` | DANN dự đoán phôi gỗ toàn cục (bị lỗi) vs. GRL điều kiện hóa có mặt nạ (Đề xuất). |
-| **5. Lý thuyết thông tin** | `club` | Trực tiếp nén chặn trên thông tin tương hỗ $I(Z; S \mid Y)$. |
-| **6. Khung hoàn chỉnh** | **`full_invariant` (GRL + CLUB)** | Hợp nhất GRL đảo ngược gradient và CLUB nén không gian tiềm ẩn. |
+Hệ thống triển khai giao thức phân vùng phôi ngẫu nhiên động (**Dynamic Per-Seed Partitioning**) trên 11 loài họ Đậu Fabaceae sạch (110 phôi gỗ vật lý, 10 phôi/loài cân bằng tuyệt đối):
+
+| Phân Vùng Dữ Liệu | Số Phôi / Loài | Tổng Số Phôi | Tỷ Lệ Mẫu Vật | Vai Trò & Nghiệp Vụ Khoa Học |
+| :--- | :---: | :---: | :---: | :--- |
+| **Out-of-Specimen Unseen Test** | **5 phôi** | **55 phôi** | **50%** | **Stress-test kiểm thử ngoại suy thực tế trên các khúc gỗ hoàn toàn mới** |
+| **Out-of-Specimen Val** | **1 phôi** | **11 phôi** | **10%** | **Thẩm định khách quan để lưu checkpoint tối ưu (chống bẫy Val 100%)** |
+| **In-Specimen Train Set** | 4 phôi | 44 phôi | 32% (80% pool) | Huấn luyện mạng nơ-ron nhận diện loài và triệt tiêu phôi gỗ |
+| **In-Specimen Seen Test** | 4 phôi | 44 phôi | 8% (20% pool) | Kiểm thử nội bộ in-distribution (đo lường độ sụt giảm GGSL) |
 
 ---
 
 ## 💻 4. Hướng dẫn Lệnh Chạy (Terminal Commands)
 
-Chuyển vào thư mục dự án trên terminal:
+### Lệnh 1: Chạy 1-Click Toàn bộ Thực nghiệm Đa Seed trên Kaggle GPU (T4 / P100)
+Chỉ cần chạy file shell script tự động:
 ```bash
-cd g:/S3_paper/03_research_paper_specimen_invariance
+# Trên Kaggle hoặc Linux GPU:
+bash run_all.sh
 ```
 
-### Lệnh 1: Chạy Huấn Luyện Song Song Đa GPU Tự Động (`run_parallel_dispatcher.py`)
-Hệ thống tự động phát hiện số lượng GPU vật lý (`torch.cuda.device_count()`) và phân bổ worker thông minh vào hàng đợi:
+### Lệnh 2: Chạy Bằng PowerShell trên Windows
 ```powershell
-# Chạy toàn bộ 13 baselines trên Fold 0 (chuẩn LOSO):
-python run_parallel_dispatcher.py --mode baselines --fold 0 --epochs 13
-
-# Chạy kiểm chứng trên 4 kiến trúc Vision Backbones:
-python run_parallel_dispatcher.py --mode backbones --fold 0 --epochs 13
+.\run_all.ps1
 ```
 
-### Lệnh 2: Huấn luyện Trực tiếp Mô hình Đề xuất Bằng CLI (`train.py`)
-Huấn luyện mô hình Specimen-Invariant hoàn chỉnh (GRL + CLUB) với kiến trúc ConvNeXt-Tiny:
-```powershell
-# Huấn luyện mô hình hoàn chỉnh (Full Framework) trên Fold 0
-python train.py --model-type full_invariant --backbone convnext_tiny --fold 0 --epochs 25 --batch-size 32 --lr 3e-4
-
-# Huấn luyện baseline đối chiếu (ví dụ Focal Loss)
-python train.py --model-type focal --backbone convnext_tiny --fold 0 --epochs 25 --batch-size 32
-
-# Huấn luyện với đầu phân loại ArcFace góc mở rộng
-python train.py --model-type full_invariant --species-head arcface --epochs 25
-```
-
-### Lệnh 3: Đánh giá Kiểm định Toàn diện (`evaluate.py`)
-Đo lường sai số rò rỉ ($\mathrm{GGSL}$), độ truy xuất phôi gỗ ($\mathrm{SRI}$), độ lệch chuẩn định tin cậy ($\mathrm{ECE}$, $\mathrm{MCE}$), và xuất biểu đồ t-SNE:
-```powershell
-python evaluate.py --checkpoint "outputs/checkpoints/full_invariant_convnext_tiny_fold0_best.pt" --fold 0 --output-dir "evaluation_results"
-```
-
-### Lệnh 4: Quét Bề Mặt Pareto Giữa Độ Chính Xác & Chỉ Số SRI (`run_pareto_sweep.py`)
-Quét trọng số đối kháng $\lambda_{\text{adv}} \in [0.0, 2.0]$ để tìm điểm cân bằng tối ưu và chứng minh tương quan tuyến tính $r = +0.924$ giữa SRI và sai số triển khai:
-```powershell
-python run_pareto_sweep.py --fold 0 --epochs 15 --lambda-min 0.0 --lambda-max 2.0 --steps 8
-```
-
-### Lệnh 5: Thực thi Bằng Bash Scripts (Dành cho Linux / Git Bash trên Windows)
+### Lệnh 3: Chạy Trực tiếp Python CLI với Tham số Tùy chỉnh (`run_benchmark.py`)
 ```bash
-# Chạy tuần tự các kịch bản thực nghiệm
-bash scripts/01_run_loso_baselines.sh
-bash scripts/02_run_ablation_backbones.sh
-bash scripts/03_run_pareto_sweep.sh
-bash scripts/04_evaluate_all_metrics.sh
+python run_benchmark.py \
+    --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \
+    --seeds 42 123 456 789 \
+    --test_vouchers_per_species 5 \
+    --val_vouchers_per_species 1 \
+    --epochs 20 \
+    --batch_size 64 \
+    --lr 3e-4 \
+    --adv_weight 0.30 \
+    --club_weight 0.010 \
+    --backbone "resnet18"
+```
+
+### Lệnh 4: Đánh giá Độc lập Checkpoint Mô hình (`evaluate_dual.py`)
+```bash
+python evaluate_dual.py \
+    --baseline_ckpt outputs/baseline/best_baseline.pth \
+    --gan_ckpt outputs/gan/best_gan.pth \
+    --output_file outputs/comparison_results.json \
+    --backbone resnet18
 ```
 
 ---
 
 ## 📊 5. Báo Cáo Thực Nghiệm Thực Tế (Empirical Results)
 
-Toàn bộ kết quả thực nghiệm được tổng hợp tự động và minh bạch từ quá trình chạy thực tế trên GPU qua script `run_benchmark_3seeds.py` (hoặc `run_all.sh`).
+Toàn bộ kết quả thực nghiệm được tổng hợp tự động và minh bạch từ quá trình chạy thực tế trên GPU qua script `run_benchmark.py` (hoặc `run_all.sh`).
+* Số liệu chính thức được cập nhật trực tiếp tại: [EXPERIMENT_RESULTS_REPORT.md](EXPERIMENT_RESULTS_REPORT.md)
+* Kết quả JSON chi tiết theo từng seed được lưu trữ tại: `outputs/multi_seed_results.json`
+
+Bản thảo bài báo khoa học `paper/main.tex` đã tích hợp đầy đủ công thức toán học, Causal DAG và sẵn sàng biên dịch xuất bản.
 * Số liệu chính thức được cập nhật trực tiếp tại: [EXPERIMENT_RESULTS_REPORT.md](EXPERIMENT_RESULTS_REPORT.md)
 * Kết quả JSON chi tiết theo từng seed được lưu trữ tại: `outputs/multi_seed_results.json`
 

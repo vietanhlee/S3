@@ -1,0 +1,12 @@
+% Table 8: Ablation Study with Fair Controls
+1. Standard ERM Baseline (Cross-Entropy) & 82.60 & 82.35 & 79.80 & 76.50 & 0.865 / 0.880 & 13.90 \\
+2. ERM + Specimen-Balanced Sampler & 84.35 & 84.10 & 82.50 & 77.80 & 0.810 / 0.835 & 11.80 \\
+3. ERM + Class-Balanced Focal Loss & 83.40 & 83.15 & 81.04 & 78.40 & 0.841 / 0.865 & 12.65 \\
+\midrule
+4. Full Framework w/o Masked Softmax ($M_c \equiv 1$) & 87.05 & 79.40 & 74.80 & \textbf{14.20} & 0.180 / 0.210 & 15.20 \\
+5. Full Framework w/o Annealing Schedule ($\lambda_{\text{adv}} = 1.0$) & 86.60 & 86.35 & 84.90 & 68.50 & 0.145 / 0.170 & 8.90 \\
+6. Full Framework w/o CLUB Bottleneck (GRL only) & 88.95 & 88.65 & 87.40 & 85.10 & 0.215 / 0.248 & 6.45 \\
+7. Full Framework w/o GRL (CLUB only) & 87.50 & 87.20 & 85.90 & 83.80 & 0.285 / 0.320 & 7.30 \\
+8. Full Framework w/o Specimen-Balanced Sampler & 88.70 & 88.40 & 86.80 & 75.30 & 0.170 / 0.198 & 6.85 \\
+\midrule
+\textbf{9. Proposed Full Framework (GRL + CLUB)} & \textbf{90.45} & \textbf{90.15} & \textbf{89.25} & \textbf{86.70} & \textbf{0.118 / 0.134} & \textbf{5.10} \\
