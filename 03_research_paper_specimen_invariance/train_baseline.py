@@ -35,7 +35,7 @@ CURRENT_DIR = Path(__file__).resolve().parent
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Standard Baseline Model")
-    parser.add_argument("--backbone", type=str, default="resnet50", help="Visual backbone architecture")
+    parser.add_argument("--backbone", type=str, default="resnet18", help="Visual backbone architecture")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--max_batches", type=int, default=None, help="Max batches per epoch for quick testing")

@@ -386,7 +386,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--adv_weight", type=float, default=0.05, help="GRL discriminator loss weight beta")
     parser.add_argument("--club_weight", type=float, default=0.005, help="Variational CLUB MI loss weight mu")
-    parser.add_argument("--backbone", type=str, default="resnet50", help="Visual backbone")
+    parser.add_argument("--backbone", type=str, default="resnet18", help="Visual backbone")
     parser.add_argument("--output_dir", type=str, default=str(CURRENT_DIR / "outputs"), help="Output directory")
     return parser.parse_args()
 

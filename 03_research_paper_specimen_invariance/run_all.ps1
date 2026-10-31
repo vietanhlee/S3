@@ -26,7 +26,7 @@ python run_benchmark_3seeds.py `
     --lr 3e-4 `
     --adv_weight 0.05 `
     --club_weight 0.005 `
-    --backbone "resnet50"
+    --backbone "resnet18"
 
 Write-Host "`n================================================================================" -ForegroundColor Green
 Write-Host "[SUCCESS] Multi-Seed Benchmark completed successfully!" -ForegroundColor Green
