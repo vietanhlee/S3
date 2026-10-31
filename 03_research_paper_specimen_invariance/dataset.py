@@ -266,7 +266,11 @@ def split_dataset_by_seed(
     v_map = {v: idx for idx, v in enumerate(train_vouchers)}
     df_train["specimen_idx"] = df_train["specimen_id"].map(v_map)
     df_val["specimen_idx"] = df_val["specimen_id"].map(lambda x: v_map.get(x, 0))
-    df_unseen["specimen_idx"] = 0
+
+    # Gán nhãn specimen_idx riêng cho tập unseen [0 .. N_unseen_specimens - 1] để đo SRI Probe
+    unseen_vouchers = sorted(df_unseen["specimen_id"].unique())
+    unseen_v_map = {v: idx for idx, v in enumerate(unseen_vouchers)}
+    df_unseen["specimen_idx"] = df_unseen["specimen_id"].map(unseen_v_map)
 
     print(f"\n[+] Phân chia dữ liệu hoàn tất cho Seed {seed}:")
     print(f"    - Train Set       : {len(df_train):,} ảnh (trên {len(train_vouchers)} phôi)")

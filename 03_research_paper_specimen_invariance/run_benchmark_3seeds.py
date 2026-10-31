@@ -251,6 +251,8 @@ def train_baseline_one_seed(loader_train, loader_val, epochs: int, lr: float, de
                 loss = criterion(out["species_logits"], targets)
 
             scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
             scaler.step(optimizer)
             scaler.update()
 
@@ -332,6 +334,8 @@ def train_gan_one_seed(loader_train, loader_val, epochs: int, lr: float, adv_wei
                 loss_total = loss_species + (adv_weight * alpha * loss_specimen) + (club_weight * loss_club)
 
             scaler.scale(loss_total).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
             scaler.step(optimizer)
             scaler.update()
 
@@ -379,8 +383,8 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=20, help="Training epochs per model")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
-    parser.add_argument("--adv_weight", type=float, default=0.30, help="GRL discriminator loss weight beta")
-    parser.add_argument("--club_weight", type=float, default=0.05, help="Variational CLUB MI loss weight mu")
+    parser.add_argument("--adv_weight", type=float, default=0.05, help="GRL discriminator loss weight beta")
+    parser.add_argument("--club_weight", type=float, default=0.005, help="Variational CLUB MI loss weight mu")
     parser.add_argument("--backbone", type=str, default="convnext_tiny", help="Visual backbone")
     parser.add_argument("--output_dir", type=str, default=str(CURRENT_DIR / "outputs"), help="Output directory")
     return parser.parse_args()

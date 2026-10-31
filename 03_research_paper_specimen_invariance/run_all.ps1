@@ -24,8 +24,8 @@ python run_benchmark_3seeds.py `
     --epochs 20 `
     --batch_size 64 `
     --lr 3e-4 `
-    --adv_weight 0.30 `
-    --club_weight 0.05 `
+    --adv_weight 0.05 `
+    --club_weight 0.005 `
     --backbone "convnext_tiny"
 
 Write-Host "`n================================================================================" -ForegroundColor Green
