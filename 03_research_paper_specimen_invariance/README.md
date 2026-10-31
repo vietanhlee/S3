@@ -56,23 +56,14 @@ Thư mục đã được tinh gọn sạch sẽ, loại bỏ 100% các file rác
 ```
 03_research_paper_specimen_invariance/
 ├── README.md                          # Tài liệu hướng dẫn & giải trình khoa học toàn diện
-├── EXPERIMENT_RESULTS_REPORT.md       # Báo cáo thực nghiệm đa phân vùng (tự động cập nhật từ GPU)
 ├── requirements.txt                   # Danh mục thư viện phụ thuộc
-├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, Multi-Seed, Paired t-test)
+├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, Multi-Seed, MobileNetV2)
 ├── run_all.sh                         # 1-Click Master Bash Script (Kaggle / Linux GPU - Mặc định MobileNetV2)
-├── run_all.ps1                        # 1-Click Master PowerShell Script (Windows GPU - Mặc định MobileNetV2)
 │
 ├── dataset.py                         # Module Dataset & DataLoader: Quét trực tiếp ảnh từ đĩa & chia 4 phân vùng
 ├── models_gan.py                      # Kiến trúc: Baseline ERM, Masked Softmax GRL Specimen Discriminator, Vectorized CLUB
 ├── evaluate_dual.py                   # Script đánh giá đa giao thức: Seen/Unseen, Train/Test SRI Probing, ECE
 ├── generate_report.py                 # Bộ biên dịch báo cáo Markdown khoa học & kiểm định thống kê
-│
-├── data/                              # Danh mục siêu dữ liệu tham chiếu
-│   ├── metadata_11species.csv
-│   └── splits_11species.json
-│
-├── outputs/                           # Kết quả thực nghiệm chính thức (multi_seed_results.json)
-│   └── .gitkeep
 │
 └── paper/                             # Bản thảo bài báo khoa học Elsevier Pattern Recognition
     ├── main.tex                       # File LaTeX manuscript hoàn chỉnh
@@ -111,12 +102,7 @@ Chỉ cần chạy file shell script tự động (mặc định MobileNetV2):
 bash run_all.sh
 ```
 
-### Lệnh 2: Chạy Bằng PowerShell trên Windows
-```powershell
-.\run_all.ps1
-```
-
-### Lệnh 3: Chạy Trực tiếp Python CLI với Tham số Tùy chỉnh (`run_benchmark.py`)
+### Lệnh 2: Chạy Trực tiếp Python CLI với Tham số Tùy chỉnh (`run_benchmark.py`)
 ```bash
 python run_benchmark.py \
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \
@@ -131,7 +117,7 @@ python run_benchmark.py \
     --backbone "mobilenet_v2"
 ```
 
-### Lệnh 4: Đánh giá Độc lập Checkpoint Mô hình (`evaluate_dual.py`)
+### Lệnh 3: Đánh giá Độc lập Checkpoint Mô hình (`evaluate_dual.py`)
 ```bash
 python evaluate_dual.py \
     --baseline_ckpt outputs/baseline/best_baseline.pth \

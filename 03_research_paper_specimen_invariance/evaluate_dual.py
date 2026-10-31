@@ -62,12 +62,6 @@ def parse_args():
         help="Path to trained GAN checkpoint",
     )
     parser.add_argument(
-        "--metadata_csv",
-        type=str,
-        default=str(CURRENT_DIR / "data" / "metadata_11species.csv"),
-        help="Path to metadata CSV (optional fallback)",
-    )
-    parser.add_argument(
         "--image_root",
         type=str,
         default=None,
@@ -302,7 +296,6 @@ def main():
     print("=" * 80 + "\n")
 
     loader_train, loader_val, loader_seen, loader_unseen, info = create_dataloaders(
-        metadata_csv=args.metadata_csv,
         image_root=args.image_root,
         batch_size=64,
         test_vouchers_per_species=5,

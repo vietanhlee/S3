@@ -442,17 +442,21 @@ def create_dataloaders(
     num_workers: int = 2 if os.name != "nt" else 0,
     seed: int = 42,
     test_vouchers_per_species: int = 5,
-) -> Tuple[DataLoader, DataLoader, DataLoader, Dict]:
+    val_vouchers_per_species: int = 1,
+) -> Tuple[DataLoader, DataLoader, DataLoader, DataLoader, Dict]:
     """
-    Wrapper tương thích ngược cho train_baseline.py, train_gan.py, evaluate_dual.py:
-    Quét trực tiếp thư mục ảnh đĩa, phân chia dữ liệu động theo seed, và trả về:
-    (loader_train, loader_val, loader_unseen, info).
+    Direct disk-scanning loader:
+    Scans physical wood image directories, splits dynamically per seed, and returns:
+    (loader_train, loader_val, loader_seen_test, loader_unseen, info).
     """
     df = scan_and_build_dataset(image_root)
     df_train, df_val, df_seen_test, df_unseen, mask = split_dataset_by_seed(
-        df, seed=seed, test_vouchers_per_species=test_vouchers_per_species
+        df,
+        seed=seed,
+        test_vouchers_per_species=test_vouchers_per_species,
+        val_vouchers_per_species=val_vouchers_per_species,
     )
     loader_train, loader_val, loader_seen_test, loader_unseen, info = create_seed_dataloaders(
         df_train, df_val, df_seen_test, df_unseen, species_specimen_mask=mask, batch_size=batch_size, num_workers=num_workers
     )
-    return loader_train, loader_val, loader_unseen, info
+    return loader_train, loader_val, loader_seen_test, loader_unseen, info
