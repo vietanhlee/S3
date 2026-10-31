@@ -123,7 +123,7 @@ class SpecimenDiscriminator(nn.Module):
     Adversarial reversal forces the Feature Extractor to remove specimen signatures.
     """
 
-    def __init__(self, in_features: int, num_specimens: int = 88, hidden_dim: int = 256, dropout: float = 0.2):
+    def __init__(self, in_features: int, num_specimens: int = 77, hidden_dim: int = 256, dropout: float = 0.2):
         super().__init__()
         self.grl = GradientReversalLayer(alpha=1.0)
         self.net = nn.Sequential(
@@ -153,9 +153,9 @@ class VariationalCLUB(nn.Module):
     Uses Intra-Taxon negative sampling to preserve biological species boundaries.
     """
 
-    def __init__(self, feat_dim: int, hidden_dim: int = 128, specimen_emb_dim: int = 32):
+    def __init__(self, feat_dim: int, num_specimens: int = 77, hidden_dim: int = 128, specimen_emb_dim: int = 32):
         super().__init__()
-        self.specimen_embed = nn.Embedding(88, specimen_emb_dim)
+        self.specimen_embed = nn.Embedding(num_specimens, specimen_emb_dim)
         self.p_mu = nn.Sequential(
             nn.Linear(feat_dim, hidden_dim),
             nn.LeakyReLU(0.2, inplace=True),
@@ -234,7 +234,7 @@ class AdversarialInvariantGAN(nn.Module):
         self,
         backbone_name: str = "resnet18",
         num_classes: int = 11,
-        num_specimens: int = 88,
+        num_specimens: int = 77,
         pretrained: bool = True,
         adv_weight: float = 0.05,
         club_weight: float = 0.005,
@@ -243,7 +243,7 @@ class AdversarialInvariantGAN(nn.Module):
         self.backbone, self.feat_dim = build_backbone(backbone_name, pretrained=pretrained)
         self.classifier = SpeciesClassifier(self.feat_dim, num_classes=num_classes)
         self.discriminator = SpecimenDiscriminator(self.feat_dim, num_specimens=num_specimens)
-        self.club = VariationalCLUB(self.feat_dim)
+        self.club = VariationalCLUB(self.feat_dim, num_specimens=num_specimens)
 
         self.adv_weight = adv_weight
         self.club_weight = club_weight

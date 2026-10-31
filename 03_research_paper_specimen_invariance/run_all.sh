@@ -15,15 +15,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "================================================================================"
-echo "  SPECIMEN-INVARIANT TIMBER FORENSICS: 3-SEED DUAL-PROTOCOL BENCHMARK"
-echo "  Clean 11-Species Dataset (110 physical vouchers, 10 vouchers/species)"
-echo "  Direct Path: /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
-echo "  Seeds: 42, 123, 456 | Epochs: 20 | Batch Size: 64"
+echo "  SPECIMEN-INVARIANT TIMBER FORENSICS: 3-SEED BENCHMARK"
+echo "  Protocol: 3 Evaluation Sets (Val, Seen Test, Unseen Test)"
+echo "  Holdout : 3 Physical Vouchers/Species (33 Unseen Vouchers Total)"
+echo "  Taxa    : 11 Clean Fabaceae Species (110 physical vouchers)"
+echo "  Backbone: ResNet-18 (Lightweight) | Device: CUDA (Kaggle T4/P100)"
+echo "  Direct  : /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
+echo "  Seeds   : 42, 123, 456 | Epochs: 20 | Batch Size: 64"
 echo "================================================================================"
 
 python run_benchmark_3seeds.py \
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \
     --seeds 42 123 456 \
+    --unseen_vouchers_per_species 3 \
     --epochs 20 \
     --batch_size 64 \
     --lr 3e-4 \

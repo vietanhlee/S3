@@ -2,18 +2,19 @@
 run_benchmark_3seeds.py
 =======================
 Master Multi-Seed Execution Pipeline for Specimen-Invariant Timber Identification.
-Strictly implements the dynamic per-seed protocol:
+Strictly implements the dynamic per-seed protocol with 3 evaluation sets and 3 unseen vouchers/species:
   For each seed s in [42, 123, 456]:
     1. Set random seed s.
     2. Partition dataset dynamically by seed s:
-       - 2 vouchers per species -> Strictly Unseen Physical Test (22 vouchers)
-       - 8 vouchers per species -> 80% Train, 20% In-Specimen Validation (88 vouchers)
-    3. Train Standard Baseline Model (ConvNeXt-Tiny ERM) for 20 epochs.
-    4. Train Proposed Adversarial Invariant 'GAN' Model (ConvNeXt-Tiny GRL + CLUB) for 20 epochs.
-    5. Evaluate both models across:
-       - In-Specimen Validation Set (Val Acc, Val F1)
-       - Out-of-Specimen Unseen Test Set (Unseen Acc, Unseen F1, ECE, Linear SRI, MLP SRI)
-       - Generalization Gap (Val Acc - Unseen Acc)
+       - 3 vouchers per species -> Strictly Out-of-Specimen Unseen Physical Test (33 vouchers)
+       - 7 vouchers per species -> 70% Train, 15% In-Specimen Validation, 15% In-Specimen Seen Test (77 vouchers)
+    3. Train Standard Baseline Model (ResNet-18 ERM) for 20 epochs.
+    4. Train Proposed Adversarial Invariant 'GAN' Model (ResNet-18 GRL + CLUB) for 20 epochs.
+    5. Evaluate both models across all 3 evaluation sets:
+       - Set 1: In-Specimen Validation Set (Val Acc, Val F1)
+       - Set 2: In-Specimen Seen Test Set (Seen Test Acc, Seen Test F1)
+       - Set 3: Out-of-Specimen Unseen Test Set (Unseen Acc, Unseen F1, ECE, Linear SRI, MLP SRI)
+       - Generalization Gaps: (Seen Test - Unseen Test) and (Val - Unseen Test)
   Finally: Aggregates Mean ± Std across 3 seeds and compiles publication Markdown report.
 """
 
@@ -190,31 +191,58 @@ def compute_sri_probes(embs: np.ndarray, specimens: np.ndarray, seed: int = 42) 
     return sri_lin, sri_mlp
 
 
-def evaluate_model_full(model, loader_val, loader_unseen, device, seed: int = 42) -> Dict:
-    """Evaluates a trained model on both In-Specimen Validation and Out-of-Specimen Unseen Test."""
+def evaluate_model_full(
+    model,
+    loader_val,
+    loader_seen_test,
+    loader_unseen,
+    device,
+    seed: int = 42,
+) -> Dict:
+    """
+    Evaluates a trained model across all 3 evaluation sets:
+      1. In-Specimen Validation Set (loader_val)
+      2. In-Specimen Seen Test Set (loader_seen_test)
+      3. Out-of-Specimen Unseen Physical Test Set (loader_unseen)
+    """
     val_res = extract_embeddings_and_predictions(model, loader_val, device)
+    seen_res = extract_embeddings_and_predictions(model, loader_seen_test, device)
     unseen_res = extract_embeddings_and_predictions(model, loader_unseen, device)
 
+    # 1. Validation Set (Seen)
     val_acc = float(accuracy_score(val_res["targets"], val_res["predictions"]) * 100.0)
     val_f1 = float(f1_score(val_res["targets"], val_res["predictions"], average="macro", zero_division=0) * 100.0)
 
+    # 2. Seen Test Set (Seen)
+    seen_acc = float(accuracy_score(seen_res["targets"], seen_res["predictions"]) * 100.0)
+    seen_f1 = float(f1_score(seen_res["targets"], seen_res["predictions"], average="macro", zero_division=0) * 100.0)
+
+    # 3. Unseen Test Set (Unseen - 3 vouchers/species)
     unseen_acc = float(accuracy_score(unseen_res["targets"], unseen_res["predictions"]) * 100.0)
     unseen_f1 = float(f1_score(unseen_res["targets"], unseen_res["predictions"], average="macro", zero_division=0) * 100.0)
     unseen_ece = float(compute_ece(unseen_res["probabilities"], unseen_res["targets"]))
 
+    # SRI Probing on Unseen Physical Specimen Embeddings
     sri_lin, sri_mlp = compute_sri_probes(unseen_res["embeddings"], unseen_res["specimens"], seed=seed)
 
-    gen_gap_acc = val_acc - unseen_acc
-    gen_gap_f1 = val_f1 - unseen_f1
+    # Generalization Gaps
+    gen_gap_seen_unseen_acc = seen_acc - unseen_acc
+    gen_gap_seen_unseen_f1 = seen_f1 - unseen_f1
+    gen_gap_val_unseen_acc = val_acc - unseen_acc
+    gen_gap_val_unseen_f1 = val_f1 - unseen_f1
 
     return {
         "val_top1_acc": val_acc,
         "val_macro_f1": val_f1,
+        "seen_top1_acc": seen_acc,
+        "seen_macro_f1": seen_f1,
         "unseen_top1_acc": unseen_acc,
         "unseen_macro_f1": unseen_f1,
         "unseen_ece": unseen_ece,
-        "generalization_gap_acc": gen_gap_acc,
-        "generalization_gap_f1": gen_gap_f1,
+        "gen_gap_seen_unseen_acc": gen_gap_seen_unseen_acc,
+        "gen_gap_seen_unseen_f1": gen_gap_seen_unseen_f1,
+        "gen_gap_val_unseen_acc": gen_gap_val_unseen_acc,
+        "gen_gap_val_unseen_f1": gen_gap_val_unseen_f1,
         "sri_linear": sri_lin,
         "sri_mlp": sri_mlp,
     }
@@ -292,13 +320,13 @@ def train_baseline_one_seed(loader_train, loader_val, epochs: int, lr: float, de
     return model
 
 
-def train_gan_one_seed(loader_train, loader_val, epochs: int, lr: float, adv_weight: float, club_weight: float, device, backbone: str, seed: int):
+def train_gan_one_seed(loader_train, loader_val, epochs: int, lr: float, adv_weight: float, club_weight: float, device, backbone: str, seed: int, num_specimens: int = 77):
     """Trains Proposed Adversarial Invariant 'GAN' Model (GRL + CLUB) for one seed."""
-    print(f"\n[*] [Seed {seed}] Training Proposed Adversarial Invariant 'GAN' Model ({backbone} GRL + CLUB)...")
+    print(f"\n[*] [Seed {seed}] Training Proposed Adversarial Invariant 'GAN' Model ({backbone} GRL + CLUB | {num_specimens} train specimens)...")
     model = AdversarialInvariantGAN(
         backbone_name=backbone,
         num_classes=len(TARGET_SPECIES),
-        num_specimens=88,
+        num_specimens=num_specimens,
         pretrained=True,
         adv_weight=adv_weight,
         club_weight=club_weight,
@@ -381,6 +409,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Multi-Seed Specimen-Invariant Benchmark Pipeline")
     parser.add_argument("--image_root", type=str, default=DEFAULT_IMAGE_ROOT, help="Root folder of raw images")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456], help="List of random seeds to evaluate")
+    parser.add_argument("--unseen_vouchers_per_species", type=int, default=3, help="Number of unseen vouchers per species (default: 3)")
     parser.add_argument("--epochs", type=int, default=20, help="Training epochs per model")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
@@ -400,6 +429,9 @@ def main():
     print("\n" + "=" * 80)
     print("  SPECIMEN-INVARIANT TIMBER IDENTIFICATION: MULTI-SEED SCIENTIFIC BENCHMARK")
     print(f"  Target Taxa : 11 Clean Fabaceae Species (110 physical vouchers)")
+    print(f"  Protocol    : 3 Evaluation Sets (Val, Seen Test, Unseen Test)")
+    print(f"  Holdout     : {args.unseen_vouchers_per_species} Unseen Vouchers/Species ({args.unseen_vouchers_per_species * len(TARGET_SPECIES)} physical vouchers total)")
+    print(f"  Backbone    : {args.backbone}")
     print(f"  Device      : {device} (cuDNN enabled: {torch.cuda.is_available()})")
     print(f"  Seeds       : {args.seeds} (Total {len(args.seeds)} experimental runs)")
     print(f"  Image Root  : {args.image_root}")
@@ -420,17 +452,18 @@ def main():
         # 1. Set seed
         set_seed(seed)
 
-        # 2. Dynamic partitioning for this seed
-        df_train, df_val, df_unseen = split_dataset_by_seed(
+        # 2. Dynamic partitioning for this seed into 3 evaluation sets
+        df_train, df_val, df_seen_test, df_unseen = split_dataset_by_seed(
             df_raw,
             seed=seed,
-            unseen_vouchers_per_species=2,
-            val_ratio=0.20
+            unseen_vouchers_per_species=args.unseen_vouchers_per_species,
+            val_ratio=0.15,
+            seen_test_ratio=0.15,
         )
 
-        # 3. Create loaders
-        loader_train, loader_val, loader_unseen, info = create_seed_dataloaders(
-            df_train, df_val, df_unseen, batch_size=args.batch_size
+        # 3. Create loaders for all sets
+        loader_train, loader_val, loader_seen_test, loader_unseen, info = create_seed_dataloaders(
+            df_train, df_val, df_seen_test, df_unseen, batch_size=args.batch_size
         )
 
         # 4. Train Standard Baseline
@@ -442,21 +475,22 @@ def main():
         gan_model = train_gan_one_seed(
             loader_train, loader_val, epochs=args.epochs, lr=args.lr,
             adv_weight=args.adv_weight, club_weight=args.club_weight,
-            device=device, backbone=args.backbone, seed=seed
+            device=device, backbone=args.backbone, seed=seed,
+            num_specimens=info["train_specimens"],
         )
 
-        # 6. Evaluate Baseline
-        print(f"\n[*] [Seed {seed}] Auditing Standard Baseline Model across Val & Unseen...")
-        base_metrics = evaluate_model_full(baseline_model, loader_val, loader_unseen, device=device, seed=seed)
+        # 6. Evaluate Baseline across 3 evaluation sets
+        print(f"\n[*] [Seed {seed}] Auditing Standard Baseline Model across 3 Evaluation Sets (Val, Seen Test, Unseen Test)...")
+        base_metrics = evaluate_model_full(baseline_model, loader_val, loader_seen_test, loader_unseen, device=device, seed=seed)
 
-        # 7. Evaluate GAN
-        print(f"[*] [Seed {seed}] Auditing Proposed 'GAN' Model across Val & Unseen...")
-        gan_metrics = evaluate_model_full(gan_model, loader_val, loader_unseen, device=device, seed=seed)
+        # 7. Evaluate GAN across 3 evaluation sets
+        print(f"[*] [Seed {seed}] Auditing Proposed 'GAN' Model across 3 Evaluation Sets (Val, Seen Test, Unseen Test)...")
+        gan_metrics = evaluate_model_full(gan_model, loader_val, loader_seen_test, loader_unseen, device=device, seed=seed)
 
-        # Print quick seed summary
-        print(f"\n--- [Seed {seed} Executive Summary] ---")
-        print(f"  Baseline -> Val Acc: {base_metrics['val_top1_acc']:.2f}% | Unseen Acc: {base_metrics['unseen_top1_acc']:.2f}% | Gap: +{base_metrics['generalization_gap_acc']:.2f} pp | SRI (MLP): {base_metrics['sri_mlp']:.4f}")
-        print(f"  'GAN'    -> Val Acc: {gan_metrics['val_top1_acc']:.2f}% | Unseen Acc: {gan_metrics['unseen_top1_acc']:.2f}% | Gap: +{gan_metrics['generalization_gap_acc']:.2f} pp | SRI (MLP): {gan_metrics['sri_mlp']:.4f}")
+        # Print detailed 3-set summary for this seed
+        print(f"\n--- [Seed {seed} Executive Summary: 3 Evaluation Sets] ---")
+        print(f"  Baseline -> Val Acc: {base_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {base_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {base_metrics['unseen_top1_acc']:.2f}% | Gap (Seen-Unseen): +{base_metrics['gen_gap_seen_unseen_acc']:.2f} pp | SRI (MLP): {base_metrics['sri_mlp']:.4f} | ECE: {base_metrics['unseen_ece']:.2f}%")
+        print(f"  'GAN'    -> Val Acc: {gan_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {gan_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {gan_metrics['unseen_top1_acc']:.2f}% | Gap (Seen-Unseen): +{gan_metrics['gen_gap_seen_unseen_acc']:.2f} pp | SRI (MLP): {gan_metrics['sri_mlp']:.4f} | ECE: {gan_metrics['unseen_ece']:.2f}%")
 
         results_by_seed.append({
             "seed": seed,
@@ -471,9 +505,11 @@ def main():
 
     metric_keys = [
         "val_top1_acc", "val_macro_f1",
+        "seen_top1_acc", "seen_macro_f1",
         "unseen_top1_acc", "unseen_macro_f1", "unseen_ece",
-        "generalization_gap_acc", "generalization_gap_f1",
-        "sri_linear", "sri_mlp"
+        "gen_gap_seen_unseen_acc", "gen_gap_seen_unseen_f1",
+        "gen_gap_val_unseen_acc", "gen_gap_val_unseen_f1",
+        "sri_linear", "sri_mlp",
     ]
 
     summary = {"baseline": {}, "gan": {}, "comparison": {}}
@@ -496,6 +532,9 @@ def main():
             "delta_mean": float(np.mean(g_vals) - np.mean(b_vals)),
         }
 
+    unseen_v_count = args.unseen_vouchers_per_species * len(TARGET_SPECIES)
+    train_v_count = 110 - unseen_v_count
+
     full_output = {
         "benchmark_meta": {
             "seeds": args.seeds,
@@ -504,7 +543,14 @@ def main():
             "backbone": args.backbone,
             "num_species": len(TARGET_SPECIES),
             "total_physical_vouchers": 110,
-            "unseen_vouchers_per_species": 2,
+            "unseen_vouchers_per_species": args.unseen_vouchers_per_species,
+            "num_unseen_vouchers": unseen_v_count,
+            "num_train_vouchers": train_v_count,
+            "eval_sets": [
+                "Bộ 1: Validation Set (In-Specimen)",
+                "Bộ 2: Seen Test Set (In-Specimen)",
+                "Bộ 3: Unseen Test Set (Out-of-Specimen, 3 vouchers/species)",
+            ],
             "image_root": str(args.image_root),
         },
         "per_seed_results": results_by_seed,
