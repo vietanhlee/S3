@@ -36,14 +36,14 @@ CURRENT_DIR = Path(__file__).resolve().parent
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Adversarial Invariant GAN Framework")
-    parser.add_argument("--backbone", type=str, default="convnext_tiny", help="Visual backbone")
+    parser.add_argument("--backbone", type=str, default="resnet50", help="Visual backbone")
     parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--max_batches", type=int, default=None, help="Max batches per epoch for quick testing")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay")
-    parser.add_argument("--adv_weight", type=float, default=0.30, help="Adversarial loss weight beta")
-    parser.add_argument("--club_weight", type=float, default=0.05, help="CLUB MI compression weight mu")
+    parser.add_argument("--adv_weight", type=float, default=0.05, help="Adversarial loss weight beta")
+    parser.add_argument("--club_weight", type=float, default=0.005, help="CLUB MI compression weight mu")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--metadata_csv", type=str, default=str(CURRENT_DIR / "data" / "metadata_11species.csv"))
     parser.add_argument("--image_root", type=str, default=None, help="Root folder of real images (auto-detected if None)")

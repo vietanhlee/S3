@@ -70,11 +70,18 @@ class BackboneWrapper(nn.Module):
         return feat
 
 
-def build_backbone(name: str = "convnext_tiny", pretrained: bool = True) -> Tuple[nn.Module, int]:
+def build_backbone(name: str = "resnet50", pretrained: bool = True) -> Tuple[nn.Module, int]:
     """
     Constructs a visual feature extractor backbone consistently using torchvision.
+    Supports ResNet-50 (default), ResNet-18, and ConvNeXt-Tiny.
     """
-    if name.startswith("resnet"):
+    if name == "resnet18":
+        weights = tv_models.ResNet18_Weights.DEFAULT if pretrained else None
+        base = tv_models.resnet18(weights=weights)
+        feat_dim = base.fc.in_features
+        base.fc = nn.Identity()
+        return BackboneWrapper(base, feat_dim), feat_dim
+    elif name.startswith("resnet"):
         weights = tv_models.ResNet50_Weights.DEFAULT if pretrained else None
         base = tv_models.resnet50(weights=weights)
         feat_dim = base.fc.in_features
@@ -192,7 +199,7 @@ class StandardBaselineModel(nn.Module):
     Extracts features and directly predicts species without any invariance mechanism.
     """
 
-    def __init__(self, backbone_name: str = "convnext_tiny", num_classes: int = 11, pretrained: bool = True):
+    def __init__(self, backbone_name: str = "resnet50", num_classes: int = 11, pretrained: bool = True):
         super().__init__()
         self.backbone, self.feat_dim = build_backbone(backbone_name, pretrained=pretrained)
         self.classifier = SpeciesClassifier(self.feat_dim, num_classes=num_classes)
@@ -218,12 +225,12 @@ class AdversarialInvariantGAN(nn.Module):
 
     def __init__(
         self,
-        backbone_name: str = "convnext_tiny",
+        backbone_name: str = "resnet50",
         num_classes: int = 11,
         num_specimens: int = 88,
         pretrained: bool = True,
-        adv_weight: float = 0.3,
-        club_weight: float = 0.05,
+        adv_weight: float = 0.05,
+        club_weight: float = 0.005,
     ):
         super().__init__()
         self.backbone, self.feat_dim = build_backbone(backbone_name, pretrained=pretrained)

@@ -110,8 +110,9 @@ def extract_embeddings_and_predictions(model, loader, device):
         all_probs.append(probs.cpu().numpy())
         all_specimens.extend(specimen_targets.cpu().numpy())
 
+    feat_dim = all_embs[0].shape[-1] if all_embs else 2048
     return {
-        "embeddings": np.concatenate(all_embs, axis=0) if all_embs else np.empty((0, 768)),
+        "embeddings": np.concatenate(all_embs, axis=0) if all_embs else np.empty((0, feat_dim)),
         "predictions": np.array(all_preds),
         "targets": np.array(all_targets),
         "probabilities": np.concatenate(all_probs, axis=0) if all_probs else np.empty((0, 11)),
@@ -223,8 +224,8 @@ def evaluate_model_full(model, loader_val, loader_unseen, device, seed: int = 42
 # TRAINING ROUTINES FOR SINGLE SEED
 # ==============================================================================
 def train_baseline_one_seed(loader_train, loader_val, epochs: int, lr: float, device, backbone: str, seed: int):
-    """Trains Standard Baseline (ConvNeXt-Tiny ERM) for one seed."""
-    print(f"\n[*] [Seed {seed}] Training Standard Baseline Model (ConvNeXt-Tiny ERM)...")
+    """Trains Standard Baseline (ERM) for one seed."""
+    print(f"\n[*] [Seed {seed}] Training Standard Baseline Model ({backbone} ERM)...")
     model = StandardBaselineModel(backbone_name=backbone, num_classes=len(TARGET_SPECIES), pretrained=True).to(device)
 
     criterion = nn.CrossEntropyLoss()
@@ -293,7 +294,7 @@ def train_baseline_one_seed(loader_train, loader_val, epochs: int, lr: float, de
 
 def train_gan_one_seed(loader_train, loader_val, epochs: int, lr: float, adv_weight: float, club_weight: float, device, backbone: str, seed: int):
     """Trains Proposed Adversarial Invariant 'GAN' Model (GRL + CLUB) for one seed."""
-    print(f"\n[*] [Seed {seed}] Training Proposed Adversarial Invariant 'GAN' Model (GRL + CLUB)...")
+    print(f"\n[*] [Seed {seed}] Training Proposed Adversarial Invariant 'GAN' Model ({backbone} GRL + CLUB)...")
     model = AdversarialInvariantGAN(
         backbone_name=backbone,
         num_classes=len(TARGET_SPECIES),
@@ -385,7 +386,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--adv_weight", type=float, default=0.05, help="GRL discriminator loss weight beta")
     parser.add_argument("--club_weight", type=float, default=0.005, help="Variational CLUB MI loss weight mu")
-    parser.add_argument("--backbone", type=str, default="convnext_tiny", help="Visual backbone")
+    parser.add_argument("--backbone", type=str, default="resnet50", help="Visual backbone")
     parser.add_argument("--output_dir", type=str, default=str(CURRENT_DIR / "outputs"), help="Output directory")
     return parser.parse_args()
 

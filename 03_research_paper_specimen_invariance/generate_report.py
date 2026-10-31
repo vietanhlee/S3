@@ -84,11 +84,12 @@ def generate_multiseed_report(json_path: Union[str, Path], output_md_path: Union
         per_seed_rows.append(row)
     per_seed_table = "\n".join(per_seed_rows)
 
+    backbone_name = meta.get("backbone", "resnet50").upper()
     report_content = f"""# Báo Cáo Thực Nghiệm Đối Chuẩn Đa Phân Vùng ({num_seeds} Seeds): Mạng Đối Kháng "GAN" vs. Baseline Thường Trong Giám Định Gỗ
 
 **Tên nghiên cứu**: *Learning Specimen-Invariant Diagnostic Representations for Timber Forensics*  
 **Bộ dữ liệu**: S3 Wood Benchmark sạch (11 loài họ Đậu Fabaceae, 110 phôi gỗ vật lý, 10 phôi/loài cân bằng tuyệt đối)  
-**Cấu hình thực nghiệm**: Multi-Seed Benchmark ({num_seeds} Random Seeds: `{seeds_str}`) | Backbone ConvNeXt-Tiny | Giao thức Dynamic Per-Seed Partitioning  
+**Cấu hình thực nghiệm**: Multi-Seed Benchmark ({num_seeds} Random Seeds: `{seeds_str}`) | Backbone {backbone_name} | Giao thức Dynamic Per-Seed Partitioning  
 
 ---
 
