@@ -49,9 +49,9 @@ flowchart LR
 
 ---
 
-## 📂 2. Cấu trúc Thư mục Khoa học Chuẩn Hóa (Production Repository Layout)
+## 📂 2. Cấu trúc Thư mục Khoa học Chuẩn Hóa (Clean Production Repository Layout)
 
-Thư mục đã được tái cấu trúc sạch sẽ, chuẩn hóa tuyệt đối và loại bỏ hoàn toàn các file rác, file alias:
+Thư mục đã được tinh gọn sạch sẽ, loại bỏ 100% các file rác, file alias trung gian, chỉ giữ lại các module chuẩn production:
 
 ```
 03_research_paper_specimen_invariance/
@@ -59,33 +59,32 @@ Thư mục đã được tái cấu trúc sạch sẽ, chuẩn hóa tuyệt đ�
 ├── EXPERIMENT_RESULTS_REPORT.md       # Báo cáo thực nghiệm đa phân vùng (tự động cập nhật từ GPU)
 ├── requirements.txt                   # Danh mục thư viện phụ thuộc
 ├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, Multi-Seed, Paired t-test)
-├── run_all.sh                         # 1-Click Master Bash Script (cho Kaggle / Linux GPU)
-├── run_all.ps1                        # 1-Click Master PowerShell Script (cho Windows GPU)
+├── run_all.sh                         # 1-Click Master Bash Script (Kaggle / Linux GPU - Mặc định MobileNetV2)
+├── run_all.ps1                        # 1-Click Master PowerShell Script (Windows GPU - Mặc định MobileNetV2)
 │
-├── dataset.py                         # Module Dataset & DataLoader: Quét trực tiếp ảnh từ đĩa & chia phân vùng
+├── dataset.py                         # Module Dataset & DataLoader: Quét trực tiếp ảnh từ đĩa & chia 4 phân vùng
 ├── models_gan.py                      # Kiến trúc: Baseline ERM, Masked Softmax GRL Specimen Discriminator, Vectorized CLUB
 ├── evaluate_dual.py                   # Script đánh giá đa giao thức: Seen/Unseen, Train/Test SRI Probing, ECE
 ├── generate_report.py                 # Bộ biên dịch báo cáo Markdown khoa học & kiểm định thống kê
 │
 ├── data/                              # Danh mục siêu dữ liệu tham chiếu
-│   └── metadata_11species.csv
+│   ├── metadata_11species.csv
+│   └── splits_11species.json
 │
-├── outputs/                           # Kết quả thực nghiệm chính thức
-│   └── multi_seed_results.json        # Dữ liệu JSON gốc đo lường từ các GPU runs
+├── outputs/                           # Kết quả thực nghiệm chính thức (multi_seed_results.json)
+│   └── .gitkeep
 │
-├── paper/                             # Bản thảo bài báo khoa học Elsevier Pattern Recognition
-│   ├── main.tex                       # File LaTeX manuscript hoàn chỉnh
-│   ├── main.pdf                       # Bản PDF biên dịch
-│   ├── refs.bib                       # Cơ sở dữ liệu trích dẫn BibTeX
-│   ├── cas-sc.cls                     # Template Elsevier CAS-SC
-│   ├── enumitem.sty
-│   ├── figures/                       # Sơ đồ kiến trúc & đồ thị khoa học
-│   ├── reviews_and_responses/         # Hồ sơ phản biện & thư giải trình chi tiết qua các vòng
-│   └── build_tools/                   # Các script bổ trợ tạo đồ thị và biên tập layout
-│
-└── archive/                           # Lưu trữ mã nguồn & kết quả lịch sử
-    ├── legacy_code/                   # Mã nguồn khung cũ đã được lưu trữ an toàn
-    └── legacy_outputs/                # Bảng LaTeX và kết quả các vòng chạy trước
+└── paper/                             # Bản thảo bài báo khoa học Elsevier Pattern Recognition
+    ├── main.tex                       # File LaTeX manuscript hoàn chỉnh
+    ├── main.pdf                       # Bản PDF biên dịch
+    ├── refs.bib                       # Cơ sở dữ liệu trích dẫn BibTeX
+    ├── cas-sc.cls & enumitem.sty      # Template Elsevier CAS-SC
+    ├── generate_figures.py            # Script vẽ vector đồ thị khoa học PDF
+    ├── RESPONSE_TO_REVIEWERS.md       # Hồ sơ giải trình & phản biện chi tiết
+    └── figures/                       # Sơ đồ kiến trúc & đồ thị vector PDF
+        ├── fig1_concept_invariant.pdf
+        ├── fig2_framework_architecture.pdf
+        └── fig3_gradcam_comparison.pdf
 ```
 
 ---
@@ -106,7 +105,7 @@ Hệ thống triển khai giao thức phân vùng phôi ngẫu nhiên động (*
 ## 💻 4. Hướng dẫn Lệnh Chạy (Terminal Commands)
 
 ### Lệnh 1: Chạy 1-Click Toàn bộ Thực nghiệm Đa Seed trên Kaggle GPU (T4 / P100)
-Chỉ cần chạy file shell script tự động:
+Chỉ cần chạy file shell script tự động (mặc định MobileNetV2):
 ```bash
 # Trên Kaggle hoặc Linux GPU:
 bash run_all.sh
@@ -129,7 +128,7 @@ python run_benchmark.py \
     --lr 3e-4 \
     --adv_weight 0.30 \
     --club_weight 0.010 \
-    --backbone "resnet18"
+    --backbone "mobilenet_v2"
 ```
 
 ### Lệnh 4: Đánh giá Độc lập Checkpoint Mô hình (`evaluate_dual.py`)
@@ -138,7 +137,7 @@ python evaluate_dual.py \
     --baseline_ckpt outputs/baseline/best_baseline.pth \
     --gan_ckpt outputs/gan/best_gan.pth \
     --output_file outputs/comparison_results.json \
-    --backbone resnet18
+    --backbone mobilenet_v2
 ```
 
 ---
@@ -146,10 +145,6 @@ python evaluate_dual.py \
 ## 📊 5. Báo Cáo Thực Nghiệm Thực Tế (Empirical Results)
 
 Toàn bộ kết quả thực nghiệm được tổng hợp tự động và minh bạch từ quá trình chạy thực tế trên GPU qua script `run_benchmark.py` (hoặc `run_all.sh`).
-* Số liệu chính thức được cập nhật trực tiếp tại: [EXPERIMENT_RESULTS_REPORT.md](EXPERIMENT_RESULTS_REPORT.md)
-* Kết quả JSON chi tiết theo từng seed được lưu trữ tại: `outputs/multi_seed_results.json`
-
-Bản thảo bài báo khoa học `paper/main.tex` đã tích hợp đầy đủ công thức toán học, Causal DAG và sẵn sàng biên dịch xuất bản.
 * Số liệu chính thức được cập nhật trực tiếp tại: [EXPERIMENT_RESULTS_REPORT.md](EXPERIMENT_RESULTS_REPORT.md)
 * Kết quả JSON chi tiết theo từng seed được lưu trữ tại: `outputs/multi_seed_results.json`
 

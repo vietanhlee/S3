@@ -82,8 +82,8 @@ def parse_args():
     parser.add_argument(
         "--backbone",
         type=str,
-        default="resnet18",
-        help="Visual backbone architecture (resnet18, convnext_tiny)",
+        default="mobilenet_v2",
+        help="Visual backbone architecture (mobilenet_v2, resnet18, convnext_tiny)",
     )
     parser.add_argument(
         "--max_batches",

@@ -441,7 +441,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--adv_weight", type=float, default=0.30, help="GRL discriminator loss weight beta (default: 0.30)")
     parser.add_argument("--club_weight", type=float, default=0.010, help="Variational CLUB MI loss weight mu (default: 0.010)")
-    parser.add_argument("--backbone", type=str, default="resnet18", help="Visual backbone")
+    parser.add_argument("--backbone", type=str, default="mobilenet_v2", help="Visual backbone architecture (default: mobilenet_v2)")
     parser.add_argument("--output_dir", type=str, default=str(CURRENT_DIR / "outputs"), help="Output directory")
     return parser.parse_args()
 
@@ -461,7 +461,7 @@ def main():
     print(f"  Target Taxa : 11 Clean Fabaceae Species (110 physical vouchers)")
     print(f"  Protocol    : Stress-Test 50% Specimen Holdout")
     print(f"  Splits      : Train ({train_v_count} vouchers) | Out-of-Specimen Val ({val_v_count} vouchers) | Out-of-Specimen Test ({test_v_count} vouchers)")
-    print(f"  Backbone    : {args.backbone} (ResNet-18) | GRL Weight: {args.adv_weight} | CLUB Weight: {args.club_weight}")
+    print(f"  Backbone    : {args.backbone} | GRL Weight: {args.adv_weight} | CLUB Weight: {args.club_weight}")
     print(f"  Device      : {device} (cuDNN enabled: {torch.cuda.is_available()})")
     print(f"  Seeds       : {args.seeds} (Total {len(args.seeds)} experimental runs)")
     print(f"  Image Root  : {args.image_root}")

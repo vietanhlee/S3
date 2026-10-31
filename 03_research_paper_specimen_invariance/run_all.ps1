@@ -16,7 +16,7 @@ Write-Host "  SPECIMEN-INVARIANT TIMBER FORENSICS: 4-SEED BENCHMARK" -Foreground
 Write-Host "  Protocol: Stress-Test 50% Specimen Holdout" -ForegroundColor Cyan
 Write-Host "  Splits  : Train (44 vouchers) | Val (11 vouchers) | Test (55 vouchers = 5/sp)" -ForegroundColor Cyan
 Write-Host "  Taxa    : 11 Clean Fabaceae Species (110 physical vouchers)" -ForegroundColor Cyan
-Write-Host "  Backbone: ResNet-18 (Lightweight) | Device: CUDA" -ForegroundColor Cyan
+Write-Host "  Backbone: MobileNetV2 (Edge Forensic Default) | Device: CUDA" -ForegroundColor Cyan
 Write-Host "  Direct  : /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" -ForegroundColor Cyan
 Write-Host "  Seeds   : 42, 123, 456, 789 | Epochs: 20 | Batch Size: 64" -ForegroundColor Cyan
 Write-Host "================================================================================" -ForegroundColor Cyan
@@ -31,7 +31,7 @@ python run_benchmark.py `
     --lr 3e-4 `
     --adv_weight 0.30 `
     --club_weight 0.010 `
-    --backbone "resnet18"
+    --backbone "mobilenet_v2"
 
 Write-Host "`n================================================================================" -ForegroundColor Green
 Write-Host "[SUCCESS] Multi-Seed Benchmark completed successfully!" -ForegroundColor Green

@@ -113,7 +113,7 @@ def generate_multiseed_report(json_path: Union[str, Path], output_md_path: Union
         per_seed_rows.append(row)
     per_seed_table = "\n".join(per_seed_rows)
 
-    backbone_name = meta.get("backbone", "resnet18").upper()
+    backbone_name = meta.get("backbone", "mobilenet_v2").upper()
 
     # Statistical test reporting
     ttest_info = stat_tests.get("unseen_acc_paired_ttest", {})
@@ -128,7 +128,7 @@ def generate_multiseed_report(json_path: Union[str, Path], output_md_path: Union
 
 **Tên nghiên cứu**: *Learning Specimen-Invariant Diagnostic Representations for Timber Forensics*  
 **Bộ dữ liệu**: S3 Wood Benchmark sạch (11 loài họ Đậu Fabaceae, 110 phôi gỗ vật lý, 10 phôi/loài cân bằng tuyệt đối)  
-**Cấu hình thực nghiệm**: Multi-Seed Benchmark ({num_seeds} Random Seeds: `{seeds_str}`) | Backbone {backbone_name} (ResNet-18)  
+**Cấu hình thực nghiệm**: Multi-Seed Benchmark ({num_seeds} Random Seeds: `{seeds_str}`) | Backbone {backbone_name}  
 **Giao thức Phân Vùng Thách Thức (Stress-Test 50% Specimen Holdout)**:
 * **Tập Huấn Luyện (Train)**: 4 phôi/loài ({num_train_v} phôi, chiếm 40% mẫu vật).
 * **Tập Thẩm Định Ngoại Suy (Out-of-Specimen Val)**: 1 phôi/loài ({num_val_v} phôi, dùng chọn checkpoint thực tế).
@@ -191,7 +191,7 @@ Bảng dưới đây minh chứng tính ổn định của các phương pháp q
 bash run_all.sh
 
 # Hoặc chạy trực tiếp script Python:
-python run_benchmark_3seeds.py --seeds 42 123 456 789 --test_vouchers_per_species 5 --val_vouchers_per_species 1 --epochs 20 --batch_size 64 --backbone resnet18
+python run_benchmark.py --seeds 42 123 456 789 --test_vouchers_per_species 5 --val_vouchers_per_species 1 --epochs 20 --batch_size 64 --backbone mobilenet_v2
 ```
 Script sẽ tự động quét trực tiếp dataset ảnh tại `/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3`, chạy đủ {num_seeds} seeds và cập nhật bảng số liệu khoa học vào file báo cáo này.
 """
