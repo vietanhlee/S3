@@ -177,15 +177,15 @@ Bảng dưới đây minh chứng tính ổn định của các phương pháp q
 
 ## 4. Hướng Dẫn Chạy & Tái Lập (Reproducibility Guide)
 
-Để chạy tự động toàn bộ quy trình 3 seeds trên Kaggle GPU (T4 / P100):
+Để chạy tự động toàn bộ quy trình {num_seeds} seeds trên Kaggle GPU (T4 / P100):
 ```bash
 # Trên Kaggle / Linux:
 bash run_all.sh
 
 # Hoặc chạy trực tiếp script Python đa seed:
-python run_benchmark_3seeds.py --seeds 42 123 456 --unseen_vouchers_per_species 3 --epochs 20 --batch_size 64 --backbone resnet18
+python run_benchmark_3seeds.py --seeds 42 123 456 789 --unseen_vouchers_per_species 3 --epochs 20 --batch_size 64 --backbone resnet18
 ```
-Script sẽ tự động quét trực tiếp dataset ảnh tại `/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3`, chạy đủ 3 seeds và cập nhật bảng số liệu khoa học vào file báo cáo này.
+Script sẽ tự động quét trực tiếp dataset ảnh tại `/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3`, chạy đủ {num_seeds} seeds và cập nhật bảng số liệu khoa học vào file báo cáo này.
 """
 
     output_md_path = Path(output_md_path)

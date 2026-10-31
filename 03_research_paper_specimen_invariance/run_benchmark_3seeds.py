@@ -3,7 +3,7 @@ run_benchmark_3seeds.py
 =======================
 Master Multi-Seed Execution Pipeline for Specimen-Invariant Timber Identification.
 Strictly implements the dynamic per-seed protocol with 3 evaluation sets and 3 unseen vouchers/species:
-  For each seed s in [42, 123, 456]:
+  For each seed s in [42, 123, 456, 789]:
     1. Set random seed s.
     2. Partition dataset dynamically by seed s:
        - 3 vouchers per species -> Strictly Out-of-Specimen Unseen Physical Test (33 vouchers)
@@ -15,7 +15,7 @@ Strictly implements the dynamic per-seed protocol with 3 evaluation sets and 3 u
        - Set 2: In-Specimen Seen Test Set (Seen Test Acc, Seen Test F1)
        - Set 3: Out-of-Specimen Unseen Test Set (Unseen Acc, Unseen F1, ECE, Linear SRI, MLP SRI)
        - Generalization Gaps: (Seen Test - Unseen Test) and (Val - Unseen Test)
-  Finally: Aggregates Mean ± Std across 3 seeds and compiles publication Markdown report.
+  Finally: Aggregates Mean ± Std across 4 seeds and compiles publication Markdown report.
 """
 
 import os
@@ -408,7 +408,7 @@ def train_gan_one_seed(loader_train, loader_val, epochs: int, lr: float, adv_wei
 def parse_args():
     parser = argparse.ArgumentParser(description="Multi-Seed Specimen-Invariant Benchmark Pipeline")
     parser.add_argument("--image_root", type=str, default=DEFAULT_IMAGE_ROOT, help="Root folder of raw images")
-    parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456], help="List of random seeds to evaluate")
+    parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456, 789], help="List of random seeds to evaluate")
     parser.add_argument("--unseen_vouchers_per_species", type=int, default=3, help="Number of unseen vouchers per species (default: 3)")
     parser.add_argument("--epochs", type=int, default=20, help="Training epochs per model")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
