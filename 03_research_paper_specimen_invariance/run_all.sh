@@ -19,7 +19,7 @@ echo "  SPECIMEN-INVARIANT TIMBER FORENSICS: 4-SEED BENCHMARK"
 echo "  Protocol: Stress-Test 50% Specimen Holdout"
 echo "  Splits  : Train (44 vouchers) | Val (11 vouchers) | Test (55 vouchers = 5/sp)"
 echo "  Taxa    : 11 Clean Fabaceae Species (110 physical vouchers)"
-echo "  Backbone: MobileNetV2 (Edge Forensic Default) | Device: CUDA (Kaggle T4/P100)"
+echo "  Backbone: ResNet-18 (Default) | Device: CUDA (Kaggle T4/P100)"
 echo "  Direct  : /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3"
 echo "  Seeds   : 42, 123, 456, 789 | Epochs: 20 | Batch Size: 64"
 echo "================================================================================"
@@ -32,9 +32,10 @@ python run_benchmark.py \
     --epochs 20 \
     --batch_size 64 \
     --lr 3e-4 \
-    --adv_weight 0.30 \
-    --club_weight 0.010 \
-    --backbone "mobilenet_v2"
+    --adv_weight 0.05 \
+    --club_weight 0.001 \
+    --label_smoothing 0.05 \
+    --backbone "resnet18"
 
 echo ""
 echo "================================================================================"

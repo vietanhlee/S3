@@ -93,7 +93,7 @@ def compute_grl_alpha(epoch: int, total_epochs: int) -> float:
 @torch.no_grad()
 def extract_embeddings_and_predictions(model, loader, device):
     model.eval()
-    all_embs, all_preds, all_targets, all_probs, all_specimens = [], [], [], [], []
+    all_embs, all_preds, all_targets, all_probs, all_raw_probs, all_logits, all_specimens = [], [], [], [], [], [], []
 
     device_type = "cuda" if torch.cuda.is_available() else "cpu"
     for batch in loader:
@@ -105,20 +105,26 @@ def extract_embeddings_and_predictions(model, loader, device):
             out = model(images)
 
         logits = out["species_logits"]
-        probs = F.softmax(logits, dim=-1)
+        calibrated_logits = out.get("calibrated_logits", logits)
+        raw_probs = F.softmax(logits, dim=-1)
+        probs = F.softmax(calibrated_logits, dim=-1)
         preds = torch.argmax(logits, dim=-1)
 
         all_embs.append(out["features"].cpu().numpy())
         all_preds.extend(preds.cpu().numpy())
         all_targets.extend(species_targets.cpu().numpy())
+        all_raw_probs.append(raw_probs.cpu().numpy())
         all_probs.append(probs.cpu().numpy())
+        all_logits.append(logits.cpu().numpy())
         all_specimens.extend(specimen_targets.cpu().numpy())
 
-    feat_dim = all_embs[0].shape[-1] if all_embs else 2048
+    feat_dim = all_embs[0].shape[-1] if all_embs else 512
     return {
         "embeddings": np.concatenate(all_embs, axis=0) if all_embs else np.empty((0, feat_dim)),
         "predictions": np.array(all_preds),
         "targets": np.array(all_targets),
+        "logits": np.concatenate(all_logits, axis=0) if all_logits else np.empty((0, 11)),
+        "raw_probabilities": np.concatenate(all_raw_probs, axis=0) if all_raw_probs else np.empty((0, 11)),
         "probabilities": np.concatenate(all_probs, axis=0) if all_probs else np.empty((0, 11)),
         "specimens": np.array(all_specimens),
     }
@@ -227,6 +233,8 @@ def evaluate_model_full(
     unseen_acc = float(accuracy_score(unseen_res["targets"], unseen_res["predictions"]) * 100.0)
     unseen_f1 = float(f1_score(unseen_res["targets"], unseen_res["predictions"], average="macro", zero_division=0) * 100.0)
     unseen_ece = float(compute_ece(unseen_res["probabilities"], unseen_res["targets"]))
+    unseen_raw_ece = float(compute_ece(unseen_res["raw_probabilities"], unseen_res["targets"]))
+    opt_temp = float(getattr(model, "temperature", torch.tensor(1.0)).item())
 
     # 4. SRI Probing on Train Set (Primary metric: Does the model forget specimen identity of learned wood?)
     sri_train_lin, sri_train_mlp = compute_sri_probes(train_res["embeddings"], train_res["specimens"], seed=seed)
@@ -247,6 +255,8 @@ def evaluate_model_full(
         "unseen_top1_acc": unseen_acc,
         "unseen_macro_f1": unseen_f1,
         "unseen_ece": unseen_ece,
+        "unseen_raw_ece": unseen_raw_ece,
+        "temperature": opt_temp,
         "gen_gap_seen_unseen_acc": gen_gap_seen_unseen_acc,
         "gen_gap_seen_unseen_f1": gen_gap_seen_unseen_f1,
         "gen_gap_val_unseen_acc": gen_gap_val_unseen_acc,
@@ -260,12 +270,21 @@ def evaluate_model_full(
 # ==============================================================================
 # TRAINING ROUTINES FOR SINGLE SEED
 # ==============================================================================
-def train_baseline_one_seed(loader_train, loader_val, epochs: int, lr: float, device, backbone: str, seed: int):
-    """Trains Standard Baseline (ERM) with honest Out-of-Specimen checkpointing."""
-    print(f"\n[*] [Seed {seed}] Training Standard Baseline Model ({backbone} ERM)...")
+def train_baseline_one_seed(
+    loader_train,
+    loader_val,
+    epochs: int,
+    lr: float,
+    device,
+    backbone: str,
+    seed: int,
+    label_smoothing: float = 0.05,
+):
+    """Trains Standard Baseline (ERM) with honest Out-of-Specimen checkpointing and post-hoc temperature calibration."""
+    print(f"\n[*] [Seed {seed}] Training Standard Baseline Model ({backbone} ERM | Label Smoothing: {label_smoothing})...")
     model = StandardBaselineModel(backbone_name=backbone, num_classes=len(TARGET_SPECIES), pretrained=True).to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
     device_type = "cuda" if torch.cuda.is_available() else "cpu"
@@ -326,6 +345,14 @@ def train_baseline_one_seed(loader_train, loader_val, epochs: int, lr: float, de
             print(f"    Epoch [{epoch:02d}/{epochs:02d}] | Train Acc: {train_acc:.2f}% | Out-of-Specimen Val Acc: {val_acc:.2f}% (F1: {val_f1:.2f}%)")
 
     model.load_state_dict(best_weights)
+
+    # Post-hoc Temperature Calibration on Out-of-Specimen Val Set (Guo et al., ICML 2017)
+    val_res = extract_embeddings_and_predictions(model, loader_val, device)
+    opt_t = model.calibrate_temperature(
+        torch.tensor(val_res["logits"], device=device),
+        torch.tensor(val_res["targets"], device=device),
+    )
+    print(f"    [Post-Hoc Calibration] Baseline Temperature on Out-of-Specimen Val: T = {opt_t:.3f}")
     return model
 
 
@@ -341,9 +368,10 @@ def train_gan_one_seed(
     seed: int,
     num_specimens: int = 44,
     species_specimen_mask: Optional[torch.Tensor] = None,
+    label_smoothing: float = 0.05,
 ):
     """Trains Proposed Adversarial Invariant 'GAN' Model with Species-Conditioned Masked Softmax & Vectorized CLUB."""
-    print(f"\n[*] [Seed {seed}] Training Proposed Adversarial Invariant 'GAN' Model ({backbone} GRL + Vectorized CLUB | {num_specimens} train specimens)...")
+    print(f"\n[*] [Seed {seed}] Training Proposed Adversarial Invariant 'GAN' Model ({backbone} GRL + Vectorized CLUB | {num_specimens} train specimens | beta={adv_weight}, mu={club_weight}, label_smoothing={label_smoothing})...")
     if species_specimen_mask is not None:
         species_specimen_mask = species_specimen_mask.to(device)
 
@@ -357,7 +385,7 @@ def train_gan_one_seed(
         species_specimen_mask=species_specimen_mask,
     ).to(device)
 
-    criterion_species = nn.CrossEntropyLoss()
+    criterion_species = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
     criterion_specimen = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
@@ -424,6 +452,14 @@ def train_gan_one_seed(
             print(f"    Epoch [{epoch:02d}/{epochs:02d}] (alpha={alpha:.2f}) | Train Acc: {train_acc:.2f}% | Out-of-Specimen Val Acc: {val_acc:.2f}% (F1: {val_f1:.2f}%)")
 
     model.load_state_dict(best_weights)
+
+    # Post-hoc Temperature Calibration on Out-of-Specimen Val Set (Guo et al., ICML 2017)
+    val_res = extract_embeddings_and_predictions(model, loader_val, device)
+    opt_t = model.calibrate_temperature(
+        torch.tensor(val_res["logits"], device=device),
+        torch.tensor(val_res["targets"], device=device),
+    )
+    print(f"    [Post-Hoc Calibration] 'GAN' Temperature on Out-of-Specimen Val: T = {opt_t:.3f}")
     return model
 
 
@@ -439,9 +475,10 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=20, help="Training epochs per model")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
-    parser.add_argument("--adv_weight", type=float, default=0.30, help="GRL discriminator loss weight beta (default: 0.30)")
-    parser.add_argument("--club_weight", type=float, default=0.010, help="Variational CLUB MI loss weight mu (default: 0.010)")
-    parser.add_argument("--backbone", type=str, default="mobilenet_v2", help="Visual backbone architecture (default: mobilenet_v2)")
+    parser.add_argument("--adv_weight", type=float, default=0.05, help="GRL discriminator loss weight beta (default: 0.05)")
+    parser.add_argument("--club_weight", type=float, default=0.001, help="Variational CLUB MI loss weight mu (default: 0.001)")
+    parser.add_argument("--label_smoothing", type=float, default=0.05, help="Label smoothing epsilon for classification loss (default: 0.05)")
+    parser.add_argument("--backbone", type=str, default="resnet18", help="Visual backbone architecture (default: resnet18)")
     parser.add_argument("--output_dir", type=str, default=str(CURRENT_DIR / "outputs"), help="Output directory")
     return parser.parse_args()
 
@@ -461,7 +498,7 @@ def main():
     print(f"  Target Taxa : 11 Clean Fabaceae Species (110 physical vouchers)")
     print(f"  Protocol    : Stress-Test 50% Specimen Holdout")
     print(f"  Splits      : Train ({train_v_count} vouchers) | Out-of-Specimen Val ({val_v_count} vouchers) | Out-of-Specimen Test ({test_v_count} vouchers)")
-    print(f"  Backbone    : {args.backbone} | GRL Weight: {args.adv_weight} | CLUB Weight: {args.club_weight}")
+    print(f"  Backbone    : {args.backbone} (ResNet-18 Default) | GRL Weight: {args.adv_weight} | CLUB Weight: {args.club_weight} | Label Smoothing: {args.label_smoothing}")
     print(f"  Device      : {device} (cuDNN enabled: {torch.cuda.is_available()})")
     print(f"  Seeds       : {args.seeds} (Total {len(args.seeds)} experimental runs)")
     print(f"  Image Root  : {args.image_root}")
@@ -502,7 +539,14 @@ def main():
 
         # 4. Train Standard Baseline
         baseline_model = train_baseline_one_seed(
-            loader_train, loader_val, epochs=args.epochs, lr=args.lr, device=device, backbone=args.backbone, seed=seed
+            loader_train,
+            loader_val,
+            epochs=args.epochs,
+            lr=args.lr,
+            device=device,
+            backbone=args.backbone,
+            seed=seed,
+            label_smoothing=args.label_smoothing,
         )
 
         # 5. Train Proposed Adversarial Invariant 'GAN'
@@ -518,6 +562,7 @@ def main():
             seed=seed,
             num_specimens=info["train_specimens"],
             species_specimen_mask=species_specimen_mask,
+            label_smoothing=args.label_smoothing,
         )
 
         # 6. Evaluate Baseline across all partitions
@@ -530,8 +575,8 @@ def main():
 
         # Print detailed summary for this seed
         print(f"\n--- [Seed {seed} Executive Summary: Stress-Test 55 Unseen Vouchers] ---")
-        print(f"  Baseline -> Val Acc (Unseen): {base_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {base_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {base_metrics['unseen_top1_acc']:.2f}% (F1: {base_metrics['unseen_macro_f1']:.2f}%) | Gap: +{base_metrics['gen_gap_seen_unseen_acc']:.2f} pp | Train SRI (MLP): {base_metrics['sri_train_mlp']:.4f} | ECE: {base_metrics['unseen_ece']:.2f}%")
-        print(f"  'GAN'    -> Val Acc (Unseen): {gan_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {gan_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {gan_metrics['unseen_top1_acc']:.2f}% (F1: {gan_metrics['unseen_macro_f1']:.2f}%) | Gap: +{gan_metrics['gen_gap_seen_unseen_acc']:.2f} pp | Train SRI (MLP): {gan_metrics['sri_train_mlp']:.4f} | ECE: {gan_metrics['unseen_ece']:.2f}%")
+        print(f"  Baseline -> Val Acc (Unseen): {base_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {base_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {base_metrics['unseen_top1_acc']:.2f}% (F1: {base_metrics['unseen_macro_f1']:.2f}%) | Gap: +{base_metrics['gen_gap_seen_unseen_acc']:.2f} pp | Train SRI (MLP): {base_metrics['sri_train_mlp']:.4f} | ECE: {base_metrics['unseen_ece']:.2f}% (Raw: {base_metrics['unseen_raw_ece']:.2f}%, T={base_metrics['temperature']:.2f})")
+        print(f"  'GAN'    -> Val Acc (Unseen): {gan_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {gan_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {gan_metrics['unseen_top1_acc']:.2f}% (F1: {gan_metrics['unseen_macro_f1']:.2f}%) | Gap: +{gan_metrics['gen_gap_seen_unseen_acc']:.2f} pp | Train SRI (MLP): {gan_metrics['sri_train_mlp']:.4f} | ECE: {gan_metrics['unseen_ece']:.2f}% (Raw: {gan_metrics['unseen_raw_ece']:.2f}%, T={gan_metrics['temperature']:.2f})")
 
         results_by_seed.append({
             "seed": seed,
@@ -547,7 +592,8 @@ def main():
     metric_keys = [
         "val_top1_acc", "val_macro_f1",
         "seen_top1_acc", "seen_macro_f1",
-        "unseen_top1_acc", "unseen_macro_f1", "unseen_ece",
+        "unseen_top1_acc", "unseen_macro_f1",
+        "unseen_ece", "unseen_raw_ece", "temperature",
         "gen_gap_seen_unseen_acc", "gen_gap_seen_unseen_f1",
         "gen_gap_val_unseen_acc",
         "sri_train_linear", "sri_train_mlp",
@@ -612,6 +658,7 @@ def main():
             "num_train_vouchers": train_v_count,
             "adv_weight": args.adv_weight,
             "club_weight": args.club_weight,
+            "label_smoothing": args.label_smoothing,
             "eval_sets": [
                 f"Train Set (In-Specimen, {train_v_count} vouchers)",
                 f"Val Set (Out-of-Specimen, {val_v_count} vouchers)",

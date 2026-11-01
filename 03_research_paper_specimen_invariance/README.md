@@ -57,12 +57,12 @@ Thư mục đã được tinh gọn sạch sẽ, loại bỏ 100% các file rác
 03_research_paper_specimen_invariance/
 ├── README.md                          # Tài liệu hướng dẫn & giải trình khoa học toàn diện
 ├── requirements.txt                   # Danh mục thư viện phụ thuộc
-├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, Multi-Seed, MobileNetV2)
-├── run_all.sh                         # 1-Click Master Bash Script (Kaggle / Linux GPU - Mặc định MobileNetV2)
+├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, Multi-Seed, ResNet-18)
+├── run_all.sh                         # 1-Click Master Bash Script (Kaggle / Linux GPU - Mặc định ResNet-18)
 │
 ├── dataset.py                         # Module Dataset & DataLoader: Quét trực tiếp ảnh từ đĩa & chia 4 phân vùng
-├── models_gan.py                      # Kiến trúc: Baseline ERM, Masked Softmax GRL Specimen Discriminator, Vectorized CLUB
-├── evaluate_dual.py                   # Script đánh giá đa giao thức: Seen/Unseen, Train/Test SRI Probing, ECE
+├── models_gan.py                      # Kiến trúc: Baseline ERM, Masked Softmax GRL Specimen Discriminator, Vectorized CLUB, Temperature Scaling
+├── evaluate_dual.py                   # Script đánh giá đa giao thức: Seen/Unseen, Train/Test SRI Probing, Calibrated ECE
 ├── generate_report.py                 # Bộ biên dịch báo cáo Markdown khoa học & kiểm định thống kê
 │
 └── paper/                             # Bản thảo bài báo khoa học Elsevier Pattern Recognition
@@ -96,7 +96,7 @@ Hệ thống triển khai giao thức phân vùng phôi ngẫu nhiên động (*
 ## 💻 4. Hướng dẫn Lệnh Chạy (Terminal Commands)
 
 ### Lệnh 1: Chạy 1-Click Toàn bộ Thực nghiệm Đa Seed trên Kaggle GPU (T4 / P100)
-Chỉ cần chạy file shell script tự động (mặc định MobileNetV2):
+Chỉ cần chạy file shell script tự động (mặc định ResNet-18):
 ```bash
 # Trên Kaggle hoặc Linux GPU:
 bash run_all.sh
@@ -112,9 +112,10 @@ python run_benchmark.py \
     --epochs 20 \
     --batch_size 64 \
     --lr 3e-4 \
-    --adv_weight 0.30 \
-    --club_weight 0.010 \
-    --backbone "mobilenet_v2"
+    --adv_weight 0.05 \
+    --club_weight 0.001 \
+    --label_smoothing 0.05 \
+    --backbone "resnet18"
 ```
 
 ### Lệnh 3: Đánh giá Độc lập Checkpoint Mô hình (`evaluate_dual.py`)
@@ -123,7 +124,7 @@ python evaluate_dual.py \
     --baseline_ckpt outputs/baseline/best_baseline.pth \
     --gan_ckpt outputs/gan/best_gan.pth \
     --output_file outputs/comparison_results.json \
-    --backbone mobilenet_v2
+    --backbone resnet18
 ```
 
 ---

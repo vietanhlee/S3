@@ -113,7 +113,7 @@ def generate_multiseed_report(json_path: Union[str, Path], output_md_path: Union
         per_seed_rows.append(row)
     per_seed_table = "\n".join(per_seed_rows)
 
-    backbone_name = meta.get("backbone", "mobilenet_v2").upper()
+    backbone_name = meta.get("backbone", "resnet18").upper()
 
     # Statistical test reporting
     ttest_info = stat_tests.get("unseen_acc_paired_ttest", {})
@@ -191,7 +191,7 @@ Bảng dưới đây minh chứng tính ổn định của các phương pháp q
 bash run_all.sh
 
 # Hoặc chạy trực tiếp script Python:
-python run_benchmark.py --seeds 42 123 456 789 --test_vouchers_per_species 5 --val_vouchers_per_species 1 --epochs 20 --batch_size 64 --backbone mobilenet_v2
+python run_benchmark.py --seeds 42 123 456 789 --test_vouchers_per_species 5 --val_vouchers_per_species 1 --epochs 20 --batch_size 64 --adv_weight 0.05 --club_weight 0.001 --label_smoothing 0.05 --backbone resnet18
 ```
 Script sẽ tự động quét trực tiếp dataset ảnh tại `/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3`, chạy đủ {num_seeds} seeds và cập nhật bảng số liệu khoa học vào file báo cáo này.
 """

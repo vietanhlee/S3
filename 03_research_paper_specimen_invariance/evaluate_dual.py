@@ -76,8 +76,8 @@ def parse_args():
     parser.add_argument(
         "--backbone",
         type=str,
-        default="mobilenet_v2",
-        help="Visual backbone architecture (mobilenet_v2, resnet18, convnext_tiny)",
+        default="resnet18",
+        help="Visual backbone architecture (resnet18, mobilenet_v2, convnext_tiny)",
     )
     parser.add_argument(
         "--max_batches",
@@ -117,8 +117,9 @@ def extract_embeddings_and_predictions(
 
         out = model(images)
         logits = out["species_logits"]
-        probs = F.softmax(logits, dim=-1)
-        preds = torch.argmax(probs, dim=-1)
+        calibrated_logits = out.get("calibrated_logits", logits)
+        probs = F.softmax(calibrated_logits, dim=-1)
+        preds = torch.argmax(logits, dim=-1)
 
         all_embs.append(out["features"].cpu().numpy())
         all_preds.extend(preds.cpu().numpy())
