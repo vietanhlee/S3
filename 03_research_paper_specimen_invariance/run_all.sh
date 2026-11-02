@@ -31,7 +31,7 @@ python run_benchmark.py \
     --num_seeds 10 \
     --test_vouchers_per_species 5 \
     --val_vouchers_per_species 1 \
-    --epochs 20 \
+    --epochs 17 \
     --batch_size 64 \
     --lr 3e-4 \
     --adv_weight 0.05 \

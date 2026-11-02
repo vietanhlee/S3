@@ -295,7 +295,7 @@ python run_benchmark.py \\
     --num_seeds {num_seeds} \\
     --test_vouchers_per_species 5 \\
     --val_vouchers_per_species 1 \\
-    --epochs 20 \\
+    --epochs {meta.get('epochs', 17)} \\
     --batch_size 64 \\
     --lr 3e-4 \\
     --adv_weight 0.05 \\

@@ -614,7 +614,7 @@ def parse_args():
     parser.add_argument("--seeds", type=int, nargs="+", default=None, help="Explicit list of random seeds (overrides --num_seeds if provided)")
     parser.add_argument("--test_vouchers_per_species", type=int, default=5, help="Number of unseen vouchers per species for Test (default: 5 = 55 vouchers, 50%% holdout)")
     parser.add_argument("--val_vouchers_per_species", type=int, default=1, help="Number of unseen vouchers per species for Val (default: 1 = 11 vouchers)")
-    parser.add_argument("--epochs", type=int, default=20, help="Training epochs per model")
+    parser.add_argument("--epochs", type=int, default=17, help="Training epochs per model (default: 17)")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--adv_weight", type=float, default=0.05, help="GRL discriminator loss weight beta (default: 0.05)")
