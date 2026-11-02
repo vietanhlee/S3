@@ -53,12 +53,16 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 CURRENT_DIR = Path(__file__).resolve().parent
 
+from scipy import stats
+
 from dataset import (
     DEFAULT_IMAGE_ROOT,
     TARGET_SPECIES,
     scan_and_build_dataset,
     split_dataset_by_seed,
     create_seed_dataloaders,
+    split_dataset_naive_random,
+    create_naive_dataloaders,
 )
 from models_gan import (
     StandardBaselineModel,
@@ -200,6 +204,86 @@ def compute_sri_probes(embs: np.ndarray, specimens: np.ndarray, seed: int = 42) 
     return sri_lin, sri_mlp
 
 
+def compute_voucher_cluster_bootstrap(
+    targets: np.ndarray,
+    preds_b: np.ndarray,
+    preds_g: np.ndarray,
+    probs_b: np.ndarray,
+    probs_g: np.ndarray,
+    specimens: np.ndarray,
+    num_bootstrap: int = 1000,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """
+    Voucher-Level Cluster Bootstrap (Physical Specimens as Independent Sampling Units).
+    Resamples physical vouchers with replacement (K = 55), gathers all associated tiles,
+    and computes empirical 95% Confidence Intervals for:
+      - Baseline Unseen Top-1 Acc & F1
+      - 'GAN' Unseen Top-1 Acc & F1
+      - Delta (GAN - Baseline)
+      - Cluster bootstrap two-tailed p-value
+    """
+    unique_vouchers = np.unique(specimens)
+    k = len(unique_vouchers)
+    if k < 2 or len(targets) == 0:
+        return {}
+
+    rng = np.random.RandomState(seed)
+    v_to_indices = {v: np.where(specimens == v)[0] for v in unique_vouchers}
+
+    b_accs, g_accs, d_accs = [], [], []
+    b_f1s, g_f1s, d_f1s = [], [], []
+    b_eces, g_eces, d_eces = [], [], []
+
+    for _ in range(num_bootstrap):
+        sampled_vouchers = rng.choice(unique_vouchers, size=k, replace=True)
+        idx_pool = np.concatenate([v_to_indices[v] for v in sampled_vouchers])
+
+        y_t = targets[idx_pool]
+        y_b = preds_b[idx_pool]
+        y_g = preds_g[idx_pool]
+        pr_b = probs_b[idx_pool]
+        pr_g = probs_g[idx_pool]
+
+        acc_b = accuracy_score(y_t, y_b) * 100.0
+        acc_g = accuracy_score(y_t, y_g) * 100.0
+        f1_b = f1_score(y_t, y_b, average="macro", zero_division=0) * 100.0
+        f1_g = f1_score(y_t, y_g, average="macro", zero_division=0) * 100.0
+        ece_b = compute_ece(pr_b, y_t)
+        ece_g = compute_ece(pr_g, y_t)
+
+        b_accs.append(acc_b)
+        g_accs.append(acc_g)
+        d_accs.append(acc_g - acc_b)
+
+        b_f1s.append(f1_b)
+        g_f1s.append(f1_g)
+        d_f1s.append(f1_g - f1_b)
+
+        b_eces.append(ece_b)
+        g_eces.append(ece_g)
+        d_eces.append(ece_g - ece_b)
+
+    d_acc_arr = np.array(d_accs)
+    p_val_acc = 2.0 * min(np.mean(d_acc_arr <= 0), np.mean(d_acc_arr >= 0))
+    p_val_acc = float(min(1.0, max(0.0, p_val_acc)))
+
+    return {
+        "num_bootstrap_replicates": num_bootstrap,
+        "num_physical_vouchers": int(k),
+        "baseline_unseen_acc_ci95": [float(np.percentile(b_accs, 2.5)), float(np.percentile(b_accs, 97.5))],
+        "gan_unseen_acc_ci95": [float(np.percentile(g_accs, 2.5)), float(np.percentile(g_accs, 97.5))],
+        "delta_unseen_acc_ci95": [float(np.percentile(d_accs, 2.5)), float(np.percentile(d_accs, 97.5))],
+        "baseline_unseen_f1_ci95": [float(np.percentile(b_f1s, 2.5)), float(np.percentile(b_f1s, 97.5))],
+        "gan_unseen_f1_ci95": [float(np.percentile(g_f1s, 2.5)), float(np.percentile(g_f1s, 97.5))],
+        "delta_unseen_f1_ci95": [float(np.percentile(d_f1s, 2.5)), float(np.percentile(d_f1s, 97.5))],
+        "baseline_unseen_ece_ci95": [float(np.percentile(b_eces, 2.5)), float(np.percentile(b_eces, 97.5))],
+        "gan_unseen_ece_ci95": [float(np.percentile(g_eces, 2.5)), float(np.percentile(g_eces, 97.5))],
+        "delta_unseen_ece_ci95": [float(np.percentile(d_eces, 2.5)), float(np.percentile(d_eces, 97.5))],
+        "cluster_bootstrap_p_value": p_val_acc,
+    }
+
+
 def evaluate_model_full(
     model,
     loader_train,
@@ -264,6 +348,10 @@ def evaluate_model_full(
         "sri_train_mlp": sri_train_mlp,
         "sri_unseen_linear": sri_unseen_lin,
         "sri_unseen_mlp": sri_unseen_mlp,
+        "_unseen_targets": unseen_res["targets"],
+        "_unseen_predictions": unseen_res["predictions"],
+        "_unseen_probabilities": unseen_res["probabilities"],
+        "_unseen_specimens": unseen_res["specimens"],
     }
 
 
@@ -464,12 +552,66 @@ def train_gan_one_seed(
 
 
 # ==============================================================================
-# MAIN MULTI-SEED WORKFLOW
+# MAIN MULTI-SEED WORKFLOW & STATISTICAL AUDIT
 # ==============================================================================
+CANDIDATE_SEEDS = [
+    42, 123, 456, 789, 101, 202, 303, 404, 505, 606,
+    707, 808, 909, 111, 222, 333, 444, 555, 666, 777,
+]
+
+
+def train_naive_random_leakage_baseline(
+    df_raw: pd.DataFrame,
+    device,
+    backbone: str = "resnet18",
+    epochs: int = 15,
+    lr: float = 3e-4,
+    seed: int = 42,
+    batch_size: int = 64,
+) -> Dict[str, Any]:
+    """
+    Trains a Baseline on Naive Image-Level Random Split (where same-specimen pictures are leaked).
+    Empirically quantifies the Performance Inflation Gap / Optimism Bias caused by data leakage.
+    """
+    print("\n" + "=" * 80)
+    print("  [LEAKAGE AUDIT] TRAINING NAIVE IMAGE-LEVEL RANDOM SPLIT BASELINE")
+    print("  (Quantifying Performance Inflation / Optimism Bias under Specimen Leakage)")
+    print("=" * 80)
+
+    df_train_n, df_val_n, df_test_n = split_dataset_naive_random(df_raw, seed=seed)
+    loader_train, loader_val, loader_test = create_naive_dataloaders(df_train_n, df_val_n, df_test_n, batch_size=batch_size)
+
+    model = train_baseline_one_seed(
+        loader_train,
+        loader_val,
+        epochs=epochs,
+        lr=lr,
+        device=device,
+        backbone=backbone,
+        seed=seed,
+        label_smoothing=0.05,
+    )
+
+    test_res = extract_embeddings_and_predictions(model, loader_test, device)
+    acc = float(accuracy_score(test_res["targets"], test_res["predictions"]) * 100.0)
+    f1 = float(f1_score(test_res["targets"], test_res["predictions"], average="macro", zero_division=0) * 100.0)
+    ece = float(compute_ece(test_res["probabilities"], test_res["targets"]))
+
+    print(f"\n[+] [LEAKAGE AUDIT RESULT] Naive Random Split Test Acc: {acc:.2f}% | F1: {f1:.2f}% | ECE: {ece:.2f}%")
+    return {
+        "naive_test_top1_acc": acc,
+        "naive_test_macro_f1": f1,
+        "naive_test_ece": ece,
+        "naive_train_samples": len(df_train_n),
+        "naive_test_samples": len(df_test_n),
+    }
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Multi-Seed Specimen-Invariant Benchmark Pipeline")
     parser.add_argument("--image_root", type=str, default=DEFAULT_IMAGE_ROOT, help="Root folder of raw images")
-    parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456, 789], help="List of random seeds to evaluate")
+    parser.add_argument("--num_seeds", type=int, default=10, help="Number of random seeds/splits to evaluate (default: 10, recommended 10-20)")
+    parser.add_argument("--seeds", type=int, nargs="+", default=None, help="Explicit list of random seeds (overrides --num_seeds if provided)")
     parser.add_argument("--test_vouchers_per_species", type=int, default=5, help="Number of unseen vouchers per species for Test (default: 5 = 55 vouchers, 50%% holdout)")
     parser.add_argument("--val_vouchers_per_species", type=int, default=1, help="Number of unseen vouchers per species for Val (default: 1 = 11 vouchers)")
     parser.add_argument("--epochs", type=int, default=20, help="Training epochs per model")
@@ -479,6 +621,8 @@ def parse_args():
     parser.add_argument("--club_weight", type=float, default=0.001, help="Variational CLUB MI loss weight mu (default: 0.001)")
     parser.add_argument("--label_smoothing", type=float, default=0.05, help="Label smoothing epsilon for classification loss (default: 0.05)")
     parser.add_argument("--backbone", type=str, default="resnet18", help="Visual backbone architecture (default: resnet18)")
+    parser.add_argument("--run_leakage_audit", action="store_true", default=True, help="Train Naive Random Split baseline to measure voucher leakage inflation")
+    parser.add_argument("--no_leakage_audit", dest="run_leakage_audit", action="store_false", help="Skip naive random split audit")
     parser.add_argument("--output_dir", type=str, default=str(CURRENT_DIR / "outputs"), help="Output directory")
     return parser.parse_args()
 
@@ -489,18 +633,23 @@ def main():
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    if args.seeds is not None and len(args.seeds) > 0:
+        active_seeds = args.seeds
+    else:
+        active_seeds = CANDIDATE_SEEDS[: args.num_seeds]
+
     test_v_count = args.test_vouchers_per_species * len(TARGET_SPECIES)
     val_v_count = args.val_vouchers_per_species * len(TARGET_SPECIES)
     train_v_count = 110 - test_v_count - val_v_count
 
     print("\n" + "=" * 80)
-    print("  SPECIMEN-INVARIANT TIMBER IDENTIFICATION: SCIENTIFIC BENCHMARK")
+    print("  VOUCHER-AWARE TIMBER FORENSICS BENCHMARK & SPECIMEN LEAKAGE AUDIT")
     print(f"  Target Taxa : 11 Clean Fabaceae Species (110 physical vouchers)")
     print(f"  Protocol    : Stress-Test 50% Specimen Holdout")
     print(f"  Splits      : Train ({train_v_count} vouchers) | Out-of-Specimen Val ({val_v_count} vouchers) | Out-of-Specimen Test ({test_v_count} vouchers)")
     print(f"  Backbone    : {args.backbone} (ResNet-18 Default) | GRL Weight: {args.adv_weight} | CLUB Weight: {args.club_weight} | Label Smoothing: {args.label_smoothing}")
     print(f"  Device      : {device} (cuDNN enabled: {torch.cuda.is_available()})")
-    print(f"  Seeds       : {args.seeds} (Total {len(args.seeds)} experimental runs)")
+    print(f"  Seeds       : {active_seeds} (Total {len(active_seeds)} experimental runs)")
     print(f"  Image Root  : {args.image_root}")
     print("=" * 80 + "\n")
 
@@ -508,12 +657,28 @@ def main():
     print("[STEP 1] Scanning and building dataset directly from image folder...")
     df_raw = scan_and_build_dataset(args.image_root)
 
+    # Step 2: Specimen Leakage Audit (Naive Image-Level Random Split Baseline)
+    leakage_audit_data = None
+    if args.run_leakage_audit:
+        try:
+            leakage_audit_data = train_naive_random_leakage_baseline(
+                df_raw,
+                device=device,
+                backbone=args.backbone,
+                epochs=min(15, args.epochs),
+                lr=args.lr,
+                seed=active_seeds[0],
+                batch_size=args.batch_size,
+            )
+        except Exception as e:
+            print(f"[!] Warning on Leakage Audit run: {e}")
+
     results_by_seed = []
 
-    # Step 2: Loop through seeds
-    for seed_idx, seed in enumerate(args.seeds, 1):
+    # Step 3: Loop through voucher-level splits
+    for seed_idx, seed in enumerate(active_seeds, 1):
         print("\n" + "#" * 80)
-        print(f"  [RUN {seed_idx}/{len(args.seeds)}] EXECUTING EXPERIMENTAL SEED {seed}")
+        print(f"  [RUN {seed_idx}/{len(active_seeds)}] EXECUTING VOUCHER SPLIT SEED {seed}")
         print("#" * 80)
 
         # 1. Set seed
@@ -573,18 +738,36 @@ def main():
         print(f"[*] [Seed {seed}] Auditing Proposed 'GAN' Model across all partitions...")
         gan_metrics = evaluate_model_full(gan_model, loader_train, loader_val, loader_seen_test, loader_unseen, device=device, seed=seed)
 
+        # 8. Voucher-Level Cluster Bootstrap for this seed
+        boot_ci = compute_voucher_cluster_bootstrap(
+            targets=base_metrics["_unseen_targets"],
+            preds_b=base_metrics["_unseen_predictions"],
+            preds_g=gan_metrics["_unseen_predictions"],
+            probs_b=base_metrics["_unseen_probabilities"],
+            probs_g=gan_metrics["_unseen_probabilities"],
+            specimens=base_metrics["_unseen_specimens"],
+            num_bootstrap=1000,
+            seed=seed,
+        )
+
         # Print detailed summary for this seed
         print(f"\n--- [Seed {seed} Executive Summary: Stress-Test 55 Unseen Vouchers] ---")
-        print(f"  Baseline -> Val Acc (Unseen): {base_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {base_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {base_metrics['unseen_top1_acc']:.2f}% (F1: {base_metrics['unseen_macro_f1']:.2f}%) | Gap: +{base_metrics['gen_gap_seen_unseen_acc']:.2f} pp | Train SRI (MLP): {base_metrics['sri_train_mlp']:.4f} | ECE: {base_metrics['unseen_ece']:.2f}% (Raw: {base_metrics['unseen_raw_ece']:.2f}%, T={base_metrics['temperature']:.2f})")
-        print(f"  'GAN'    -> Val Acc (Unseen): {gan_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {gan_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {gan_metrics['unseen_top1_acc']:.2f}% (F1: {gan_metrics['unseen_macro_f1']:.2f}%) | Gap: +{gan_metrics['gen_gap_seen_unseen_acc']:.2f} pp | Train SRI (MLP): {gan_metrics['sri_train_mlp']:.4f} | ECE: {gan_metrics['unseen_ece']:.2f}% (Raw: {gan_metrics['unseen_raw_ece']:.2f}%, T={gan_metrics['temperature']:.2f})")
+        print(f"  Baseline -> Val Acc: {base_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {base_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {base_metrics['unseen_top1_acc']:.2f}% (95% CI: [{boot_ci.get('baseline_unseen_acc_ci95', [0,0])[0]:.2f}%, {boot_ci.get('baseline_unseen_acc_ci95', [0,0])[1]:.2f}%]) | ECE: {base_metrics['unseen_ece']:.2f}%")
+        print(f"  'GAN'    -> Val Acc: {gan_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {gan_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {gan_metrics['unseen_top1_acc']:.2f}% (95% CI: [{boot_ci.get('gan_unseen_acc_ci95', [0,0])[0]:.2f}%, {boot_ci.get('gan_unseen_acc_ci95', [0,0])[1]:.2f}%]) | ECE: {gan_metrics['unseen_ece']:.2f}%")
+        print(f"  Diff (GAN - Base): Delta Acc = {gan_metrics['unseen_top1_acc'] - base_metrics['unseen_top1_acc']:+.2f} pp (Cluster Bootstrap 95% CI: [{boot_ci.get('delta_unseen_acc_ci95', [0,0])[0]:+.2f} pp, {boot_ci.get('delta_unseen_acc_ci95', [0,0])[1]:+.2f} pp], p_boot = {boot_ci.get('cluster_bootstrap_p_value', 1.0):.4f})")
+
+        # Clean raw arrays before saving JSON
+        clean_base = {k: v for k, v in base_metrics.items() if not k.startswith("_")}
+        clean_gan = {k: v for k, v in gan_metrics.items() if not k.startswith("_")}
 
         results_by_seed.append({
             "seed": seed,
-            "baseline": base_metrics,
-            "gan": gan_metrics,
+            "baseline": clean_base,
+            "gan": clean_gan,
+            "voucher_cluster_bootstrap": boot_ci,
         })
 
-    # Step 3: Compute aggregate statistics across all seeds
+    # Step 4: Compute aggregate statistics across all seeds
     print("\n" + "=" * 80)
     print("  AGGREGATING MULTI-SEED BENCHMARK STATISTICS & STATISTICAL TESTING")
     print("=" * 80)
@@ -600,53 +783,121 @@ def main():
         "sri_unseen_linear", "sri_unseen_mlp",
     ]
 
+    n_runs = len(active_seeds)
+    t_crit = float(stats.t.ppf(0.975, df=n_runs - 1)) if n_runs > 1 else 1.96
+
+    def calc_ci(values: List[float]) -> Dict[str, Any]:
+        arr = np.array(values, dtype=float)
+        mean_v = float(np.mean(arr))
+        std_v = float(np.std(arr, ddof=1)) if len(arr) > 1 else 0.0
+        sem_v = float(std_v / np.sqrt(len(arr))) if len(arr) > 1 else 0.0
+        ci95 = [float(mean_v - t_crit * sem_v), float(mean_v + t_crit * sem_v)]
+        return {
+            "mean": mean_v,
+            "std": std_v,
+            "sem": sem_v,
+            "ci95": ci95,
+            "values": [float(x) for x in arr],
+        }
+
     summary = {"baseline": {}, "gan": {}, "comparison": {}, "statistical_tests": {}}
 
     for key in metric_keys:
         b_vals = [r["baseline"][key] for r in results_by_seed]
         g_vals = [r["gan"][key] for r in results_by_seed]
+        d_vals = [g - b for g, b in zip(g_vals, b_vals)]
 
-        summary["baseline"][key] = {
-            "mean": float(np.mean(b_vals)),
-            "std": float(np.std(b_vals)),
-            "values": b_vals,
-        }
-        summary["gan"][key] = {
-            "mean": float(np.mean(g_vals)),
-            "std": float(np.std(g_vals)),
-            "values": g_vals,
-        }
+        summary["baseline"][key] = calc_ci(b_vals)
+        summary["gan"][key] = calc_ci(g_vals)
         summary["comparison"][key] = {
-            "delta_mean": float(np.mean(g_vals) - np.mean(b_vals)),
+            "delta_mean": float(np.mean(d_vals)),
+            "delta_std": float(np.std(d_vals, ddof=1)) if len(d_vals) > 1 else 0.0,
+            "delta_ci95": [float(np.mean(d_vals) - t_crit * (np.std(d_vals, ddof=1)/np.sqrt(n_runs))),
+                           float(np.mean(d_vals) + t_crit * (np.std(d_vals, ddof=1)/np.sqrt(n_runs)))] if n_runs > 1 else [float(np.mean(d_vals)), float(np.mean(d_vals))],
+            "delta_values": d_vals,
         }
 
-    # Statistical significance testing (Paired t-test across seeds)
+    # Statistical significance testing across seeds (Paired t-test & Wilcoxon)
+    b_accs = [r["baseline"]["unseen_top1_acc"] for r in results_by_seed]
+    g_accs = [r["gan"]["unseen_top1_acc"] for r in results_by_seed]
+    d_accs = np.array(g_accs) - np.array(b_accs)
+
+    b_f1s = [r["baseline"]["unseen_macro_f1"] for r in results_by_seed]
+    g_f1s = [r["gan"]["unseen_macro_f1"] for r in results_by_seed]
+    d_f1s = np.array(g_f1s) - np.array(b_f1s)
+
+    stat_report = {}
+    if n_runs >= 2 and np.std(d_accs) > 1e-8:
+        t_res_acc = stats.ttest_rel(g_accs, b_accs)
+        stat_report["paired_ttest_acc"] = {
+            "t_statistic": float(t_res_acc.statistic),
+            "p_value": float(t_res_acc.pvalue),
+            "significant_005": bool(t_res_acc.pvalue < 0.05),
+        }
+        t_res_f1 = stats.ttest_rel(g_f1s, b_f1s)
+        stat_report["paired_ttest_f1"] = {
+            "t_statistic": float(t_res_f1.statistic),
+            "p_value": float(t_res_f1.pvalue),
+            "significant_005": bool(t_res_f1.pvalue < 0.05),
+        }
+    else:
+        stat_report["paired_ttest_acc"] = {"t_statistic": 0.0, "p_value": 1.0, "significant_005": False}
+        stat_report["paired_ttest_f1"] = {"t_statistic": 0.0, "p_value": 1.0, "significant_005": False}
+
+    # Wilcoxon signed-rank test
     try:
-        from scipy import stats
-        b_accs = [r["baseline"]["unseen_top1_acc"] for r in results_by_seed]
-        g_accs = [r["gan"]["unseen_top1_acc"] for r in results_by_seed]
-        if len(b_accs) >= 2 and np.std(np.array(g_accs) - np.array(b_accs)) > 1e-8:
-            t_res = stats.ttest_rel(g_accs, b_accs)
-            p_val = float(t_res.pvalue)
-            t_stat = float(t_res.statistic)
+        if n_runs >= 5 and np.std(d_accs) > 1e-8:
+            w_res_acc = stats.wilcoxon(g_accs, b_accs)
+            stat_report["wilcoxon_acc"] = {
+                "w_statistic": float(w_res_acc.statistic),
+                "p_value": float(w_res_acc.pvalue),
+                "significant_005": bool(w_res_acc.pvalue < 0.05),
+            }
+            w_res_f1 = stats.wilcoxon(g_f1s, b_f1s)
+            stat_report["wilcoxon_f1"] = {
+                "w_statistic": float(w_res_f1.statistic),
+                "p_value": float(w_res_f1.pvalue),
+                "significant_005": bool(w_res_f1.pvalue < 0.05),
+            }
         else:
-            p_val = 1.0
-            t_stat = 0.0
-
-        summary["statistical_tests"]["unseen_acc_paired_ttest"] = {
-            "t_statistic": t_stat,
-            "p_value": p_val,
-            "statistically_significant_at_005": bool(p_val < 0.05),
-        }
-        print(f"[+] Paired t-test Unseen Acc: t = {t_stat:.4f}, p = {p_val:.4f} (Significant p<0.05: {p_val < 0.05})")
+            stat_report["wilcoxon_acc"] = {"w_statistic": None, "p_value": None, "note": "Need n>=5 splits"}
+            stat_report["wilcoxon_f1"] = {"w_statistic": None, "p_value": None, "note": "Need n>=5 splits"}
     except Exception as e:
-        print(f"[!] Warning on statistical testing: {e}")
-        summary["statistical_tests"]["unseen_acc_paired_ttest"] = {"p_value": None, "error": str(e)}
+        stat_report["wilcoxon_acc"] = {"error": str(e)}
+
+    summary["statistical_tests"] = stat_report
+
+    # Step 5: Specimen Leakage Inflation Gap Analysis
+    leakage_summary = {}
+    if leakage_audit_data is not None:
+        naive_acc = leakage_audit_data["naive_test_top1_acc"]
+        naive_f1 = leakage_audit_data["naive_test_macro_f1"]
+        base_unseen_acc = summary["baseline"]["unseen_top1_acc"]["mean"]
+        base_unseen_f1 = summary["baseline"]["unseen_macro_f1"]["mean"]
+
+        inflation_acc = naive_acc - base_unseen_acc
+        inflation_f1 = naive_f1 - base_unseen_f1
+
+        leakage_summary = {
+            "naive_random_split_test_acc": naive_acc,
+            "naive_random_split_test_f1": naive_f1,
+            "naive_random_split_test_ece": leakage_audit_data["naive_test_ece"],
+            "out_of_specimen_baseline_test_acc": base_unseen_acc,
+            "out_of_specimen_baseline_test_f1": base_unseen_f1,
+            "specimen_leakage_inflation_acc_gap_pp": float(inflation_acc),
+            "specimen_leakage_inflation_f1_gap_pp": float(inflation_f1),
+        }
+        print("\n" + "=" * 80)
+        print("  [LEAKAGE AUDIT SUMMARY: PROOF OF OPTIMISM BIAS]")
+        print(f"  Naive Random Image-Level Split Acc : {naive_acc:.2f}% (Voucher Leakage Present)")
+        print(f"  Honest Out-of-Specimen Test Acc     : {base_unseen_acc:.2f}% (55 Unseen Vouchers)")
+        print(f"  Specimen Leakage Inflation Gap (Δ)  : +{inflation_acc:.2f} pp")
+        print("=" * 80)
 
     full_output = {
         "benchmark_meta": {
-            "seeds": args.seeds,
-            "num_seeds": len(args.seeds),
+            "seeds": active_seeds,
+            "num_seeds": len(active_seeds),
             "epochs": args.epochs,
             "backbone": args.backbone,
             "num_species": len(TARGET_SPECIES),
@@ -667,6 +918,7 @@ def main():
             ],
             "image_root": str(args.image_root),
         },
+        "leakage_audit": leakage_summary,
         "per_seed_results": results_by_seed,
         "aggregate_summary": summary,
     }
@@ -677,7 +929,7 @@ def main():
 
     print(f"\n[+] Lưu kết quả multi-seed JSON thành công tại: {results_json_path}")
 
-    # Step 4: Generate publication markdown report
+    # Step 6: Generate publication markdown report
     generate_multiseed_report(results_json_path, CURRENT_DIR / "EXPERIMENT_RESULTS_REPORT.md")
 
 

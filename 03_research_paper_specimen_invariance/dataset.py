@@ -309,6 +309,68 @@ def split_dataset_by_seed(
     return df_train, df_val, df_seen_test, df_test_unseen, species_specimen_mask
 
 
+def split_dataset_naive_random(
+    df: pd.DataFrame,
+    seed: int = 42,
+    train_ratio: float = 0.80,
+    val_ratio: float = 0.10,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Phân chia ngẫu nhiên thuần túy theo từng ảnh (Naive Image-Level Random Split):
+    BỎ QUA hoàn toàn ranh giới phôi gỗ vật lý (Same-Specimen Texture Leakage).
+    Ảnh từ cùng một thanh gỗ rải rác ở cả Train, Val và Test.
+    Dùng để chứng minh thực nghiệm mức độ phồng hiệu năng (Performance Inflation Gap).
+    """
+    rng = np.random.RandomState(seed)
+    train_indices, val_indices, test_indices = [], [], []
+
+    for sp_name, group in df.groupby("taxon_name"):
+        idx_list = rng.permutation(group.index.values)
+        n_total = len(idx_list)
+        n_train = int(n_total * train_ratio)
+        n_val = int(n_total * val_ratio)
+
+        train_indices.extend(idx_list[:n_train])
+        val_indices.extend(idx_list[n_train : n_train + n_val])
+        test_indices.extend(idx_list[n_train + n_val :])
+
+    df_train = df.loc[train_indices].copy().reset_index(drop=True)
+    df_val = df.loc[val_indices].copy().reset_index(drop=True)
+    df_test = df.loc[test_indices].copy().reset_index(drop=True)
+
+    df_train["eval_split"] = "naive_train"
+    df_val["eval_split"] = "naive_val"
+    df_test["eval_split"] = "naive_test"
+
+    df_train["specimen_idx"] = 0
+    df_val["specimen_idx"] = 0
+    df_test["specimen_idx"] = 0
+
+    return df_train, df_val, df_test
+
+
+def create_naive_dataloaders(
+    df_train: pd.DataFrame,
+    df_val: pd.DataFrame,
+    df_test: pd.DataFrame,
+    batch_size: int = 64,
+    num_workers: int = 2 if os.name != "nt" else 0,
+) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """Tạo dataloaders cho Naive Image-Level Random Split."""
+    ds_train = TimberDataset(df_train, is_train=True)
+    ds_val = TimberDataset(df_val, is_train=False)
+    ds_test = TimberDataset(df_test, is_train=False)
+
+    loader_train = DataLoader(
+        ds_train, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(), drop_last=True if len(ds_train) > batch_size else False
+    )
+    loader_val = DataLoader(ds_val, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+    loader_test = DataLoader(ds_test, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+
+    return loader_train, loader_val, loader_test
+
+
 def build_train_transforms(image_size: int = 224) -> Callable:
     """Augmentation chuẩn hóa cho ảnh hiển vi/macro gỗ cắt ngang."""
     return transforms.Compose([
