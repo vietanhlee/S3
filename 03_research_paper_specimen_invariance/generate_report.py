@@ -157,6 +157,16 @@ Bảng dưới đây định lượng **Khoảng Cách Phóng Đại Hiệu Năn
 > **Kết luận kiểm toán**: Phân chia ngẫu nhiên theo từng ảnh làm độ chính xác bị **thổi phồng thêm +{inf_acc:.2f} pp**. Kết quả này chứng minh rằng việc đánh giá trên các phôi gỗ ngoại suy là bắt buộc trong giám định tư pháp, nhằm tránh ảo tưởng an toàn khi mô hình đối mặt với gỗ nhập lậu lạ ngoài hiện trường.
 """
 
+    # ImageNet Pretrained Anchor reference
+    imgnet_ref = summary.get("imagenet_pretrained_reference_sri", {})
+    imgnet_str = ""
+    if imgnet_ref and "imagenet_ref_sri_train_mlp" in imgnet_ref:
+        img_mlp = imgnet_ref["imagenet_ref_sri_train_mlp"]
+        img_lin = imgnet_ref.get("imagenet_ref_sri_train_linear", 0.0)
+        b_mlp_val = b_sum.get('sri_train_mlp', {}).get('mean', 0.0)
+        g_mlp_val = g_sum.get('sri_train_mlp', {}).get('mean', 0.0)
+        imgnet_str = f"\n* **Điểm neo tham chiếu (ImageNet Pretrained Anchor)**: Train SRI gốc (chưa fine-tune) = `{img_mlp:.4f}` (MLP) / `{img_lin:.4f}` (Linear). Huấn luyện ERM làm tăng mức rò rỉ này lên `{b_mlp_val:.4f}` (học thuộc phôi), trong khi GRL+vCLUB kéo giảm về `{g_mlp_val:.4f}`."
+
     # Table 2: Multi-Seed Aggregate
     table2_content = f"""## 2. Đối Chuẩn Tổng Hợp Đa Phân Vùng ({num_seeds} Seeds: Mean ± Std [95% CI])
 
@@ -178,7 +188,7 @@ Bảng dưới đây so sánh hiệu năng tổng hợp trung bình (Mean ± Std
 
 **Phân Tích Thống Kê Độ Ý Nghĩa (Statistical Significance across {num_seeds} Splits)**:
 * **Kiểm định tham số (Paired t-test trên Out-of-Specimen Acc)**: `{ttest_str}`
-* **Kiểm định phi tham số (Wilcoxon Signed-Rank Test trên Out-of-Specimen Acc)**: `{wilcoxon_str}`
+* **Kiểm định phi tham số (Wilcoxon Signed-Rank Test trên Out-of-Specimen Acc)**: `{wilcoxon_str}`{imgnet_str}
 """
 
     # Table 3: Per-Seed Breakdown
@@ -217,6 +227,27 @@ Bảng dưới đây so sánh hiệu năng tổng hợp trung bình (Mean ± Std
         per_seed_rows.append(row)
     per_seed_table = "\n".join(per_seed_rows)
 
+    hard_voucher_rows = []
+    for r in per_seed:
+        s = r.get("seed")
+        hvs = r.get("hard_vouchers_under_95", {})
+        if hvs:
+            for hv, hd in hvs.items():
+                hard_voucher_rows.append(
+                    f"| Seed {s} | Phôi `{hv}` | {hd.get('sample_count', 'N/A')} ảnh | {hd['baseline_acc']:.1f}% | {hd['gan_acc']:.1f}% | {hd['delta']:+.1f} pp |"
+                )
+
+    hard_voucher_table = ""
+    if hard_voucher_rows:
+        hard_voucher_table = f"""
+
+### 3.1. Phân Tích Các Mẫu Vật Thách Thức (Hard Physical Vouchers: Acc < 95%)
+Bảng dưới đây xác định các phôi gỗ cá thể có độ chính xác nhận dạng dưới 95% do biến thiên dị biệt về giải phẫu, màu sắc hoặc góc cưa xẻ:
+
+| Phân Vùng | Mã Phôi Gỗ | Số Lượng Ảnh | Acc Baseline | Acc Đối Kháng GAN | Chênh Lệch $\\Delta$ |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+""" + "\n".join(hard_voucher_rows[:15]) + ("\n| ... | ... | ... | ... | ... | *(Xem toàn bộ trong file JSON)* |" if len(hard_voucher_rows) > 15 else "")
+
     report_content = f"""# Báo Cáo Thực Nghiệm: Kiểm Toán Rò Rỉ Mẫu Vật & Đối Chuẩn Đa Phân Vùng Cấp Phôi Gỗ ({num_seeds} Seeds)
 
 **Tên nghiên cứu**: *Auditing and Mitigating Specimen-Level Shortcut Learning in Timber Forensics*  
@@ -245,7 +276,7 @@ Bảng dưới đây minh chứng chi tiết hiệu năng và khoảng tin cậy
 | Lần Phân Chia | Mô Hình | Val Acc (11 phôi) | Seen Test Acc (44 phôi) | Unseen Test Acc (55 phôi) [95% CI] | Unseen F1 | GGSL Gap (Seen - Unseen $\\downarrow$) | Train SRI (MLP $\\downarrow$) | Calibrated ECE ($\\downarrow$) |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 {per_seed_table}
-
+{hard_voucher_table}
 ---
 
 ## 4. Luận Giải Khoa Học Chuyên Sâu & Định Vị Đóng Góp (Scientific Discussion)

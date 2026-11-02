@@ -563,11 +563,50 @@ CANDIDATE_SEEDS = [
 ]
 
 
+def compute_pretrained_imagenet_sri_reference(
+    loader_train,
+    loader_unseen,
+    device,
+    backbone: str = "resnet18",
+    seed: int = 42,
+) -> Dict[str, float]:
+    """
+    Extracts embeddings using an un-finetuned, frozen ImageNet pretrained backbone.
+    Computes baseline SRI probes to serve as an empirical anchor for specimen recoverability,
+    proving whether ERM training increases specimen shortcut learning over initial inductive bias.
+    """
+    print(f"\n[*] Computing Pretrained ImageNet SRI Reference Anchor ({backbone} ImageNet Weights)...")
+    raw_model = StandardBaselineModel(
+        backbone_name=backbone,
+        num_classes=len(TARGET_SPECIES),
+        pretrained=True
+    ).to(device)
+    raw_model.eval()
+
+    train_res = extract_embeddings_and_predictions(raw_model, loader_train, device)
+    unseen_res = extract_embeddings_and_predictions(raw_model, loader_unseen, device)
+
+    sri_tr_lin, sri_tr_mlp = compute_sri_probes(train_res["embeddings"], train_res["specimens"], seed=seed)
+    sri_un_lin, sri_un_mlp = compute_sri_probes(unseen_res["embeddings"], unseen_res["specimens"], seed=seed)
+
+    del raw_model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    print(f"    [ImageNet Anchor] Train SRI (MLP): {sri_tr_mlp:.4f} | Unseen SRI (MLP): {sri_un_mlp:.4f}")
+    return {
+        "imagenet_ref_sri_train_linear": float(sri_tr_lin),
+        "imagenet_ref_sri_train_mlp": float(sri_tr_mlp),
+        "imagenet_ref_sri_unseen_linear": float(sri_un_lin),
+        "imagenet_ref_sri_unseen_mlp": float(sri_un_mlp),
+    }
+
+
 def train_naive_random_leakage_baseline(
     df_raw: pd.DataFrame,
     device,
     backbone: str = "resnet18",
-    epochs: int = 15,
+    epochs: int = 17,
     lr: float = 3e-4,
     seed: int = 42,
     batch_size: int = 64,
@@ -668,7 +707,7 @@ def main():
                 df_raw,
                 device=device,
                 backbone=args.backbone,
-                epochs=min(15, args.epochs),
+                epochs=args.epochs,
                 lr=args.lr,
                 seed=active_seeds[0],
                 batch_size=args.batch_size,
@@ -677,6 +716,9 @@ def main():
             print(f"[!] Warning on Leakage Audit run: {e}")
 
     results_by_seed = []
+    imagenet_ref_sri = None
+    manifest_dir = out_dir / "manifests"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
 
     # Step 3: Loop through voucher-level splits
     for seed_idx, seed in enumerate(active_seeds, 1):
@@ -695,6 +737,21 @@ def main():
             val_vouchers_per_species=args.val_vouchers_per_species,
         )
 
+        # Export split manifest for full audit transparency and reproducibility
+        manifest_rows = []
+        for part_name, part_df in [("train", df_train), ("val", df_val), ("seen_test", df_seen_test), ("unseen_test", df_unseen)]:
+            for _, item_row in part_df.iterrows():
+                manifest_rows.append({
+                    "seed": seed,
+                    "split": part_name,
+                    "taxon_name": item_row["taxon_name"],
+                    "voucher_id": item_row["specimen_id"],
+                    "image_path": str(item_row["image_path"]),
+                })
+        manifest_path = manifest_dir / f"voucher_split_manifest_seed_{seed}.csv"
+        pd.DataFrame(manifest_rows).to_csv(manifest_path, index=False)
+        print(f"    [Manifest Export] Exported seed {seed} split manifest ({len(manifest_rows):,} images) to: {manifest_path.name}")
+
         # 3. Create loaders for all sets
         loader_train, loader_val, loader_seen_test, loader_unseen, info = create_seed_dataloaders(
             df_train,
@@ -704,6 +761,16 @@ def main():
             species_specimen_mask=species_specimen_mask,
             batch_size=args.batch_size,
         )
+
+        # Compute Pretrained ImageNet SRI Reference Anchor once on the first split
+        if seed_idx == 1 and imagenet_ref_sri is None:
+            try:
+                imagenet_ref_sri = compute_pretrained_imagenet_sri_reference(
+                    loader_train, loader_unseen, device=device, backbone=args.backbone, seed=seed
+                )
+            except Exception as e:
+                print(f"[!] Warning on computing ImageNet SRI reference: {e}")
+                imagenet_ref_sri = {}
 
         # 4. Train Standard Baseline
         baseline_model = train_baseline_one_seed(
@@ -753,6 +820,32 @@ def main():
             seed=seed,
         )
 
+        # 9. Per-Voucher Profiling & Failure Case Analysis
+        u_targets = base_metrics["_unseen_targets"]
+        u_specimens = base_metrics["_unseen_specimens"]
+        p_b = base_metrics["_unseen_predictions"]
+        p_g = gan_metrics["_unseen_predictions"]
+        unique_v = np.unique(u_specimens)
+
+        voucher_profiles = {}
+        for v in unique_v:
+            v_mask = (u_specimens == v)
+            n_samples = int(np.sum(v_mask))
+            acc_b = float(np.mean(p_b[v_mask] == u_targets[v_mask]) * 100.0) if n_samples > 0 else 0.0
+            acc_g = float(np.mean(p_g[v_mask] == u_targets[v_mask]) * 100.0) if n_samples > 0 else 0.0
+            voucher_profiles[str(v)] = {
+                "sample_count": n_samples,
+                "baseline_acc": acc_b,
+                "gan_acc": acc_g,
+                "delta": acc_g - acc_b,
+            }
+
+        hard_vouchers = {v: d for v, d in voucher_profiles.items() if d["baseline_acc"] < 95.0 or d["gan_acc"] < 95.0}
+        if hard_vouchers:
+            print(f"    [Specimen Profiling] Hard Vouchers with Acc < 95% in Seed {seed}:")
+            for hv, hd in hard_vouchers.items():
+                print(f"      - Voucher {hv}: Baseline = {hd['baseline_acc']:.1f}% | GAN = {hd['gan_acc']:.1f}% (Δ = {hd['delta']:+.1f} pp)")
+
         # Print detailed summary for this seed
         print(f"\n--- [Seed {seed} Executive Summary: Stress-Test 55 Unseen Vouchers] ---")
         print(f"  Baseline -> Val Acc: {base_metrics['val_top1_acc']:.2f}% | Seen Test Acc: {base_metrics['seen_top1_acc']:.2f}% | Unseen Test Acc: {base_metrics['unseen_top1_acc']:.2f}% (95% CI: [{boot_ci.get('baseline_unseen_acc_ci95', [0,0])[0]:.2f}%, {boot_ci.get('baseline_unseen_acc_ci95', [0,0])[1]:.2f}%]) | ECE: {base_metrics['unseen_ece']:.2f}%")
@@ -768,6 +861,8 @@ def main():
             "baseline": clean_base,
             "gan": clean_gan,
             "voucher_cluster_bootstrap": boot_ci,
+            "hard_vouchers_under_95": hard_vouchers,
+            "per_voucher_profiles": voucher_profiles,
         })
 
     # Step 4: Compute aggregate statistics across all seeds
@@ -869,6 +964,7 @@ def main():
         stat_report["wilcoxon_acc"] = {"error": str(e)}
 
     summary["statistical_tests"] = stat_report
+    summary["imagenet_pretrained_reference_sri"] = imagenet_ref_sri or {}
 
     # Step 5: Specimen Leakage Inflation Gap Analysis
     leakage_summary = {}

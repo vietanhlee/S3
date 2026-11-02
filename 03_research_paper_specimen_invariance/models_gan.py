@@ -378,6 +378,9 @@ class AdversarialInvariantGAN(nn.Module):
         }
 
         if specimen_labels is not None and species_labels is not None:
-            out["club_loss"] = self.club.compute_mi_loss(features, specimen_labels, species_labels)
+            if self.club_weight > 0.0:
+                out["club_loss"] = self.club.compute_mi_loss(features, specimen_labels, species_labels)
+            else:
+                out["club_loss"] = torch.tensor(0.0, device=features.device)
 
         return out

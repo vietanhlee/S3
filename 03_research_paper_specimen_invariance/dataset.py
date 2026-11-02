@@ -312,7 +312,7 @@ def split_dataset_by_seed(
 def split_dataset_naive_random(
     df: pd.DataFrame,
     seed: int = 42,
-    train_ratio: float = 0.80,
+    train_ratio: float = 0.40,
     val_ratio: float = 0.10,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
@@ -320,6 +320,10 @@ def split_dataset_naive_random(
     BỎ QUA hoàn toàn ranh giới phôi gỗ vật lý (Same-Specimen Texture Leakage).
     Ảnh từ cùng một thanh gỗ rải rác ở cả Train, Val và Test.
     Dùng để chứng minh thực nghiệm mức độ phồng hiệu năng (Performance Inflation Gap).
+
+    Tỷ lệ phân chia được đặt đúng 40% Train, 10% Val, 50% Test:
+    Tương đương tuyệt đối với số lượng mẫu của Voucher Holdout Split (44 phôi / 11 phôi / 55 phôi),
+    loại bỏ hoàn toàn biến gây nhiễu về kích thước tập huấn luyện.
     """
     rng = np.random.RandomState(seed)
     train_indices, val_indices, test_indices = [], [], []
