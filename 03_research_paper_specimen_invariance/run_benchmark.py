@@ -18,6 +18,8 @@ Outputs:
   - EXPERIMENT_RESULTS_REPORT.md
 """
 
+from __future__ import annotations
+
 import os
 import sys
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -37,6 +39,7 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

@@ -349,28 +349,6 @@ def split_dataset_naive_random(
     return df_train, df_val, df_test
 
 
-def create_naive_dataloaders(
-    df_train: pd.DataFrame,
-    df_val: pd.DataFrame,
-    df_test: pd.DataFrame,
-    batch_size: int = 64,
-    num_workers: int = 2 if os.name != "nt" else 0,
-) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """Tạo dataloaders cho Naive Image-Level Random Split."""
-    ds_train = TimberDataset(df_train, is_train=True)
-    ds_val = TimberDataset(df_val, is_train=False)
-    ds_test = TimberDataset(df_test, is_train=False)
-
-    loader_train = DataLoader(
-        ds_train, batch_size=batch_size, shuffle=True, num_workers=num_workers,
-        pin_memory=torch.cuda.is_available(), drop_last=True if len(ds_train) > batch_size else False
-    )
-    loader_val = DataLoader(ds_val, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
-    loader_test = DataLoader(ds_test, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
-
-    return loader_train, loader_val, loader_test
-
-
 def build_train_transforms(image_size: int = 224) -> Callable:
     """Augmentation chuẩn hóa cho ảnh hiển vi/macro gỗ cắt ngang."""
     return transforms.Compose([
@@ -495,6 +473,28 @@ def create_seed_dataloaders(
     }
 
     return loader_train, loader_val, loader_seen_test, loader_unseen, info
+
+
+def create_naive_dataloaders(
+    df_train: pd.DataFrame,
+    df_val: pd.DataFrame,
+    df_test: pd.DataFrame,
+    batch_size: int = 64,
+    num_workers: int = 2 if os.name != "nt" else 0,
+) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """Tạo dataloaders cho Naive Image-Level Random Split."""
+    ds_train = TimberDataset(df_train, is_train=True)
+    ds_val = TimberDataset(df_val, is_train=False)
+    ds_test = TimberDataset(df_test, is_train=False)
+
+    loader_train = DataLoader(
+        ds_train, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(), drop_last=True if len(ds_train) > batch_size else False
+    )
+    loader_val = DataLoader(ds_val, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+    loader_test = DataLoader(ds_test, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+
+    return loader_train, loader_val, loader_test
 
 
 def create_dataloaders(
