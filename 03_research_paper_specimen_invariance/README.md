@@ -62,8 +62,8 @@ flowchart TD
 03_research_paper_specimen_invariance/
 ├── README.md                          # Tài liệu hướng dẫn & giải trình khoa học toàn diện
 ├── requirements.txt                   # Danh mục thư viện phụ thuộc
-├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, 10 Seeds, Leakage Audit, ResNet-18)
-├── run_all.sh                         # 1-Click Master Bash Script (Kaggle / Linux GPU - Mặc định 10 Seeds, ResNet-18)
+├── run_benchmark.py                   # Master Benchmark Pipeline (Dynamic 4-partition, 9 Seeds, Leakage Audit, ResNet-18)
+├── run_all.sh                         # 1-Click Master Bash Script (Kaggle / Linux GPU - Mặc định 9 Seeds, ResNet-18)
 │
 ├── dataset.py                         # Module Dataset: Quét ảnh đĩa, Naive Random Split & Dynamic Voucher Split
 ├── models_gan.py                      # Kiến trúc: ResNet-18 Baseline, Masked Softmax GRL, Vectorized CLUB, Temperature Scaling
@@ -98,8 +98,8 @@ Thực nghiệm được triển khai trên 11 loài họ Đậu Fabaceae sạch
 
 ## 💻 4. Hướng dẫn Lệnh Chạy (Terminal Commands)
 
-### Lệnh 1: Chạy 1-Click Toàn bộ Thực nghiệm 10 Seeds trên Kaggle GPU (T4 / P100)
-Chạy script bash tự động tích hợp sẵn cả Leakage Audit và 10 Seeds:
+### Lệnh 1: Chạy 1-Click Toàn bộ Thực nghiệm 9 Seeds trên Kaggle GPU (T4 / P100)
+Chạy script bash tự động tích hợp sẵn cả Leakage Audit và 9 Seeds:
 ```bash
 # Trên Kaggle hoặc Linux GPU:
 bash run_all.sh
@@ -109,10 +109,10 @@ bash run_all.sh
 ```bash
 python run_benchmark.py \
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \
-    --num_seeds 10 \
+    --num_seeds 9 \
     --test_vouchers_per_species 5 \
     --val_vouchers_per_species 1 \
-    --epochs 17 \
+    --epochs 15 \
     --batch_size 64 \
     --lr 3e-4 \
     --adv_weight 0.05 \

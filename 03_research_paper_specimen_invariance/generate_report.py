@@ -320,13 +320,13 @@ Dù không làm tăng vọt Accuracy, khuôn khổ đối kháng **GRL + Vectori
 # Trên Kaggle / Linux:
 bash run_all.sh
 
-# Hoặc chạy trực tiếp script Python với 10 splits:
+# Hoặc chạy trực tiếp script Python với {num_seeds} splits:
 python run_benchmark.py \\
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \\
     --num_seeds {num_seeds} \\
     --test_vouchers_per_species 5 \\
     --val_vouchers_per_species 1 \\
-    --epochs {meta.get('epochs', 17)} \\
+    --epochs {meta.get('epochs', 15)} \\
     --batch_size 64 \\
     --lr 3e-4 \\
     --adv_weight 0.05 \\

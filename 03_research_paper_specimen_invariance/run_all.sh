@@ -3,7 +3,7 @@
 # run_all.sh
 # Master 1-Click Multi-Seed Execution Script for Specimen-Invariant Timber Benchmark
 # Directly scans: /kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3
-# Evaluates 10 Seeds (Default) with Dynamic Per-Seed Holdout Partitioning
+# Evaluates 9 Seeds (Default) with Dynamic Per-Seed Holdout Partitioning
 # Evaluates: Naive Random Leakage Audit, Val (11), Seen Test (44), and Unseen Test (55)
 # Backbone: ResNet-18 (Default) | Device: CUDA (Kaggle T4 / P100)
 # ==============================================================================
@@ -17,7 +17,7 @@ cd "$SCRIPT_DIR"
 
 echo "================================================================================"
 echo "  VOUCHER-AWARE TIMBER FORENSICS BENCHMARK & SPECIMEN LEAKAGE AUDIT"
-echo "  Protocol: Stress-Test 50% Specimen Holdout (10 Random Splits)"
+echo "  Protocol: Stress-Test 50% Specimen Holdout (9 Random Splits)"
 echo "  Splits  : Train (44 vouchers) | Val (11 vouchers) | Test (55 vouchers = 5/sp)"
 echo "  Taxa    : 11 Clean Fabaceae Species (110 physical vouchers)"
 echo "  Backbone: ResNet-18 (Default) | Device: CUDA (Kaggle T4/P100)"
@@ -28,10 +28,10 @@ echo "==========================================================================
 
 python run_benchmark.py \
     --image_root "/kaggle/input/datasets/b23dckh002lvitanh/s3-origin/S3" \
-    --num_seeds 10 \
+    --num_seeds 9 \
     --test_vouchers_per_species 5 \
     --val_vouchers_per_species 1 \
-    --epochs 17 \
+    --epochs 15 \
     --batch_size 64 \
     --lr 3e-4 \
     --adv_weight 0.05 \
@@ -42,6 +42,6 @@ python run_benchmark.py \
 
 echo ""
 echo "================================================================================"
-echo "[SUCCESS] 10-Seed Voucher Benchmark & Leakage Audit completed successfully!"
+echo "[SUCCESS] 9-Seed Voucher Benchmark & Leakage Audit completed successfully!"
 echo "Check publication report at: $SCRIPT_DIR/EXPERIMENT_RESULTS_REPORT.md"
 echo "================================================================================"

@@ -606,7 +606,7 @@ def train_naive_random_leakage_baseline(
     df_raw: pd.DataFrame,
     device,
     backbone: str = "resnet18",
-    epochs: int = 17,
+    epochs: int = 15,
     lr: float = 3e-4,
     seed: int = 42,
     batch_size: int = 64,
@@ -652,11 +652,11 @@ def train_naive_random_leakage_baseline(
 def parse_args():
     parser = argparse.ArgumentParser(description="Multi-Seed Specimen-Invariant Benchmark Pipeline")
     parser.add_argument("--image_root", type=str, default=DEFAULT_IMAGE_ROOT, help="Root folder of raw images")
-    parser.add_argument("--num_seeds", type=int, default=10, help="Number of random seeds/splits to evaluate (default: 10, recommended 10-20)")
+    parser.add_argument("--num_seeds", type=int, default=9, help="Number of random seeds/splits to evaluate (default: 9, recommended 9-20)")
     parser.add_argument("--seeds", type=int, nargs="+", default=None, help="Explicit list of random seeds (overrides --num_seeds if provided)")
     parser.add_argument("--test_vouchers_per_species", type=int, default=5, help="Number of unseen vouchers per species for Test (default: 5 = 55 vouchers, 50%% holdout)")
     parser.add_argument("--val_vouchers_per_species", type=int, default=1, help="Number of unseen vouchers per species for Val (default: 1 = 11 vouchers)")
-    parser.add_argument("--epochs", type=int, default=17, help="Training epochs per model (default: 17)")
+    parser.add_argument("--epochs", type=int, default=15, help="Training epochs per model (default: 15)")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     parser.add_argument("--adv_weight", type=float, default=0.05, help="GRL discriminator loss weight beta (default: 0.05)")
