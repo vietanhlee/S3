@@ -127,7 +127,7 @@ def generate_figure1():
                              ec="#A0D0B0", fc=c_bg_b, lw=1.5, ls="--")
     ax1.add_patch(panel_b)
 
-    ax1.text(5.0, 9.3, "(b) Proposed Specimen-Invariant Framework (Active Disentanglement)",
+    ax1.text(5.0, 9.3, "(b) Evaluated Specimen-Invariant Framework (Invariance Stress-Test)",
              ha="center", va="center", fontsize=12, fontweight="bold", color="#1B5E20")
 
     # Step 1: Input patches
@@ -157,28 +157,28 @@ def generate_figure1():
                                mutation_scale=15, lw=2, color=c_green)
     ax1.add_patch(arrow1_b)
 
-    # Step 3: Purified Latent space
-    box_z_b = FancyBboxPatch((1.5, 3.2), 7.0, 2.0, boxstyle="round,pad=0.15",
+    # Step 3: Latent space under Invariant Regularization
+    box_z_b = FancyBboxPatch((0.8, 3.2), 8.4, 2.0, boxstyle="round,pad=0.15",
                              ec="#2E7D32", fc="#E8F5E9", lw=1.5)
     ax1.add_patch(box_z_b)
-    ax1.text(5.0, 4.5, r"Disentangled Invariant Latent Space: $Z \sim E_\theta(X)$",
+    ax1.text(5.0, 4.5, r"Latent Space under GRL + vCLUB: $Z \sim E_\theta(X)$",
              ha="center", va="center", fontsize=10, fontweight="bold", color="#1B5E20")
-    ax1.text(5.0, 3.8, r"Specimen recoverability $\mathrm{SRI} \to 0.118$ (Residual artifacts erased)" "\n"
-                       r"Exclusively retains true IAWA microscopic anatomical morphology",
+    ax1.text(5.0, 3.8, r"Train SRI remains $0.5380$ (vs Baseline $0.5261$ & ImageNet Anchor $0.5667$)" "\n"
+                       r"Specimen information is not erased; fine anatomical features conflict with GRL",
              ha="center", va="center", fontsize=8.5, color="#1B5E20")
 
     arrow2_b = FancyArrowPatch((7.5, 6.2), (6.5, 5.2), arrowstyle="-|>",
                                mutation_scale=15, lw=2, color="#0D47A1")
     ax1.add_patch(arrow2_b)
 
-    # Step 4: Generalization Outcome
-    box_out_b = FancyBboxPatch((1.0, 0.6), 8.0, 1.8, boxstyle="round,pad=0.15",
+    # Step 4: Generalization Outcome (Honest Negative Result)
+    box_out_b = FancyBboxPatch((0.6, 0.6), 8.8, 1.8, boxstyle="round,pad=0.15",
                                ec="#1B5E20", fc="#C8E6C9", lw=2.0)
     ax1.add_patch(box_out_b)
-    ax1.text(5.0, 1.7, "Strict Specimen-Disjoint Generalization & Field Triage Readiness",
+    ax1.text(5.0, 1.7, "Honest Out-of-Specimen Evaluation (50% Physical Voucher Holdout)",
              ha="center", va="center", fontsize=10, fontweight="bold", color="#1B5E20")
-    ax1.text(5.0, 1.0, "Closes Specimen Leakage Gap: Robust 89.25% Macro-F1 (90.45% LOSO_multi)\n"
-                       "Evidence-grade, specimen-invariant representations for customs triage",
+    ax1.text(5.0, 1.0, "Unseen Test Acc: 96.88% (GAN) vs 97.07% (Baseline ERM, p = 0.66)\n"
+                       "Minimax gradient conflicts; baseline ceiling & optical blur limit invariance gains",
              ha="center", va="center", fontsize=8.5, fontweight="bold", color="#004D40")
 
     arrow3_b = FancyArrowPatch((5.0, 3.2), (5.0, 2.4), arrowstyle="-|>",
@@ -338,14 +338,14 @@ def generate_figure3():
     Figure 3: Grad-CAM Explainability Comparison across 3 Key Forensic Taxa in Benchmark
     (a) Baseline Model (ERM / Focal Loss): High saliency fixated on saw marks, scratches, shadows
     (b) Specimen-Invariant Model: Saliency localized on IAWA diagnostic anatomical cellular morphology
-    Taxa included: Afzelia africana (CITES App. II), Pterocarpus macrocarpus (Non-CITES), Guibourtia ehie (Non-CITES)
+    Taxa included: Afzelia bella (CITES App. II), Pterocarpus erinaceus (CITES App. II), Guibourtia ehie (Non-CITES)
     """
     fig, axes = plt.subplots(2, 3, figsize=(13.5, 7.5), dpi=300)
     fig.patch.set_facecolor("#FFFFFF")
 
     taxa = [
-        ("Afzelia africana", "CITES Appendix II", "Aliform to Confluent Parenchyma & Large Solitary Pores"),
-        ("Pterocarpus macrocarpus", "Commercial Reference", "Wavy Banded Parenchyma & Diffuse-Porous Vessels"),
+        ("Afzelia bella", "CITES Appendix II", "Aliform to Confluent Parenchyma & Large Solitary Pores"),
+        ("Pterocarpus erinaceus", "CITES Appendix II", "Fine Wavy Banded Parenchyma & Storied Rays"),
         ("Guibourtia ehie", "Commercial Reference", "Marginal Zonate Parenchyma Bands & Fiber Ground")
     ]
 

@@ -1,4 +1,4 @@
-# Auditing and Mitigating Specimen-Level Shortcut Learning in Timber Forensics
+# Auditing Specimen Leakage and Evaluating Invariance Methods in Macroscopic Timber Forensics: An Empirical Benchmark and Honest Negative Results
 ## Research Paper 2: Voucher-Aware Evaluation Protocols, Leakage Audits, and Disentangled Invariant Representations
 
 [![Target Journal: Elsevier Pattern Recognition](https://img.shields.io/badge/Target_Journal-Elsevier_PR-blue.svg)]()
@@ -6,36 +6,36 @@
 [![Target Journal: Elsevier COMPAG](https://img.shields.io/badge/Target_Journal-Elsevier_COMPAG-green.svg)]()
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-Thư mục này chứa toàn bộ mã nguồn cấp sản xuất (production-grade), khung kiểm toán rò rỉ mẫu vật (**Specimen Leakage Audit**), giao thức đánh giá ngoại suy cấp phôi vật lý (**Voucher-Aware Multi-Split Benchmark: 10–20 Random Splits**) và phương pháp giảm thiểu bằng biểu diễn phân ly bất biến (**Adversarial Invariant Framework: Masked Softmax GRL + Variational CLUB Bottleneck** trên nền **ResNet-18**).
+Thư mục này chứa toàn bộ mã nguồn cấp sản xuất (production-grade), khung kiểm toán rò rỉ mẫu vật (**Specimen Leakage Audit**), giao thức đánh giá ngoại suy cấp phôi vật lý (**Voucher-Aware Multi-Split Benchmark: 9 Random Seeds**) và kiểm chứng thực nghiệm trung thực đối với phương pháp biểu diễn bất biến (**Adversarial Invariant Framework: Masked Softmax GRL + Variational CLUB Bottleneck** trên nền **ResNet-18**).
 
 ---
 
 ## 📌 1. Trọng Tâm Khoa Học & Định Vị Bài Báo (Scientific Narrative Pivot)
 
-Thay vì tuyên bố một mô hình GAN tăng vọt độ chính xác một cách thần kỳ trên một bài toán đã bão hòa, nghiên cứu này định vị lại trọng tâm khoa học vào hai đóng góp nền tảng:
+Thay vì phóng đại hiệu năng bằng các tuyên bố thiếu căn cứ, nghiên cứu này tập trung vào kiểm toán rò rỉ mẫu vật thực chất và công bố kết quả âm tính trung thực (honest negative results):
 
 ```mermaid
 flowchart TD
     subgraph Problem["Vấn Đề Cốt Lõi: Shortcut Learning Cấp Mẫu Vật"]
         A["Bộ dữ liệu ảnh gỗ vi thể vĩ mô<br/>(Nhiều ảnh cắt từ cùng 1 phôi vật lý)"]
         B["Naive Image-Level Random Split<br/>(Ảnh cùng phôi rải vào cả Train và Test)"]
-        C["Ảo Tưởng An Toàn (Optimism Bias)<br/>Acc 'ảo' 99.8% - 100%<br/>Mạng học thuộc vết xước/màu sắc của phôi"]
+        C["Ảo Tưởng An Toàn (Optimism Bias)<br/>Acc 'ảo' 99.55%<br/>Mạng học thuộc vết xước/màu sắc của phôi"]
         A --> B --> C
     end
 
     subgraph Audit["Giải Pháp 1: Giao Thức Đánh Giá Chống Rò Rỉ"]
-        D["Kiểm Toán Rò Rỉ Mẫu Vật (Leakage Audit)<br/>Đo khoảng cách phóng đại hiệu năng (Inflation Gap)"]
+        D["Kiểm Toán Rò Rỉ Mẫu Vật (Leakage Audit)<br/>Đo khoảng cách phóng đại hiệu năng (+2.48 pp, p < 0.001)"]
         E["Voucher-Aware Stress-Test (50% Holdout)<br/>55 phôi kiểm thử hoàn toàn ngoại suy"]
-        F["Thống Kê Vững Chắc Cấp Phôi (Statistical Power)<br/>10-20 Splits, Wilcoxon Test & Cluster Bootstrap (B=1000)"]
+        F["Thống Kê Vững Chắc Cấp Phôi (Statistical Power)<br/>9 Seeds, Wilcoxon Test & Cluster Bootstrap (B=1000)"]
         C --> D
         D --> E --> F
     end
 
-    subgraph Mitigation["Giải Pháp 2: Biểu Diễn Bất Biến Giảm Thiểu (GRL + vCLUB)"]
+    subgraph Mitigation["Giải Pháp 2: Đánh Giá Trung Thực Phương Pháp Bất Biến"]
         G["Extractor E_θ (ResNet-18)"]
         H["Conditioned Discriminator D_ψ (Masked Softmax)"]
         I["Variational CLUB Bottleneck min I(Z; S | Y)"]
-        J["Hiệu Chuẩn Tin Cậy Post-hoc Temperature Scaling"]
+        J["Hiệu Chuẩn Tin Cậy Post-hoc Temperature Scaling (ECE 1.58% - 1.93%)"]
         E --> G
         G --> H
         G --> I
@@ -44,15 +44,17 @@ flowchart TD
 ```
 
 ### Các phát hiện và đóng góp chính:
-1. **Kiểm toán định lượng hiện tượng rò rỉ mẫu vật (Specimen Leakage Audit)**:
-   - Chứng minh thực nghiệm rằng phương pháp chia ngẫu nhiên cấp ảnh (*Naive Random Split*) làm **phóng đại độ chính xác (Inflation Gap)** do mạng nơ-ron học thuộc đặc trưng cá thể phôi (*Specimen Shortcut Phenotype Bias - SSPB*).
-2. **Trần hiệu năng giải phẫu họ Đậu (Anatomical Margin & Ceiling Effect)**:
-   - Ngay cả khi stress-test trên 55 phôi lạ (50% holdout), mô hình Baseline ResNet-18 vẫn đạt ~98.5% - 99.0% do khoảng cách phân tách cấu trúc giải phẫu vĩ mô liên loài (mô mềm, vòng mạch, tia gỗ) giữa 11 loài Fabaceae sạch là rất lớn.
-   - Do đó, việc cải thiện độ chính xác phân loại của mô hình đối kháng GRL+vCLUB chỉ thể hiện xu hướng nhẹ và chưa đạt ý nghĩa thống kê ($p > 0.05$), phản ánh một sự thật khách quan thay vì gượng ép số liệu.
-3. **Giá trị cốt lõi của Biểu diễn Bất biến (Disentanglement & Invariance Benefits)**:
-   - **Xóa bỏ khoảng cách tổng quát hóa**: Kéo giảm Generalization Gap (GGSL) từ $+1.04\text{ pp}$ về $\approx 0\text{ pp}$.
-   - **Triệt tiêu rò rỉ danh tính thanh gỗ**: Chỉ số phục hồi mẫu vật (Train SRI) giảm rõ rệt, chứng minh không gian đặc trưng ẩn đã "quên" thanh gỗ cụ thể.
-   - **Hiệu chuẩn độ tin cậy an toàn**: Kết hợp Label Smoothing ($0.05$) và Post-hoc Temperature Scaling dập tắt sai số hiệu chuẩn ECE về mức an toàn ($< 1\%$).
+1. **Kiểm toán định lượng hiện tượng rò rỉ mẫu vật (Specimen Leakage Audit across 9 Seeds)**:
+   - Chứng minh thực nghiệm rằng phương pháp chia ngẫu nhiên cấp ảnh (*Naive Random Split*) làm **phóng đại độ chính xác thêm +2.48 pp [95% CI: +1.73, +3.23 pp]** ($p < 0.001$, từ 97.07% lên 99.55%) do mạng nơ-ron học thuộc đặc trưng cá thể phôi (*Specimen Shortcut Phenotype Bias - SSPB*).
+2. **Trần hiệu năng giải phẫu họ Đậu (Anatomical Margin & Baseline Ceiling)**:
+   - Khi stress-test trên 55 phôi lạ (50% holdout), mô hình Baseline ResNet-18 đạt chính xác **97.07% ± 0.95% [96.34%, 97.80%]** do khoảng cách phân tách cấu trúc giải phẫu vĩ mô liên loài giữa 11 loài Fabaceae sạch tương đối rõ ràng.
+   - Mô hình đối kháng GRL+vCLUB đạt **96.88% ± 0.99% [96.12%, 97.64%]** ($\Delta = -0.19\text{ pp}$, 95% CI [-1.16, +0.78] pp, paired t-test $p = 0.66$, Wilcoxon $p = 0.91$). Cả hai mô hình tương đương về mặt thống kê, không có sự vượt trội của GRL.
+3. **Báo cáo kết quả tiêu cực trung thực & Phân tích nguyên nhân gốc rễ (Honest Negative Results)**:
+   - **Generalization Gap (GGSL)**: Baseline đạt 2.74 pp so với GAN 2.82 pp ($\Delta = +0.08\text{ pp}$, $p > 0.05$). GRL không kéo giảm được GGSL.
+   - **Chỉ số rò rỉ mẫu vật (Train SRI)**: Baseline đạt 0.5261 so với GAN 0.5380 (điểm neo ImageNet chưa fine-tune là 0.5667). GRL không làm giảm thêm SRI so với ERM.
+   - **Xung đột tối ưu hóa đối kháng (Minimax Gradient Conflict)**: Gradient đối kháng triệt tiêu đặc trưng phôi đồng thời làm nhiễu các dấu hiệu vi thể quan trọng của loài, dẫn đến xung đột tối ưu.
+   - **Phân tích ca thất bại (Seed 456)**: Phôi 50 & 53 của *Guibourtia arnoldiana* có độ mờ quang học cao (Laplacian variance 113.8 & 152.1) bị phân loại sai sang *Guibourtia ehie*; GRL không thể khôi phục các chi tiết giải phẫu đã bị mất do mờ nét.
+   - **Hiệu chuẩn độ tin cậy**: Post-hoc Temperature Scaling trên Val ngoại suy đưa ECE về mức 1.58% - 1.93%.
 
 ---
 
